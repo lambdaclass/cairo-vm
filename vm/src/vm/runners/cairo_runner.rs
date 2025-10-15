@@ -524,6 +524,12 @@ impl CairoRunnerBuilder {
             .builtin_runners(self.builtin_runners)
             .segments(self.memory)
             .instruction_cache(self.instructions)
+            .disable_trace_padding(self.disable_trace_padding)
+            .trace(if self.enable_trace {
+                Some(Vec::<TraceEntry>::new())
+            } else {
+                None
+            })
             .build();
 
         Ok(CairoRunner {

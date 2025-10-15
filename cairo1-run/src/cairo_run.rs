@@ -44,7 +44,7 @@ use cairo_vm::{
     },
     vm::{
         errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
-        runners::cairo_runner::{CairoRunner, RunResources, RunnerMode},
+        runners::cairo_runner::{CairoRunner, CairoRunnerBuilder, RunResources, RunnerMode},
         vm_core::VirtualMachine,
     },
     Felt252,
@@ -250,14 +250,16 @@ pub fn cairo_run_program(
         RunnerMode::ExecutionMode
     };
 
-    let mut runner = CairoRunner::new_v2(
+    let mut runner_builder = CairoRunnerBuilder::new(
         &program,
         cairo_run_config.layout,
         cairo_run_config.dynamic_layout_params.clone(),
         runner_mode,
-        cairo_run_config.trace_enabled,
-        false,
     )?;
+    runner_builder.enable_trace(cairo_run_config.trace_enabled);
+
+    let mut runner = runner_builder.build()?;
+
     let end = runner.initialize(cairo_run_config.proof_mode)?;
     load_arguments(&mut runner, &cairo_run_config, main_func)?;
 
