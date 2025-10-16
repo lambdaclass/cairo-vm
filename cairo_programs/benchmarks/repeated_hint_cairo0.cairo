@@ -13,7 +13,7 @@ func main{range_check_ptr: felt}() {
 }
 
 func recursive_hint{range_check_ptr}(n: felt) {
-    if (n == 1000000) {
+    if (n == 100000) {
         return ();
     }
 

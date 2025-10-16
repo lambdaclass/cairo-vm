@@ -36,7 +36,7 @@ func inv_mod_p_uint512{range_check_ptr}(x: Uint512) -> Uint256 {
 }
 
 func recursive_hint{range_check_ptr: felt}(n: felt) {
-    if (n == 1000000) {
+    if (n == 100000) {
         return ();
     }
     let x = Uint512(101, 2, 15, 61);
