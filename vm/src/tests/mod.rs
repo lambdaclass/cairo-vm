@@ -10,7 +10,7 @@ use crate::Felt252;
 use crate::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
     types::{builtin_name::BuiltinName, relocatable::MaybeRelocatable},
-    vm::runners::cairo_runner::{CairoArg, CairoRunner},
+    vm::runners::cairo_runner::{CairoArg, CairoRunner, CairoRunnerBuilder, RunnerMode},
 };
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
@@ -110,32 +110,30 @@ fn run_cairo_1_entrypoint(
     let contract_class: CasmContractClass = serde_json::from_slice(program_content).unwrap();
     let mut hint_processor =
         Cairo1HintProcessor::new(&contract_class.hints, RunResources::default(), false);
+    let program_builtins = get_casm_contract_builtins(&contract_class, entrypoint_offset);
 
-    let mut runner = CairoRunner::new(
+    let mut runner_builder = CairoRunnerBuilder::new(
         &(contract_class.clone().try_into().unwrap()),
         LayoutName::all_cairo,
         None,
-        false,
-        false,
-        false,
+        RunnerMode::ExecutionMode,
     )
     .unwrap();
-
-    let program_builtins = get_casm_contract_builtins(&contract_class, entrypoint_offset);
-    runner
-        .initialize_function_runner_cairo_1(&program_builtins)
+    runner_builder.initialize_base_segments();
+    runner_builder
+        .initialize_builtin_runners(&program_builtins)
         .unwrap();
+    runner_builder.initialize_builtin_segments();
+    let mut runner = runner_builder.build().unwrap();
 
     // Implicit Args
     let syscall_segment = MaybeRelocatable::from(runner.vm.add_memory_segment());
-
-    let builtins = runner.get_program_builtins();
 
     let builtin_segment: Vec<MaybeRelocatable> = runner
         .vm
         .get_builtin_runners()
         .iter()
-        .filter(|b| builtins.contains(&b.name()))
+        .filter(|b| program_builtins.contains(&b.name()))
         .flat_map(|b| b.initial_stack())
         .collect();
 
@@ -218,31 +216,30 @@ fn run_cairo_1_entrypoint_with_run_resources(
     hint_processor: &mut Cairo1HintProcessor,
     args: &[MaybeRelocatable],
 ) -> Result<Vec<Felt252>, CairoRunError> {
-    let mut runner = CairoRunner::new(
+    let program_builtins = get_casm_contract_builtins(&contract_class, entrypoint_offset);
+
+    let mut runner_builder = CairoRunnerBuilder::new(
         &(contract_class.clone().try_into().unwrap()),
         LayoutName::all_cairo,
         None,
-        false,
-        false,
-        false,
+        RunnerMode::ExecutionMode,
     )
     .unwrap();
-
-    let program_builtins = get_casm_contract_builtins(&contract_class, entrypoint_offset);
-    runner
-        .initialize_function_runner_cairo_1(&program_builtins)
+    runner_builder.initialize_base_segments();
+    runner_builder
+        .initialize_builtin_runners(&program_builtins)
         .unwrap();
+    runner_builder.initialize_builtin_segments();
+    let mut runner = runner_builder.build().unwrap();
 
     // Implicit Args
     let syscall_segment = MaybeRelocatable::from(runner.vm.add_memory_segment());
-
-    let builtins = runner.get_program_builtins();
 
     let builtin_segment: Vec<MaybeRelocatable> = runner
         .vm
         .get_builtin_runners()
         .iter()
-        .filter(|b| builtins.contains(&b.name()))
+        .filter(|b| program_builtins.contains(&b.name()))
         .flat_map(|b| b.initial_stack())
         .collect();
 
