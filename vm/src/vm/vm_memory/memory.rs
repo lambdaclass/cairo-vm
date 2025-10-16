@@ -1,4 +1,4 @@
-use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*};
+use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*, rc::Rc};
 
 use crate::types::errors::math_errors::MathError;
 use crate::vm::runners::cairo_pie::CairoPieMemory;
@@ -106,6 +106,7 @@ impl From<MemoryCell> for MaybeRelocatable {
     }
 }
 
+#[derive(Clone)]
 pub struct AddressSet(Vec<bv::BitVec>);
 
 impl AddressSet {
@@ -156,6 +157,7 @@ impl AddressSet {
     }
 }
 
+#[derive(Clone)]
 pub struct Memory {
     pub(crate) data: Vec<Vec<MemoryCell>>,
     /// Temporary segments are used when it's necessary to write data, but we
@@ -171,7 +173,7 @@ pub struct Memory {
     #[cfg(feature = "extensive_hints")]
     pub(crate) relocation_rules: HashMap<usize, MaybeRelocatable>,
     pub validated_addresses: AddressSet,
-    validation_rules: Vec<Option<ValidationRule>>,
+    validation_rules: Vec<Option<Rc<ValidationRule>>>,
 }
 
 impl Memory {
@@ -498,7 +500,8 @@ impl Memory {
             self.validation_rules
                 .resize_with(segment_index + 1, || None);
         }
-        self.validation_rules.insert(segment_index, Some(rule));
+        self.validation_rules
+            .insert(segment_index, Some(Rc::new(rule)));
     }
 
     fn validate_memory_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
@@ -742,6 +745,22 @@ impl Memory {
     {
         self.insert(key, val)?;
         self.mark_as_accessed(key);
+        Ok(())
+    }
+
+    /// Preallocates memory for `n` more elements in the given segment.
+    ///
+    /// Why not using using `reserve`? When cloning a vector, the capacity
+    /// of the clone is not necessary equal to the capacity of the original.
+    /// Because of this, to actually preallocate memory in the builder, we need
+    /// to insert empty memory cells.
+    pub fn preallocate_segment(
+        &mut self,
+        segment: Relocatable,
+        n: usize,
+    ) -> Result<(), MemoryError> {
+        let segment = self.get_segment(segment)?;
+        segment.extend((0..n).map(|_| MemoryCell::NONE));
         Ok(())
     }
 }

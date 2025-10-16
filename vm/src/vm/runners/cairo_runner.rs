@@ -4,15 +4,22 @@ use crate::{
     math_utils::safe_div_usize,
     stdlib::{
         any::Any,
+        cell::RefCell,
         collections::{BTreeMap, HashMap, HashSet},
+        mem,
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
         rc::Rc,
     },
-    types::{builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName},
+    types::{
+        builtin_name::BuiltinName, instruction::Instruction, layout::CairoLayoutParams,
+        layout_name::LayoutName,
+    },
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry, TraceEntry},
+        vm_core::VirtualMachineBuilder,
+        vm_memory::memory_segments::MemorySegmentManager,
     },
     Felt252,
 };
@@ -49,6 +56,7 @@ use crate::{
 use num_integer::div_rem;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
+use starknet_crypto::Signature;
 
 use super::{builtin_runner::ModBuiltinRunner, cairo_pie::CairoPieAdditionalData};
 use super::{
@@ -141,6 +149,458 @@ impl ResourceTracker for RunResources {
     }
 }
 
+/// Handles the creation of a CairoRunner
+///
+/// This structure can be cloned. This allows to compute the initial state once,
+/// and execute it many times. The following elements can be cached:
+/// - Compiled hints
+/// - Decoded instructions
+/// - Loaded program segment
+pub struct CairoRunnerBuilder {
+    program: Program,
+    layout: CairoLayout,
+    runner_mode: RunnerMode,
+    // Flags.
+    enable_trace: bool,
+    disable_trace_padding: bool,
+    allow_missing_builtins: bool,
+    // Set after initializing builtin runners.
+    builtin_runners: Vec<BuiltinRunner>,
+    // Set after initializing segments.
+    program_base: Option<Relocatable>,
+    execution_base: Option<Relocatable>,
+    memory: MemorySegmentManager,
+    // Set after loading program.
+    loaded_program: bool,
+    // Set after compiling hints.
+    // NOTE: To avoid breaking the API, we are wrapping the hint in an
+    // Rc<Box<T>>. This is because the current API expects a Box, but we need an
+    // Rc to make it clonable
+    hints: Option<Vec<Rc<Box<dyn Any>>>>,
+    // Set after loading instruction cache.
+    instructions: Vec<Option<Instruction>>,
+}
+
+impl CairoRunnerBuilder {
+    // TODO: Determine if these fields should be set with different functions,
+    // instead of passing them to `new`.
+    pub fn new(
+        program: &Program,
+        layout_name: LayoutName,
+        dynamic_layout_params: Option<CairoLayoutParams>,
+        runner_mode: RunnerMode,
+    ) -> Result<CairoRunnerBuilder, RunnerError> {
+        let layout = match layout_name {
+            LayoutName::plain => CairoLayout::plain_instance(),
+            LayoutName::small => CairoLayout::small_instance(),
+            LayoutName::dex => CairoLayout::dex_instance(),
+            LayoutName::recursive => CairoLayout::recursive_instance(),
+            LayoutName::starknet => CairoLayout::starknet_instance(),
+            LayoutName::starknet_with_keccak => CairoLayout::starknet_with_keccak_instance(),
+            LayoutName::recursive_large_output => CairoLayout::recursive_large_output_instance(),
+            LayoutName::recursive_with_poseidon => CairoLayout::recursive_with_poseidon(),
+            LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
+            LayoutName::all_cairo_stwo => CairoLayout::all_cairo_stwo_instance(),
+            LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
+            LayoutName::dynamic => {
+                let params =
+                    dynamic_layout_params.ok_or(RunnerError::MissingDynamicLayoutParams)?;
+                CairoLayout::dynamic_instance(params)
+            }
+        };
+
+        Ok(CairoRunnerBuilder {
+            program: program.clone(),
+            layout,
+            enable_trace: false,
+            disable_trace_padding: false,
+            allow_missing_builtins: false,
+            runner_mode,
+            builtin_runners: Vec::new(),
+            program_base: None,
+            execution_base: None,
+            memory: MemorySegmentManager::new(),
+            loaded_program: false,
+            hints: None,
+            instructions: Vec::new(),
+        })
+    }
+
+    pub fn enable_trace(&mut self, v: bool) {
+        self.enable_trace = v;
+    }
+    pub fn disable_trace_padding(&mut self, v: bool) {
+        self.disable_trace_padding = v;
+    }
+    pub fn allow_missing_builtins(&mut self, v: bool) {
+        self.allow_missing_builtins = v;
+    }
+
+    fn is_proof_mode(&self) -> bool {
+        self.runner_mode == RunnerMode::ProofModeCanonical
+            || self.runner_mode == RunnerMode::ProofModeCairo1
+    }
+
+    pub fn get_program_base(&self) -> Option<Relocatable> {
+        self.program_base
+    }
+
+    pub fn add_memory_segment(&mut self) -> Relocatable {
+        self.memory.add()
+    }
+
+    /// *Initializes* all the builtin supported by the current layout, but only
+    /// *includes* the builtins required by the program.
+    ///
+    /// Note that *initializing* a builtin implies creating a runner for it,
+    /// and *including* a builtin refers to enabling the builtin runner flag:
+    /// `included`.
+    ///
+    /// Analogue to [CairoRunner::initialize_builtins]
+    pub fn initialize_builtin_runners_for_layout(&mut self) -> Result<(), RunnerError> {
+        let builtin_ordered_list = vec![
+            BuiltinName::output,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::ecdsa,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op,
+            BuiltinName::keccak,
+            BuiltinName::poseidon,
+            BuiltinName::range_check96,
+            BuiltinName::add_mod,
+            BuiltinName::mul_mod,
+        ];
+        if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
+            return Err(RunnerError::DisorderedBuiltins);
+        };
+        let mut program_builtins: HashSet<&BuiltinName> = self.program.builtins.iter().collect();
+
+        if self.layout.builtins.output {
+            let included = program_builtins.remove(&BuiltinName::output);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(OutputBuiltinRunner::new(included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.pedersen.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::pedersen);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(HashBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.range_check.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::range_check);
+            if included || self.is_proof_mode() {
+                self.builtin_runners.push(
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new_with_low_ratio(
+                        instance_def.ratio,
+                        included,
+                    )
+                    .into(),
+                );
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.ecdsa.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::ecdsa);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(SignatureBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.bitwise.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::bitwise);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(BitwiseBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.ec_op.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::ec_op);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(EcOpBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.keccak.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::keccak);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(KeccakBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.poseidon.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::poseidon);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(PoseidonBuiltinRunner::new(instance_def.ratio, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.range_check96.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::range_check96);
+            if included || self.is_proof_mode() {
+                self.builtin_runners.push(
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new_with_low_ratio(
+                        instance_def.ratio,
+                        included,
+                    )
+                    .into(),
+                );
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.add_mod.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::add_mod);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(ModBuiltinRunner::new_add_mod(instance_def, included).into());
+            }
+        }
+
+        if let Some(instance_def) = self.layout.builtins.mul_mod.as_ref() {
+            let included = program_builtins.remove(&BuiltinName::mul_mod);
+            if included || self.is_proof_mode() {
+                self.builtin_runners
+                    .push(ModBuiltinRunner::new_mul_mod(instance_def, included).into());
+            }
+        }
+
+        if !program_builtins.is_empty() && !self.allow_missing_builtins {
+            return Err(RunnerError::NoBuiltinForInstance(Box::new((
+                program_builtins.iter().map(|n| **n).collect(),
+                self.layout.name,
+            ))));
+        }
+
+        Ok(())
+    }
+
+    /// *Initializes* and *includes* all the given builtins.
+    ///
+    /// Doesn't take the current layout into account.
+    ///
+    /// Analogue to [CairoRunner::initialize_program_builtins], but receives the
+    /// builtins instead of reusing the program builtins.
+    pub fn initialize_builtin_runners(
+        &mut self,
+        builtins: &[BuiltinName],
+    ) -> Result<(), RunnerError> {
+        for builtin_name in builtins {
+            let builtin_runner = match builtin_name {
+                BuiltinName::pedersen => HashBuiltinRunner::new(Some(32), true).into(),
+                BuiltinName::range_check => {
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(1), true).into()
+                }
+                BuiltinName::output => OutputBuiltinRunner::new(true).into(),
+                BuiltinName::ecdsa => SignatureBuiltinRunner::new(Some(1), true).into(),
+                BuiltinName::bitwise => BitwiseBuiltinRunner::new(Some(1), true).into(),
+                BuiltinName::ec_op => EcOpBuiltinRunner::new(Some(1), true).into(),
+                BuiltinName::keccak => KeccakBuiltinRunner::new(Some(1), true).into(),
+                BuiltinName::poseidon => PoseidonBuiltinRunner::new(Some(1), true).into(),
+                BuiltinName::segment_arena => SegmentArenaBuiltinRunner::new(true).into(),
+                BuiltinName::range_check96 => {
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new(Some(1), true).into()
+                }
+                BuiltinName::add_mod => {
+                    ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(1), 1, 96), true).into()
+                }
+                BuiltinName::mul_mod => {
+                    ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(Some(1), 1, 96), true).into()
+                }
+            };
+            self.builtin_runners.push(builtin_runner);
+        }
+        Ok(())
+    }
+
+    pub fn initialize_base_segments(&mut self) {
+        self.program_base = Some(self.add_memory_segment());
+        self.execution_base = Some(self.add_memory_segment());
+    }
+
+    /// Initializing the builtin segments.
+    ///
+    /// Depends on:
+    /// - [initialize_base_segments](Self::initialize_base_segments)
+    /// - [initialize_builtin_runners_for_layout](Self::initialize_builtin_runners_for_layout) or
+    ///   [initialize_builtin_runners](Self::initialize_builtin_runners)
+    pub fn initialize_builtin_segments(&mut self) {
+        for builtin_runner in self.builtin_runners.iter_mut() {
+            builtin_runner.initialize_segments(&mut self.memory);
+        }
+    }
+
+    /// Loads the program into the program segment.
+    ///
+    /// If this function is not called, the program will be loaded
+    /// automatically when initializing the entrypoint.
+    pub fn load_program(&mut self) -> Result<(), RunnerError> {
+        let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        let program_data = &self.program.shared_program_data.data;
+        self.memory
+            .load_data(program_base, program_data)
+            .map_err(RunnerError::MemoryInitializationError)?;
+        for i in 0..self.program.shared_program_data.data.len() {
+            self.memory.memory.mark_as_accessed((program_base + i)?);
+        }
+        self.loaded_program = true;
+        self.instructions.resize(program_data.len(), None);
+        Ok(())
+    }
+
+    /// Preallocates memory for `n` more elements in the given segment.
+    pub fn preallocate_segment(
+        &mut self,
+        segment: Relocatable,
+        n: usize,
+    ) -> Result<(), RunnerError> {
+        self.memory.memory.preallocate_segment(segment, n)?;
+        Ok(())
+    }
+
+    /// Loads decoded program instructions.
+    ///
+    /// # Safety
+    ///
+    /// The decoded instructions must belong the the associated program. To
+    /// obtain them, call [VirtualMachine::take_instruction_cache] at the end of
+    /// the execution.
+    ///
+    /// [VirtualMachine::take_instruction_cache]: VirtualMachine::take_instruction_cache
+    pub fn load_cached_instructions(
+        &mut self,
+        instructions: Vec<Option<Instruction>>,
+    ) -> Result<(), RunnerError> {
+        self.instructions = instructions;
+        Ok(())
+    }
+
+    /// Precompiles the program's hints using the given executor.
+    ///
+    /// # Safety
+    ///
+    /// Use the v2 variants of the execution functions (run_until_pc_v2 or
+    /// run_from_entrypoint_v2), as those function make use of the precompiled
+    /// hints.
+    ///
+    /// This function consumes the program's constants, so not doing so can
+    /// lead to errors during execution (missing constants). This was done for
+    /// performance reasons.
+    ///
+    /// The user must make sure to use the same implementation of the
+    /// HintProcessor for execution.
+    pub fn compile_hints(
+        &mut self,
+        hint_processor: &mut dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        let constants = Rc::new(mem::take(&mut self.program.constants));
+        let references = &self.program.shared_program_data.reference_manager;
+        let compiled_hints = self
+            .program
+            .shared_program_data
+            .hints_collection
+            .iter_hints()
+            .map(|hint| {
+                let hint = hint_processor.compile_hint(
+                    &hint.code,
+                    &hint.flow_tracking_data.ap_tracking,
+                    &hint.flow_tracking_data.reference_ids,
+                    references,
+                    constants.clone(),
+                )?;
+
+                Ok(Rc::new(hint))
+            })
+            .collect::<Result<Vec<Rc<Box<dyn Any>>>, VirtualMachineError>>()?;
+        self.hints = Some(compiled_hints);
+        Ok(())
+    }
+
+    pub fn build(self) -> Result<CairoRunner, RunnerError> {
+        let vm = VirtualMachineBuilder::default()
+            .builtin_runners(self.builtin_runners)
+            .segments(self.memory)
+            .instruction_cache(self.instructions)
+            .build();
+
+        Ok(CairoRunner {
+            vm,
+            layout: self.layout,
+            program_base: self.program_base,
+            execution_base: self.execution_base,
+            entrypoint: self.program.shared_program_data.main,
+            initial_ap: None,
+            initial_fp: None,
+            initial_pc: None,
+            final_pc: None,
+            run_ended: false,
+            segments_finalized: false,
+            execution_public_memory: if self.runner_mode != RunnerMode::ExecutionMode {
+                Some(Vec::new())
+            } else {
+                None
+            },
+            runner_mode: self.runner_mode,
+            relocated_memory: Vec::new(),
+            exec_scopes: ExecutionScopes::new(),
+            relocated_trace: None,
+            program: self.program,
+            loaded_program: self.loaded_program,
+            hints: self.hints,
+        })
+    }
+}
+
+impl Clone for CairoRunnerBuilder {
+    fn clone(&self) -> Self {
+        let builtin_runners = self
+            .builtin_runners
+            .iter()
+            .cloned()
+            .map(|mut builtin_runner| {
+                // The SignatureBuiltinRunner contains an `Rc`, so deriving clone implies that
+                // all runners built will share state. To workaround this, clone was implemented
+                // manually.
+                if let BuiltinRunner::Signature(signature) = &mut builtin_runner {
+                    let signatures = signature
+                        .signatures
+                        .as_ref()
+                        .borrow()
+                        .iter()
+                        .map(|(k, v)| (*k, Signature { r: v.r, s: v.s }))
+                        .collect();
+                    signature.signatures = Rc::new(RefCell::new(signatures))
+                }
+                builtin_runner
+            })
+            .collect();
+        Self {
+            program: self.program.clone(),
+            layout: self.layout.clone(),
+            runner_mode: self.runner_mode.clone(),
+            enable_trace: self.enable_trace,
+            disable_trace_padding: self.disable_trace_padding,
+            allow_missing_builtins: self.allow_missing_builtins,
+            builtin_runners,
+            program_base: self.program_base,
+            execution_base: self.execution_base,
+            memory: self.memory.clone(),
+            loaded_program: self.loaded_program,
+            hints: self.hints.clone(),
+            instructions: self.instructions.clone(),
+        }
+    }
+}
+
 pub struct CairoRunner {
     pub vm: VirtualMachine,
     pub(crate) program: Program,
@@ -159,6 +619,8 @@ pub struct CairoRunner {
     pub relocated_memory: Vec<Option<Felt252>>,
     pub exec_scopes: ExecutionScopes,
     pub relocated_trace: Option<Vec<RelocatedTraceEntry>>,
+    loaded_program: bool,
+    hints: Option<Vec<Rc<Box<dyn Any>>>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -220,6 +682,8 @@ impl CairoRunner {
                 None
             },
             relocated_trace: None,
+            loaded_program: false,
+            hints: None,
         })
     }
 
@@ -486,13 +950,15 @@ impl CairoRunner {
         let prog_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
         let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
         self.initial_pc = Some((prog_base + entrypoint)?);
-        self.vm
-            .load_data(prog_base, &self.program.shared_program_data.data)
-            .map_err(RunnerError::MemoryInitializationError)?;
+        if !self.loaded_program {
+            self.vm
+                .load_data(prog_base, &self.program.shared_program_data.data)
+                .map_err(RunnerError::MemoryInitializationError)?;
 
-        // Mark all addresses from the program segment as accessed
-        for i in 0..self.program.shared_program_data.data.len() {
-            self.vm.segments.memory.mark_as_accessed((prog_base + i)?);
+            // Mark all addresses from the program segment as accessed
+            for i in 0..self.program.shared_program_data.data.len() {
+                self.vm.segments.memory.mark_as_accessed((prog_base + i)?);
+            }
         }
         self.vm
             .segments
@@ -710,6 +1176,66 @@ impl CairoRunner {
                 &mut hint_ranges,
                 #[cfg(feature = "test_utils")]
                 &self.program.constants,
+            )?;
+
+            hint_processor.consume_step();
+        }
+
+        if self.vm.get_pc() != address {
+            return Err(VirtualMachineError::UnfinishedExecution);
+        }
+
+        Ok(())
+    }
+
+    /// Like [run_until_pc](Self::run_until_pc), but makes use of cached compiled hints, which are
+    /// available after calling [CairoRunnerBuilder::compile_hints].
+    ///
+    /// To make the hints clonable (and cacheable), the hint data type had to
+    /// be changed. To avoid breaking the API, new v2 functions were added that
+    /// accept the new hint data.
+    ///
+    /// Also, this new function does not call instruction hooks from the
+    /// `test_utils` features, as doing so would imply breaking the hook API.
+    pub fn run_until_pc_v2(
+        &mut self,
+        address: Relocatable,
+        hint_processor: &mut dyn HintProcessor,
+    ) -> Result<(), VirtualMachineError> {
+        let references = &self.program.shared_program_data.reference_manager;
+        #[cfg_attr(not(feature = "extensive_hints"), allow(unused_mut))]
+        let mut hint_data = if let Some(hints) = self.hints.take() {
+            hints
+        } else {
+            self.get_hint_data(references, hint_processor)?
+                .into_iter()
+                .map(Rc::new)
+                .collect()
+        };
+        #[cfg(feature = "extensive_hints")]
+        let mut hint_ranges = self
+            .program
+            .shared_program_data
+            .hints_collection
+            .hints_ranges
+            .clone();
+        while self.vm.get_pc() != address && !hint_processor.consumed() {
+            self.vm.step_v2(
+                hint_processor,
+                &mut self.exec_scopes,
+                #[cfg(feature = "extensive_hints")]
+                &mut hint_data,
+                #[cfg(not(feature = "extensive_hints"))]
+                self.program
+                    .shared_program_data
+                    .hints_collection
+                    .get_hint_range_for_pc(self.vm.get_pc().offset)
+                    .and_then(|range| {
+                        range.and_then(|(start, length)| hint_data.get(start..start + length.get()))
+                    })
+                    .unwrap_or(&[]),
+                #[cfg(feature = "extensive_hints")]
+                &mut hint_ranges,
             )?;
 
             hint_processor.consume_step();
@@ -1158,6 +1684,37 @@ impl CairoRunner {
         self.initialize_vm()?;
 
         self.run_until_pc(end, hint_processor)
+            .map_err(|err| VmException::from_vm_error(self, err))?;
+        self.end_run(true, false, hint_processor)?;
+
+        if verify_secure {
+            verify_secure_runner(self, false, program_segment_size)?;
+        }
+
+        Ok(())
+    }
+
+    /// Like [run_from_entrypoint](Self::run_from_entrypoint), but calls
+    /// [run_until_pc_v2](Self::run_until_pc_v2) instead.
+    #[allow(clippy::result_large_err)]
+    pub fn run_from_entrypoint_v2(
+        &mut self,
+        entrypoint: usize,
+        args: &[&CairoArg],
+        verify_secure: bool,
+        program_segment_size: Option<usize>,
+        hint_processor: &mut dyn HintProcessor,
+    ) -> Result<(), CairoRunError> {
+        let stack = args
+            .iter()
+            .map(|arg| self.vm.segments.gen_cairo_arg(arg))
+            .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
+        let return_fp = MaybeRelocatable::from(0);
+        let end = self.initialize_function_entrypoint(entrypoint, stack, return_fp)?;
+
+        self.initialize_vm()?;
+
+        self.run_until_pc_v2(end, hint_processor)
             .map_err(|err| VmException::from_vm_error(self, err))?;
         self.end_run(true, false, hint_processor)?;
 

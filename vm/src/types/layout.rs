@@ -13,7 +13,7 @@ pub(crate) const DEFAULT_CPU_COMPONENT_STEP: u32 = 1;
 
 use serde::{Deserialize, Deserializer, Serialize};
 
-#[derive(Serialize, Debug)]
+#[derive(Clone, Serialize, Debug)]
 pub struct CairoLayout {
     pub(crate) name: LayoutName,
     pub(crate) cpu_component_step: u32,
