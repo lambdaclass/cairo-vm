@@ -193,17 +193,6 @@ impl HintProcessorLogic for BuiltinHintProcessor {
         references: &[HintReference],
         constants: Rc<HashMap<String, Felt252>>,
     ) -> Result<Box<dyn Any>, crate::vm::errors::vm_errors::VirtualMachineError> {
-        if self.extra_hints.contains_key(hint_code) {
-            let ids_data = get_ids_data(reference_ids, references)?;
-            // TODO: This is to handle the extra_hints. Handle this case nicely
-            return Ok(any_box!(HintProcessorData {
-                code: hint_code.to_string(),
-                ap_tracking: ap_tracking_data.clone(),
-                ids_data,
-                constants,
-            }));
-        }
-
         let ids_data = match hint_code {
             hint_code::ADD_SEGMENT
             | hint_code::ASSERT_LE_FELT_EXCLUDED_2
