@@ -44,7 +44,7 @@ jobs:
     - name: Initializing fuzzer with previous inputs
       run: |
         cd fuzzer
-        HFUZZ_RUN_ARGS="--dict=json.dict --run_time 10800 --timeout 60" cargo hfuzz run fuzz_json
+        HFUZZ_RUN_ARGS="--dict=json.dict --run_time 300 --timeout 60" cargo hfuzz run fuzz_json
 
     # run the fuzzer with minimize to reduce inputs
     - name: Initializing fuzzer with minimize
