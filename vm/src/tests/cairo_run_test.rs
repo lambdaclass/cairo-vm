@@ -4,7 +4,10 @@ use crate::{tests::*, types::layout_name::LayoutName};
 use crate::{
     utils::test_utils::Program,
     vm::{
-        runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
+        runners::{
+            builtin_runner::BuiltinRunner,
+            cairo_runner::{CairoRunnerBuilder, RunnerMode},
+        },
         security::verify_secure_runner,
     },
 };
@@ -1213,17 +1216,31 @@ fn run_program_with_custom_mod_builtin_params(
     };
     let mut hint_processor = BuiltinHintProcessor::new_empty();
     let program = Program::from_bytes(data, Some(cairo_run_config.entrypoint)).unwrap();
-    let mut cairo_runner = CairoRunner::new(
+    let mut runner_builder = CairoRunnerBuilder::new(
         &program,
         cairo_run_config.layout,
-        cairo_run_config.dynamic_layout_params,
-        cairo_run_config.proof_mode,
-        cairo_run_config.trace_enabled,
-        cairo_run_config.disable_trace_padding,
+        cairo_run_config.dynamic_layout_params.clone(),
+        if cairo_run_config.proof_mode {
+            RunnerMode::ProofModeCanonical
+        } else {
+            RunnerMode::ExecutionMode
+        },
     )
     .unwrap();
+    runner_builder.enable_trace(cairo_run_config.trace_enabled);
+    runner_builder.allow_missing_builtins(false);
+    runner_builder
+        .initialize_builtin_runners_for_layout()
+        .unwrap();
+    runner_builder.initialize_base_segments();
+    runner_builder.load_program().unwrap();
+    runner_builder.initialize_builtin_segments();
+    runner_builder.initialize_builtin_zero_segments();
+    let end = runner_builder.initialize_main_entrypoint().unwrap();
+    runner_builder.initialize_validation_rules().unwrap();
 
-    let end = cairo_runner.initialize(false).unwrap();
+    let mut cairo_runner = runner_builder.build().unwrap();
+
     // Modify add_mod & mul_mod params
     for runner in cairo_runner.vm.get_builtin_runners_as_mut() {
         if let BuiltinRunner::Mod(runner) = runner {

@@ -44,7 +44,7 @@ use cairo_vm::{
     },
     vm::{
         errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
-        runners::cairo_runner::{CairoRunner, RunResources, RunnerMode},
+        runners::cairo_runner::{CairoRunner, CairoRunnerBuilder, RunResources, RunnerMode},
         vm_core::VirtualMachine,
     },
     Felt252,
@@ -250,15 +250,24 @@ pub fn cairo_run_program(
         RunnerMode::ExecutionMode
     };
 
-    let mut runner = CairoRunner::new_v2(
+    let mut runner_builder = CairoRunnerBuilder::new(
         &program,
         cairo_run_config.layout,
         cairo_run_config.dynamic_layout_params.clone(),
         runner_mode,
-        cairo_run_config.trace_enabled,
-        false,
     )?;
-    let end = runner.initialize(cairo_run_config.proof_mode)?;
+    runner_builder.enable_trace(cairo_run_config.trace_enabled);
+    runner_builder.allow_missing_builtins(cairo_run_config.proof_mode);
+    runner_builder.initialize_builtin_runners_for_layout()?;
+    runner_builder.initialize_base_segments();
+    runner_builder.load_program()?;
+    runner_builder.initialize_builtin_segments();
+    runner_builder.initialize_builtin_zero_segments();
+    let end = runner_builder.initialize_main_entrypoint()?;
+    runner_builder.initialize_validation_rules()?;
+
+    let mut runner = runner_builder.build()?;
+
     load_arguments(&mut runner, &cairo_run_config, main_func)?;
 
     // Run it until the end / infinite loop in proof_mode
