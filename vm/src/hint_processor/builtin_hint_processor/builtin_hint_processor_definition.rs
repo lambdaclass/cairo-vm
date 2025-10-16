@@ -187,16 +187,10 @@ impl BuiltinHintProcessor {
 impl HintProcessorLogic for BuiltinHintProcessor {
     fn compile_hint(
         &self,
-        //Block of hint code as String
         hint_code: &str,
-        //Ap Tracking Data corresponding to the Hint
         ap_tracking_data: &ApTracking,
-        //Map from variable name to reference id number
-        //(may contain other variables aside from those used by the hint)
         reference_ids: &HashMap<String, usize>,
-        //List of all references (key corresponds to element of the previous dictionary)
         references: &[HintReference],
-        // Identifiers stored in the hint's program.
         constants: Rc<HashMap<String, Felt252>>,
     ) -> Result<Box<dyn Any>, crate::vm::errors::vm_errors::VirtualMachineError> {
         if self.extra_hints.contains_key(hint_code) {
@@ -211,267 +205,32 @@ impl HintProcessorLogic for BuiltinHintProcessor {
         }
 
         let ids_data = match hint_code {
-            hint_code::ADD_SEGMENT => HashMap::new(),
-            hint_code::IS_NN => get_ids_data(reference_ids, references)?,
-            hint_code::IS_NN_OUT_OF_RANGE => get_ids_data(reference_ids, references)?,
-            hint_code::ASSERT_LE_FELT => get_ids_data(reference_ids, references)?,
-            hint_code::ASSERT_LE_FELT_EXCLUDED_2 => HashMap::new(),
-            hint_code::ASSERT_LE_FELT_EXCLUDED_1 => HashMap::new(),
-            hint_code::ASSERT_LE_FELT_EXCLUDED_0 => HashMap::new(),
-            hint_code::IS_LE_FELT => get_ids_data(reference_ids, references)?,
-            hint_code::ASSERT_250_BITS => get_ids_data(reference_ids, references)?,
-            hint_code::IS_250_BITS => get_ids_data(reference_ids, references)?,
-            hint_code::IS_ADDR_BOUNDED => get_ids_data(reference_ids, references)?,
-            hint_code::IS_POSITIVE => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_INT_ASSERT_RANGE => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_INT => get_ids_data(reference_ids, references)?,
-            hint_code::ASSERT_NOT_EQUAL => get_ids_data(reference_ids, references)?,
-            hint_code::ASSERT_NN => get_ids_data(reference_ids, references)?,
-            hint_code::SQRT => get_ids_data(reference_ids, references)?,
-            hint_code::ASSERT_NOT_ZERO => get_ids_data(reference_ids, references)?,
-            hint_code::IS_QUAD_RESIDUE => get_ids_data(reference_ids, references)?,
-            hint_code::VM_EXIT_SCOPE => HashMap::new(),
-            hint_code::MEMCPY_ENTER_SCOPE => get_ids_data(reference_ids, references)?,
-            hint_code::MEMSET_ENTER_SCOPE => get_ids_data(reference_ids, references)?,
-            hint_code::MEMCPY_CONTINUE_COPYING => get_ids_data(reference_ids, references)?,
-            hint_code::MEMSET_CONTINUE_LOOP => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_FELT => get_ids_data(reference_ids, references)?,
-            hint_code::UNSIGNED_DIV_REM => get_ids_data(reference_ids, references)?,
-            hint_code::SIGNED_DIV_REM => get_ids_data(reference_ids, references)?,
-            hint_code::ASSERT_LT_FELT => get_ids_data(reference_ids, references)?,
-            hint_code::FIND_ELEMENT => get_ids_data(reference_ids, references)?,
-            hint_code::SEARCH_SORTED_LOWER => get_ids_data(reference_ids, references)?,
-            hint_code::POW => get_ids_data(reference_ids, references)?,
-            hint_code::SET_ADD => get_ids_data(reference_ids, references)?,
-            hint_code::DICT_NEW => HashMap::new(),
-            hint_code::DICT_READ => get_ids_data(reference_ids, references)?,
-            hint_code::DICT_WRITE => get_ids_data(reference_ids, references)?,
-            hint_code::DEFAULT_DICT_NEW => get_ids_data(reference_ids, references)?,
-            hint_code::SQUASH_DICT_INNER_FIRST_ITERATION => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::USORT_ENTER_SCOPE => HashMap::new(),
-            hint_code::USORT_BODY => get_ids_data(reference_ids, references)?,
-            hint_code::USORT_VERIFY => get_ids_data(reference_ids, references)?,
-            hint_code::USORT_VERIFY_MULTIPLICITY_ASSERT => HashMap::new(),
-            hint_code::USORT_VERIFY_MULTIPLICITY_BODY => get_ids_data(reference_ids, references)?,
-            hint_code::BLAKE2S_COMPUTE => get_ids_data(reference_ids, references)?,
-            hint_code::VERIFY_ZERO_V1 | hint_code::VERIFY_ZERO_V2 => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::VERIFY_ZERO_V3 => get_ids_data(reference_ids, references)?,
-            hint_code::VERIFY_ZERO_EXTERNAL_SECP => get_ids_data(reference_ids, references)?,
-            hint_code::NONDET_BIGINT3_V1 | hint_code::NONDET_BIGINT3_V2 => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::REDUCE_V1 => get_ids_data(reference_ids, references)?,
-            hint_code::REDUCE_V2 => get_ids_data(reference_ids, references)?,
-            hint_code::REDUCE_ED25519 => get_ids_data(reference_ids, references)?,
-            hint_code::BLAKE2S_FINALIZE | hint_code::BLAKE2S_FINALIZE_V2 => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::BLAKE2S_FINALIZE_V3 => get_ids_data(reference_ids, references)?,
-            hint_code::BLAKE2S_ADD_UINT256 => get_ids_data(reference_ids, references)?,
-            hint_code::BLAKE2S_ADD_UINT256_BIGEND => get_ids_data(reference_ids, references)?,
-            hint_code::UNSAFE_KECCAK => get_ids_data(reference_ids, references)?,
-            hint_code::UNSAFE_KECCAK_FINALIZE => get_ids_data(reference_ids, references)?,
-            hint_code::SQUASH_DICT_INNER_SKIP_LOOP => get_ids_data(reference_ids, references)?,
-            hint_code::SQUASH_DICT_INNER_CHECK_ACCESS_INDEX => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::SQUASH_DICT_INNER_CONTINUE_LOOP => get_ids_data(reference_ids, references)?,
-            hint_code::SQUASH_DICT_INNER_ASSERT_LEN_KEYS => HashMap::new(),
-            hint_code::SQUASH_DICT_INNER_LEN_ASSERT => HashMap::new(),
-            hint_code::SQUASH_DICT_INNER_USED_ACCESSES_ASSERT => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::SQUASH_DICT_INNER_NEXT_KEY => get_ids_data(reference_ids, references)?,
-            hint_code::SQUASH_DICT => get_ids_data(reference_ids, references)?,
-            hint_code::VM_ENTER_SCOPE => HashMap::new(),
-            hint_code::DICT_UPDATE => get_ids_data(reference_ids, references)?,
-            hint_code::DICT_SQUASH_COPY_DICT => get_ids_data(reference_ids, references)?,
-            hint_code::DICT_SQUASH_UPDATE_PTR => get_ids_data(reference_ids, references)?,
-            hint_code::UINT256_ADD => get_ids_data(reference_ids, references)?,
-            hint_code::UINT256_ADD_LOW => get_ids_data(reference_ids, references)?,
-            hint_code::UINT128_ADD => get_ids_data(reference_ids, references)?,
-            hint_code::UINT256_SUB => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_64 => get_ids_data(reference_ids, references)?,
-            hint_code::UINT256_SQRT => get_ids_data(reference_ids, references)?,
-            hint_code::UINT256_SQRT_FELT => get_ids_data(reference_ids, references)?,
-            hint_code::UINT256_SIGNED_NN => get_ids_data(reference_ids, references)?,
-            hint_code::UINT256_UNSIGNED_DIV_REM => get_ids_data(reference_ids, references)?,
-            hint_code::UINT256_EXPANDED_UNSIGNED_DIV_REM => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::BIGINT_TO_UINT256 => get_ids_data(reference_ids, references)?,
-            hint_code::IS_ZERO_PACK_V1 | hint_code::IS_ZERO_PACK_V2 => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::IS_ZERO_NONDET | hint_code::IS_ZERO_INT => HashMap::new(),
-            hint_code::IS_ZERO_PACK_EXTERNAL_SECP_V1 | hint_code::IS_ZERO_PACK_EXTERNAL_SECP_V2 => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::IS_ZERO_PACK_ED25519 => get_ids_data(reference_ids, references)?,
-            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS => HashMap::new(),
-            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP => HashMap::new(),
-            hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_ED25519 => HashMap::new(),
-            hint_code::DIV_MOD_N_PACKED_DIVMOD_V1 => get_ids_data(reference_ids, references)?,
-            hint_code::GET_FELT_BIT_LENGTH => get_ids_data(reference_ids, references)?,
-            hint_code::BIGINT_PACK_DIV_MOD => get_ids_data(reference_ids, references)?,
-            hint_code::BIGINT_SAFE_DIV => get_ids_data(reference_ids, references)?,
-            hint_code::DIV_MOD_N_PACKED_DIVMOD_EXTERNAL_N => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::DIV_MOD_N_SAFE_DIV => HashMap::new(),
-            hint_code::DIV_MOD_N_SAFE_DIV_PLUS_ONE => HashMap::new(),
-            hint_code::GET_POINT_FROM_X => get_ids_data(reference_ids, references)?,
-            hint_code::EC_NEGATE => get_ids_data(reference_ids, references)?,
-            hint_code::EC_NEGATE_EMBEDDED_SECP => get_ids_data(reference_ids, references)?,
-            hint_code::EC_DOUBLE_SLOPE_V1 => get_ids_data(reference_ids, references)?,
-            hint_code::EC_DOUBLE_SLOPE_V2 => get_ids_data(reference_ids, references)?,
-            hint_code::EC_DOUBLE_SLOPE_V3 => get_ids_data(reference_ids, references)?,
-            hint_code::EC_DOUBLE_SLOPE_V4 => get_ids_data(reference_ids, references)?,
-            hint_code::EC_DOUBLE_SLOPE_V5 => get_ids_data(reference_ids, references)?,
-            hint_code::EC_DOUBLE_SLOPE_EXTERNAL_CONSTS => get_ids_data(reference_ids, references)?,
-            hint_code::COMPUTE_SLOPE_V1 => get_ids_data(reference_ids, references)?,
-            hint_code::SQUARE_SLOPE_X_MOD_P => get_ids_data(reference_ids, references)?,
-            hint_code::COMPUTE_SLOPE_V2 => get_ids_data(reference_ids, references)?,
-            hint_code::COMPUTE_SLOPE_SECP256R1_V1 => get_ids_data(reference_ids, references)?,
-            hint_code::COMPUTE_SLOPE_SECP256R1_V2 => get_ids_data(reference_ids, references)?,
-            hint_code::IMPORT_SECP256R1_P => HashMap::new(),
-            hint_code::COMPUTE_SLOPE_WHITELIST => get_ids_data(reference_ids, references)?,
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V1 => get_ids_data(reference_ids, references)?,
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V2 => get_ids_data(reference_ids, references)?,
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V3 => get_ids_data(reference_ids, references)?,
-            hint_code::EC_DOUBLE_ASSIGN_NEW_X_V4 => get_ids_data(reference_ids, references)?,
-            hint_code::EC_DOUBLE_ASSIGN_NEW_Y => HashMap::new(),
-            hint_code::KECCAK_WRITE_ARGS => get_ids_data(reference_ids, references)?,
-            hint_code::COMPARE_BYTES_IN_WORD_NONDET => get_ids_data(reference_ids, references)?,
-            hint_code::SHA256_MAIN_CONSTANT_INPUT_LENGTH => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::SHA256_MAIN_ARBITRARY_INPUT_LENGTH => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::SHA256_INPUT => get_ids_data(reference_ids, references)?,
-            hint_code::SHA256_FINALIZE => get_ids_data(reference_ids, references)?,
-            hint_code::CAIRO_KECCAK_INPUT_IS_FULL_WORD => get_ids_data(reference_ids, references)?,
-            hint_code::COMPARE_KECCAK_FULL_RATE_IN_BYTES_NONDET => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::BLOCK_PERMUTATION | hint_code::BLOCK_PERMUTATION_WHITELIST_V1 => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::BLOCK_PERMUTATION_WHITELIST_V2 => get_ids_data(reference_ids, references)?,
-            hint_code::CAIRO_KECCAK_FINALIZE_V1 => get_ids_data(reference_ids, references)?,
-            hint_code::CAIRO_KECCAK_FINALIZE_V2 => get_ids_data(reference_ids, references)?,
-            hint_code::FAST_EC_ADD_ASSIGN_NEW_X => get_ids_data(reference_ids, references)?,
-            hint_code::FAST_EC_ADD_ASSIGN_NEW_X_V2 => get_ids_data(reference_ids, references)?,
-            hint_code::FAST_EC_ADD_ASSIGN_NEW_X_V3 => get_ids_data(reference_ids, references)?,
-            hint_code::FAST_EC_ADD_ASSIGN_NEW_Y => HashMap::new(),
-            hint_code::EC_MUL_INNER => get_ids_data(reference_ids, references)?,
-            hint_code::RELOCATE_SEGMENT => get_ids_data(reference_ids, references)?,
-            hint_code::TEMPORARY_ARRAY => get_ids_data(reference_ids, references)?,
-            hint_code::VERIFY_ECDSA_SIGNATURE => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_OUTPUT_0 => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_OUTPUT_1 => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_INPUT_3 => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_INPUT_6 => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_INPUT_9 => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_INPUT_12 => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_INPUT_15 => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_N_BYTES => get_ids_data(reference_ids, references)?,
-            hint_code::SPLIT_OUTPUT_MID_LOW_HIGH => get_ids_data(reference_ids, references)?,
-            hint_code::NONDET_N_GREATER_THAN_10 => get_ids_data(reference_ids, references)?,
-            hint_code::NONDET_N_GREATER_THAN_2 => get_ids_data(reference_ids, references)?,
-            hint_code::NONDET_ELEMENTS_OVER_TEN => get_ids_data(reference_ids, references)?,
-            hint_code::NONDET_ELEMENTS_OVER_TWO => get_ids_data(reference_ids, references)?,
-            hint_code::RANDOM_EC_POINT => get_ids_data(reference_ids, references)?,
-            hint_code::CHAINED_EC_OP_RANDOM_EC_POINT => get_ids_data(reference_ids, references)?,
-            hint_code::RECOVER_Y => get_ids_data(reference_ids, references)?,
-            hint_code::PACK_MODN_DIV_MODN => get_ids_data(reference_ids, references)?,
-            hint_code::XS_SAFE_DIV => HashMap::new(),
-            hint_code::UINT384_UNSIGNED_DIV_REM => get_ids_data(reference_ids, references)?,
-            hint_code::UINT384_SPLIT_128 => get_ids_data(reference_ids, references)?,
-            hint_code::ADD_NO_UINT384_CHECK => get_ids_data(reference_ids, references)?,
-            hint_code::UINT384_SQRT => get_ids_data(reference_ids, references)?,
-            hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384
-            | hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED => {
-                get_ids_data(reference_ids, references)?
-            }
-            hint_code::SUB_REDUCED_A_AND_REDUCED_B => get_ids_data(reference_ids, references)?,
-            hint_code::UINT384_GET_SQUARE_ROOT => get_ids_data(reference_ids, references)?,
-            hint_code::UINT256_GET_SQUARE_ROOT => get_ids_data(reference_ids, references)?,
-            hint_code::UINT384_SIGNED_NN => get_ids_data(reference_ids, references)?,
-            hint_code::UINT384_DIV => get_ids_data(reference_ids, references)?,
-            hint_code::UINT256_MUL_DIV_MOD => get_ids_data(reference_ids, references)?,
-            hint_code::IMPORT_SECP256R1_ALPHA => HashMap::new(),
-            hint_code::IMPORT_SECP256R1_N => HashMap::new(),
-            hint_code::UINT512_UNSIGNED_DIV_REM => get_ids_data(reference_ids, references)?,
-            hint_code::HI_MAX_BITLEN => get_ids_data(reference_ids, references)?,
-            hint_code::QUAD_BIT => get_ids_data(reference_ids, references)?,
-            hint_code::INV_MOD_P_UINT256 => get_ids_data(reference_ids, references)?,
-            hint_code::INV_MOD_P_UINT512 => get_ids_data(reference_ids, references)?,
-            hint_code::DI_BIT => get_ids_data(reference_ids, references)?,
-            hint_code::EXAMPLE_BLAKE2S_COMPRESS => get_ids_data(reference_ids, references)?,
-            hint_code::EC_RECOVER_DIV_MOD_N_PACKED => get_ids_data(reference_ids, references)?,
-            hint_code::EC_RECOVER_SUB_A_B => get_ids_data(reference_ids, references)?,
-            hint_code::A_B_BITAND_1 => get_ids_data(reference_ids, references)?,
-            hint_code::ASSERT_LE_FELT_V_0_6 => get_ids_data(reference_ids, references)?,
-            hint_code::ASSERT_LE_FELT_V_0_8 => get_ids_data(reference_ids, references)?,
-            hint_code::EC_RECOVER_PRODUCT_MOD => get_ids_data(reference_ids, references)?,
-            hint_code::EC_RECOVER_PRODUCT_DIV_M => HashMap::new(),
-            hint_code::SPLIT_XX => get_ids_data(reference_ids, references)?,
-            hint_code::RUN_P_CIRCUIT => get_ids_data(reference_ids, references)?,
-            hint_code::RUN_P_CIRCUIT_WITH_LARGE_BATCH_SIZE => {
-                get_ids_data(reference_ids, references)?
-            }
-            #[cfg(feature = "test_utils")]
-            hint_code::SKIP_NEXT_INSTRUCTION => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "test_utils")]
-            hint_code::PRINT_FELT => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "test_utils")]
-            hint_code::PRINT_ARR => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "test_utils")]
-            hint_code::PRINT_DICT => get_ids_data(reference_ids, references)?,
-            hint_code::EXCESS_BALANCE => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::COMPUTE_Q_MOD_PRIME => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::COMPUTE_IDS_HIGH_LOW => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::SECP_DOUBLE_ASSIGN_NEW_X => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::SECP_DOUBLE_ASSIGN_NEW_X_V2 => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::FAST_SECP_ADD_ASSIGN_NEW_Y => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::COMPUTE_VALUE_DIV_MOD => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::GENERATE_NIBBLES => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::WRITE_NIBBLES_TO_MEM => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::IS_ON_CURVE_2 => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::SECP_R1_GET_POINT_FROM_X => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::SECP_R1_GET_POINT_FROM_X_V2 => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::SECP_REDUCE => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-secp-hints")]
-            cairo0_hints::SECP_REDUCE_X => get_ids_data(reference_ids, references)?,
-            #[cfg(feature = "cairo-0-data-availability-hints")]
-            super::kzg_da::WRITE_DIVMOD_SEGMENT => get_ids_data(reference_ids, references)?,
-            _code => {
-                let ids_data = get_ids_data(reference_ids, references)?;
-                return Ok(any_box!(HintProcessorData {
-                    code: hint_code.to_string(),
-                    ap_tracking: ap_tracking_data.clone(),
-                    ids_data,
-                    constants,
-                }));
-            }
+            hint_code::ADD_SEGMENT
+            | hint_code::ASSERT_LE_FELT_EXCLUDED_2
+            | hint_code::ASSERT_LE_FELT_EXCLUDED_1
+            | hint_code::ASSERT_LE_FELT_EXCLUDED_0
+            | hint_code::VM_EXIT_SCOPE
+            | hint_code::DICT_NEW
+            | hint_code::USORT_ENTER_SCOPE
+            | hint_code::USORT_VERIFY_MULTIPLICITY_ASSERT
+            | hint_code::SQUASH_DICT_INNER_ASSERT_LEN_KEYS
+            | hint_code::SQUASH_DICT_INNER_LEN_ASSERT
+            | hint_code::VM_ENTER_SCOPE
+            | hint_code::IS_ZERO_NONDET
+            | hint_code::IS_ZERO_INT
+            | hint_code::IS_ZERO_ASSIGN_SCOPE_VARS
+            | hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP
+            | hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_ED25519
+            | hint_code::DIV_MOD_N_SAFE_DIV
+            | hint_code::DIV_MOD_N_SAFE_DIV_PLUS_ONE
+            | hint_code::IMPORT_SECP256R1_P
+            | hint_code::EC_DOUBLE_ASSIGN_NEW_Y
+            | hint_code::FAST_EC_ADD_ASSIGN_NEW_Y
+            | hint_code::XS_SAFE_DIV
+            | hint_code::IMPORT_SECP256R1_ALPHA
+            | hint_code::IMPORT_SECP256R1_N
+            | hint_code::EC_RECOVER_PRODUCT_DIV_M => HashMap::new(),
+            _ => get_ids_data(reference_ids, references)?,
         };
 
         Ok(any_box!(HintProcessorData {
