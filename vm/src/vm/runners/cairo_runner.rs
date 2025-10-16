@@ -255,6 +255,8 @@ impl CairoRunnerBuilder {
     /// Note that *initializing* a builtin implies creating a runner for it,
     /// and *including* a builtin refers to enabling the builtin runner flag:
     /// `included`.
+    ///
+    /// Analogue to [CairoRunner::initialize_builtins]
     pub fn initialize_builtin_runners_for_layout(&mut self) -> Result<(), RunnerError> {
         let builtin_ordered_list = vec![
             BuiltinName::output,
@@ -385,6 +387,9 @@ impl CairoRunnerBuilder {
     /// *Initializes* and *includes* all the given builtins.
     ///
     /// Doesn't take the current layout into account.
+    ///
+    /// Analogue to [CairoRunner::initialize_program_builtins], but receives the
+    /// builtins instead of reusing the program builtins.
     pub fn initialize_builtin_runners(
         &mut self,
         builtins: &[BuiltinName],
@@ -426,7 +431,8 @@ impl CairoRunnerBuilder {
     ///
     /// Depends on:
     /// - [initialize_base_segments](Self::initialize_base_segments)
-    /// - [initialize_builtin_runners_for_layout](Self::initialize_builtin_runners_for_layout)
+    /// - [initialize_builtin_runners_for_layout](Self::initialize_builtin_runners_for_layout) or
+    ///   [initialize_builtin_runners](Self::initialize_builtin_runners)
     pub fn initialize_builtin_segments(&mut self) {
         for builtin_runner in self.builtin_runners.iter_mut() {
             builtin_runner.initialize_segments(&mut self.memory);
