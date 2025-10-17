@@ -4,6 +4,8 @@
 
 * chore: Pin generic-array version to 0.14.7 or lower. [#2230](https://github.com/lambdaclass/cairo-vm/pull/2230)
 
+* fix: Remove cairo-lang-starknet unused dependency [#2229](https://github.com/lambdaclass/cairo-vm/pull/2229)
+
 #### [2.5.0] - 2025-09-11
 
 * breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
