@@ -158,8 +158,6 @@ impl ResourceTracker for RunResources {
 /// - Loaded program segment
 ///
 /// TODO: Add support for Cairo PIE
-///
-/// TODO: Add support for initialization of run_from_entrypoint
 pub struct CairoRunnerBuilder {
     program: Program,
     layout: CairoLayout,
@@ -266,6 +264,14 @@ impl CairoRunnerBuilder {
 
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.memory.add()
+    }
+
+    pub fn load_memory(
+        &mut self,
+        ptr: Relocatable,
+        data: &[MaybeRelocatable],
+    ) -> Result<Relocatable, MemoryError> {
+        self.memory.load_data(ptr, data)
     }
 
     /// *Initializes* all the builtin supported by the current layout, but only
@@ -436,6 +442,10 @@ impl CairoRunnerBuilder {
         Ok(())
     }
 
+    pub fn get_builtin_runners(&self) -> &[BuiltinRunner] {
+        &self.builtin_runners
+    }
+
     pub fn initialize_base_segments(&mut self) {
         self.program_base = Some(self.add_memory_segment());
         self.execution_base = Some(self.add_memory_segment());
@@ -563,6 +573,20 @@ impl CairoRunnerBuilder {
         } else {
             Err(RunnerError::MissingMain)
         }
+    }
+
+    pub fn initialize_function_entrypoint_with_args(
+        &mut self,
+        entrypoint: usize,
+        args: &[&CairoArg],
+    ) -> Result<Relocatable, VirtualMachineError> {
+        let stack = args
+            .iter()
+            .map(|arg| self.memory.gen_cairo_arg(arg))
+            .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
+        let return_fp = MaybeRelocatable::from(0);
+        let end = self.initialize_function_entrypoint(entrypoint, stack, return_fp)?;
+        Ok(end)
     }
 
     fn initialize_function_entrypoint(

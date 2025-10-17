@@ -10,7 +10,11 @@ use crate::Felt252;
 use crate::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
     types::{builtin_name::BuiltinName, relocatable::MaybeRelocatable},
-    vm::runners::cairo_runner::{CairoArg, CairoRunner, CairoRunnerBuilder, RunnerMode},
+    vm::{
+        errors::vm_exception::VmException,
+        runners::cairo_runner::{CairoArg, CairoRunnerBuilder, RunnerMode},
+        security::verify_secure_runner,
+    },
 };
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
@@ -112,8 +116,10 @@ fn run_cairo_1_entrypoint(
         Cairo1HintProcessor::new(&contract_class.hints, RunResources::default(), false);
     let program_builtins = get_casm_contract_builtins(&contract_class, entrypoint_offset);
 
+    let program = contract_class.clone().try_into().unwrap();
+
     let mut runner_builder = CairoRunnerBuilder::new(
-        &(contract_class.clone().try_into().unwrap()),
+        &program,
         LayoutName::all_cairo,
         None,
         RunnerMode::ExecutionMode,
@@ -124,13 +130,12 @@ fn run_cairo_1_entrypoint(
         .initialize_builtin_runners(&program_builtins)
         .unwrap();
     runner_builder.initialize_builtin_segments();
-    let mut runner = runner_builder.build().unwrap();
+    runner_builder.load_program().unwrap();
 
     // Implicit Args
-    let syscall_segment = MaybeRelocatable::from(runner.vm.add_memory_segment());
+    let syscall_segment = MaybeRelocatable::from(runner_builder.add_memory_segment());
 
-    let builtin_segment: Vec<MaybeRelocatable> = runner
-        .vm
+    let builtin_segment: Vec<MaybeRelocatable> = runner_builder
         .get_builtin_runners()
         .iter()
         .filter(|b| program_builtins.contains(&b.name()))
@@ -148,28 +153,26 @@ fn run_cairo_1_entrypoint(
     // Load builtin costs
     let builtin_costs: Vec<MaybeRelocatable> =
         vec![0.into(), 0.into(), 0.into(), 0.into(), 0.into()];
-    let builtin_costs_ptr = runner.vm.add_memory_segment();
-    runner
-        .vm
-        .load_data(builtin_costs_ptr, &builtin_costs)
+    let builtin_costs_ptr = runner_builder.add_memory_segment();
+    runner_builder
+        .load_memory(builtin_costs_ptr, &builtin_costs)
         .unwrap();
 
     // Load extra data
-    let core_program_end_ptr =
-        (runner.program_base.unwrap() + runner.program.shared_program_data.data.len()).unwrap();
+    let core_program_end_ptr = (runner_builder.get_program_base().unwrap()
+        + program.shared_program_data.data.len())
+    .unwrap();
     let program_extra_data: Vec<MaybeRelocatable> =
         vec![0x208B7FFF7FFF7FFE.into(), builtin_costs_ptr.into()];
-    runner
-        .vm
-        .load_data(core_program_end_ptr, &program_extra_data)
+    runner_builder
+        .load_memory(core_program_end_ptr, &program_extra_data)
         .unwrap();
 
     // Load calldata
-    let calldata_start = runner.vm.add_memory_segment();
-    let calldata_end = runner.vm.load_data(calldata_start, args).unwrap();
+    let calldata_start = runner_builder.add_memory_segment();
+    let calldata_end = runner_builder.load_memory(calldata_start, args).unwrap();
 
     // Create entrypoint_args
-
     let mut entrypoint_args: Vec<CairoArg> = implicit_args
         .iter()
         .map(|m| CairoArg::from(m.clone()))
@@ -180,17 +183,26 @@ fn run_cairo_1_entrypoint(
     ]);
     let entrypoint_args: Vec<&CairoArg> = entrypoint_args.iter().collect();
 
-    // Run contract entrypoint
-
-    runner
-        .run_from_entrypoint(
-            entrypoint_offset,
-            &entrypoint_args,
-            true,
-            Some(runner.program.shared_program_data.data.len() + program_extra_data.len()),
-            &mut hint_processor,
-        )
+    // Initialize entrypoint
+    let end = runner_builder
+        .initialize_function_entrypoint_with_args(entrypoint_offset, &entrypoint_args)
         .unwrap();
+    runner_builder.initialize_validation_rules().unwrap();
+
+    let mut runner = runner_builder.build().unwrap();
+
+    // Run contract entrypoint
+    runner
+        .run_until_pc(end, &mut hint_processor)
+        .map_err(|err| VmException::from_vm_error(&runner, err))
+        .unwrap();
+    runner.end_run(true, false, &mut hint_processor).unwrap();
+    verify_secure_runner(
+        &runner,
+        false,
+        Some(program.shared_program_data.data.len() + program_extra_data.len()),
+    )
+    .unwrap();
 
     // Check return values
     let return_values = runner.vm.get_return_values(5).unwrap();
@@ -218,25 +230,22 @@ fn run_cairo_1_entrypoint_with_run_resources(
 ) -> Result<Vec<Felt252>, CairoRunError> {
     let program_builtins = get_casm_contract_builtins(&contract_class, entrypoint_offset);
 
+    let program = contract_class.clone().try_into()?;
     let mut runner_builder = CairoRunnerBuilder::new(
-        &(contract_class.clone().try_into().unwrap()),
+        &program,
         LayoutName::all_cairo,
         None,
         RunnerMode::ExecutionMode,
-    )
-    .unwrap();
+    )?;
     runner_builder.initialize_base_segments();
-    runner_builder
-        .initialize_builtin_runners(&program_builtins)
-        .unwrap();
+    runner_builder.initialize_builtin_runners(&program_builtins)?;
     runner_builder.initialize_builtin_segments();
-    let mut runner = runner_builder.build().unwrap();
+    runner_builder.load_program()?;
 
     // Implicit Args
-    let syscall_segment = MaybeRelocatable::from(runner.vm.add_memory_segment());
+    let syscall_segment = MaybeRelocatable::from(runner_builder.add_memory_segment());
 
-    let builtin_segment: Vec<MaybeRelocatable> = runner
-        .vm
+    let builtin_segment: Vec<MaybeRelocatable> = runner_builder
         .get_builtin_runners()
         .iter()
         .filter(|b| program_builtins.contains(&b.name()))
@@ -254,28 +263,21 @@ fn run_cairo_1_entrypoint_with_run_resources(
     // Load builtin costs
     let builtin_costs: Vec<MaybeRelocatable> =
         vec![0.into(), 0.into(), 0.into(), 0.into(), 0.into()];
-    let builtin_costs_ptr = runner.vm.add_memory_segment();
-    runner
-        .vm
-        .load_data(builtin_costs_ptr, &builtin_costs)
-        .unwrap();
+    let builtin_costs_ptr = runner_builder.add_memory_segment();
+    runner_builder.load_memory(builtin_costs_ptr, &builtin_costs)?;
 
     // Load extra data
-    let core_program_end_ptr =
-        (runner.program_base.unwrap() + runner.program.shared_program_data.data.len()).unwrap();
+    let core_program_end_ptr = (runner_builder.get_program_base().unwrap()
+        + program.shared_program_data.data.len())
+    .unwrap();
     let program_extra_data: Vec<MaybeRelocatable> =
         vec![0x208B7FFF7FFF7FFE.into(), builtin_costs_ptr.into()];
-    runner
-        .vm
-        .load_data(core_program_end_ptr, &program_extra_data)
-        .unwrap();
+    runner_builder.load_memory(core_program_end_ptr, &program_extra_data)?;
 
     // Load calldata
-    let calldata_start = runner.vm.add_memory_segment();
-    let calldata_end = runner.vm.load_data(calldata_start, args).unwrap();
-
+    let calldata_start = runner_builder.add_memory_segment();
+    let calldata_end = runner_builder.load_memory(calldata_start, args)?;
     // Create entrypoint_args
-
     let mut entrypoint_args: Vec<CairoArg> = implicit_args
         .iter()
         .map(|m| CairoArg::from(m.clone()))
@@ -286,14 +288,22 @@ fn run_cairo_1_entrypoint_with_run_resources(
     ]);
     let entrypoint_args: Vec<&CairoArg> = entrypoint_args.iter().collect();
 
-    // Run contract entrypoint
+    // Initialize entrypoint
+    let end = runner_builder
+        .initialize_function_entrypoint_with_args(entrypoint_offset, &entrypoint_args)?;
+    runner_builder.initialize_validation_rules()?;
 
-    runner.run_from_entrypoint(
-        entrypoint_offset,
-        &entrypoint_args,
-        true,
-        Some(runner.program.shared_program_data.data.len() + program_extra_data.len()),
-        hint_processor,
+    let mut runner = runner_builder.build()?;
+
+    // Run contract entrypoint
+    runner
+        .run_until_pc(end, hint_processor)
+        .map_err(|err| VmException::from_vm_error(&runner, err))?;
+    runner.end_run(true, false, hint_processor)?;
+    verify_secure_runner(
+        &runner,
+        false,
+        Some(program.shared_program_data.data.len() + program_extra_data.len()),
     )?;
 
     // Check return values
