@@ -23,7 +23,8 @@ use super::{
         pack::*,
     },
 };
-use crate::Felt252;
+use crate::hint_processor::hint_processor_definition::get_ids_data;
+use crate::{any_box, Felt252};
 use crate::{
     hint_processor::builtin_hint_processor::secp::secp_utils::{SECP256R1_ALPHA, SECP256R1_P},
     utils::CAIRO_PRIME,
@@ -184,6 +185,51 @@ impl BuiltinHintProcessor {
 }
 
 impl HintProcessorLogic for BuiltinHintProcessor {
+    fn compile_hint(
+        &self,
+        hint_code: &str,
+        ap_tracking_data: &ApTracking,
+        reference_ids: &HashMap<String, usize>,
+        references: &[HintReference],
+        constants: Rc<HashMap<String, Felt252>>,
+    ) -> Result<Box<dyn Any>, crate::vm::errors::vm_errors::VirtualMachineError> {
+        let ids_data = match hint_code {
+            hint_code::ADD_SEGMENT
+            | hint_code::ASSERT_LE_FELT_EXCLUDED_2
+            | hint_code::ASSERT_LE_FELT_EXCLUDED_1
+            | hint_code::ASSERT_LE_FELT_EXCLUDED_0
+            | hint_code::VM_EXIT_SCOPE
+            | hint_code::DICT_NEW
+            | hint_code::USORT_ENTER_SCOPE
+            | hint_code::USORT_VERIFY_MULTIPLICITY_ASSERT
+            | hint_code::SQUASH_DICT_INNER_ASSERT_LEN_KEYS
+            | hint_code::SQUASH_DICT_INNER_LEN_ASSERT
+            | hint_code::VM_ENTER_SCOPE
+            | hint_code::IS_ZERO_NONDET
+            | hint_code::IS_ZERO_INT
+            | hint_code::IS_ZERO_ASSIGN_SCOPE_VARS
+            | hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_EXTERNAL_SECP
+            | hint_code::IS_ZERO_ASSIGN_SCOPE_VARS_ED25519
+            | hint_code::DIV_MOD_N_SAFE_DIV
+            | hint_code::DIV_MOD_N_SAFE_DIV_PLUS_ONE
+            | hint_code::IMPORT_SECP256R1_P
+            | hint_code::EC_DOUBLE_ASSIGN_NEW_Y
+            | hint_code::FAST_EC_ADD_ASSIGN_NEW_Y
+            | hint_code::XS_SAFE_DIV
+            | hint_code::IMPORT_SECP256R1_ALPHA
+            | hint_code::IMPORT_SECP256R1_N
+            | hint_code::EC_RECOVER_PRODUCT_DIV_M => HashMap::new(),
+            _ => get_ids_data(reference_ids, references)?,
+        };
+
+        Ok(any_box!(HintProcessorData {
+            code: hint_code.to_string(),
+            ap_tracking: ap_tracking_data.clone(),
+            ids_data,
+            constants,
+        }))
+    }
+
     fn execute_hint(
         &mut self,
         vm: &mut VirtualMachine,
