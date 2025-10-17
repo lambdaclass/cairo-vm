@@ -38,6 +38,7 @@ use cairo_vm::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
     math_utils::signed_felt,
     serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams, ReferenceManager},
+    stdlib::{collections::HashMap, iter::Peekable},
     types::{
         builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName,
         program::Program, relocatable::MaybeRelocatable,
@@ -52,7 +53,6 @@ use cairo_vm::{
 use itertools::{chain, Itertools};
 use num_bigint::{BigInt, Sign};
 use num_traits::{cast::ToPrimitive, Zero};
-use std::{collections::HashMap, iter::Peekable};
 
 /// Representation of a cairo argument
 /// Can consist of a single Felt or an array of Felts
@@ -616,7 +616,7 @@ fn create_entry_code(
         } else if generic_ty == &GasBuiltinType::ID {
             // Load initial gas
             casm_build_extend! {ctx,
-                const initial_gas = 9999999999999_usize;
+                const initial_gas = 9999999999999_u64;
                 tempvar gas = initial_gas;
             };
         } else {
