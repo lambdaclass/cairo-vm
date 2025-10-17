@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* Fix bug affecting cairo1 programs with input and System builtin [#2207](https://github.com/lambdaclass/cairo-vm/pull/2207)
+
 * chore: Pin generic-array version to 0.14.7 or lower. [#2227](https://github.com/lambdaclass/cairo-vm/pull/2227)
 
 * feat: Add support for WASM with Cairo 1 [#2216](https://github.com/lambdaclass/cairo-vm/pull/2216)
