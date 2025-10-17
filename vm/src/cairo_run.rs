@@ -290,7 +290,7 @@ pub fn cairo_run_fuzzed_program(
     runner_builder.load_program()?;
     runner_builder.initialize_builtin_segments();
     runner_builder.initialize_builtin_zero_segments();
-    let _end = runner_builder.initialize_main_entrypoint()?;
+    runner_builder.initialize_main_entrypoint()?;
     runner_builder.initialize_validation_rules()?;
     let mut cairo_runner = runner_builder.build()?;
 

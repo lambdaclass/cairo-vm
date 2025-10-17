@@ -488,90 +488,109 @@ impl CairoRunnerBuilder {
 
     pub fn initialize_main_entrypoint(&mut self) -> Result<Relocatable, RunnerError> {
         let mut stack = Vec::new();
-        {
-            let builtin_runners = self
-                .builtin_runners
-                .iter()
-                .map(|b| (b.name(), b))
-                .collect::<HashMap<_, _>>();
-            for builtin_name in &self.program.builtins {
-                if let Some(builtin_runner) = builtin_runners.get(builtin_name) {
-                    stack.append(&mut builtin_runner.initial_stack());
-                } else {
-                    stack.push(Felt252::ZERO.into())
-                }
+
+        // Initialize stack for builtin runners
+        let builtin_runner_map = self
+            .builtin_runners
+            .iter()
+            .map(|b| (b.name(), b))
+            .collect::<HashMap<_, _>>();
+        for builtin_name in &self.program.builtins {
+            if let Some(builtin_runner) = builtin_runner_map.get(builtin_name) {
+                stack.append(&mut builtin_runner.initial_stack());
+            } else {
+                stack.push(Felt252::ZERO.into())
             }
         }
 
-        if self.is_proof_mode() {
-            // In canonical proof mode, add the dummy last fp and pc to the public memory, so that the verifier can enforce
+        match self.runner_mode {
+            RunnerMode::ExecutionMode => {
+                // On ExecutionMode, we execute until control flow is returned.
+                // The stack is arranged as if we are at the start of a function call.
+                // Input arguments are set as input arguments to the the function.
+                //
+                // <-------- ARGUMENTS ----
+                //     ┌────┬────┬────┬────┬────────┬────────┬ ─ ─ ─ ─ ┐
+                // ... │    │    │    │    │ RET FP │ RET PC │
+                //     └────┴────┴────┴────┴────────┴────────┴ ─ ─ ─ ─ ┘
+                //                                             INIT FP
+                //
+                // The initial fp points to the cell after the return pc.
 
-            // canonical offset should be 2 for Cairo 0
-            let mut target_offset = 2;
-
-            // Cairo1 is not adding data to check [fp - 2] = fp, and has a different initialization of the stack. This should be updated.
-            // Cairo0 remains canonical
-
-            if matches!(self.runner_mode, RunnerMode::ProofModeCairo1) {
-                target_offset = stack.len() + 2;
-
-                // This values shouldn't be needed with a canonical proof mode
-                let return_fp = self.add_memory_segment();
-                let end = self.add_memory_segment();
-                stack.append(&mut vec![
-                    MaybeRelocatable::RelocatableValue(return_fp),
-                    MaybeRelocatable::RelocatableValue(end),
-                ]);
-
-                self.initialize_state(
-                    self.program
-                        .shared_program_data
-                        .start
-                        .ok_or(RunnerError::NoProgramStart)?,
-                    stack,
-                )?;
-            } else {
-                let mut stack_prefix = vec![
-                    Into::<MaybeRelocatable>::into(
-                        (self.execution_base.ok_or(RunnerError::NoExecBase)? + target_offset)?,
-                    ),
-                    MaybeRelocatable::from(Felt252::zero()),
-                ];
-                stack_prefix.extend(stack.clone());
-
-                self.execution_public_memory = Some(Vec::from_iter(0..stack_prefix.len()));
-
-                self.initialize_state(
-                    self.program
-                        .shared_program_data
-                        .start
-                        .ok_or(RunnerError::NoProgramStart)?,
-                    stack_prefix.clone(),
-                )?;
+                let entrypoint = self
+                    .program
+                    .shared_program_data
+                    .main
+                    .ok_or(RunnerError::MissingMain)?;
+                let end_pc = self.initialize_function_entrypoint_with_stack(entrypoint, stack)?;
+                Ok(end_pc)
             }
+            RunnerMode::ProofModeCairo1 => {
+                // On ProofModeCairo1, initialization is similar to
+                // ExecutionMode, but we execute until a fixed address, instead
+                // of until control is returned.
 
-            self.initial_fp =
-                Some((self.execution_base.ok_or(RunnerError::NoExecBase)? + target_offset)?);
+                let entrypoint = self
+                    .program
+                    .shared_program_data
+                    .start
+                    .ok_or(RunnerError::NoProgramStart)?;
 
-            self.initial_ap = self.initial_fp;
-            return Ok((self.program_base.ok_or(RunnerError::NoProgBase)?
-                + self
+                self.initialize_function_entrypoint_with_stack(entrypoint, stack)?;
+
+                // We override the final PC, as we are not executing until
+                // control flow is returned, but rather until a fixed address.
+                let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+                let program_end_offset = self
                     .program
                     .shared_program_data
                     .end
-                    .ok_or(RunnerError::NoProgramEnd)?)?);
-        }
+                    .ok_or(RunnerError::NoProgramEnd)?;
+                Ok((program_base + program_end_offset)?)
+            }
+            RunnerMode::ProofModeCanonical => {
+                // On standalone, we execute until a fixed address.
+                // Input arguments are set as local variables to the current frame.
+                //
+                //                      ---- ARGUMENTS ------------------>
+                // ┌─────────┬─────────┬─────────┬────┬────┬────┬────┬────┐
+                // │ INIT FP │ ZERO    │         │    │    │    │    │    │ ...
+                // └─────────┴─────────┴─────────┴────┴────┴────┴────┴────┘
+                //                       INIT FP
+                //
+                // The initial fp variable points to the third cell. We write
+                // INIT FP in the first cell, so that the verifier can enforce
+                // [fp - 2] = fp.
 
-        let return_fp = self.add_memory_segment();
-        if let Some(main) = self.program.shared_program_data.main {
-            let main_clone = main;
-            Ok(self.initialize_function_entrypoint(
-                main_clone,
-                stack,
-                MaybeRelocatable::RelocatableValue(return_fp),
-            )?)
-        } else {
-            Err(RunnerError::MissingMain)
+                let execution_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
+                let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+                let program_end_offset = self
+                    .program
+                    .shared_program_data
+                    .end
+                    .ok_or(RunnerError::NoProgramEnd)?;
+
+                let target_offset: u32 = 2;
+
+                let stack_prefix = [
+                    (execution_base + target_offset)?.into(),
+                    Felt252::ZERO.into(),
+                ];
+                stack.splice(0..0, stack_prefix);
+
+                self.execution_public_memory = Some(Vec::from_iter(0..stack.len()));
+
+                let entrypoint = self
+                    .program
+                    .shared_program_data
+                    .start
+                    .ok_or(RunnerError::NoProgramStart)?;
+                self.initialize_pc(entrypoint)?;
+                self.initialize_stack(&stack)?;
+                self.initial_fp = Some((execution_base + target_offset)?);
+                self.initial_ap = self.initial_fp;
+                Ok((program_base + program_end_offset)?)
+            }
         }
     }
 
@@ -584,46 +603,43 @@ impl CairoRunnerBuilder {
             .iter()
             .map(|arg| self.memory.gen_cairo_arg(arg))
             .collect::<Result<Vec<MaybeRelocatable>, VirtualMachineError>>()?;
-        let return_fp = MaybeRelocatable::from(0);
-        let end = self.initialize_function_entrypoint(entrypoint, stack, return_fp)?;
-        Ok(end)
+        let end_pc = self.initialize_function_entrypoint_with_stack(entrypoint, stack)?;
+        Ok(end_pc)
     }
 
-    fn initialize_function_entrypoint(
+    fn initialize_function_entrypoint_with_stack(
         &mut self,
         entrypoint: usize,
         mut stack: Vec<MaybeRelocatable>,
-        return_fp: MaybeRelocatable,
     ) -> Result<Relocatable, RunnerError> {
-        let end = self.add_memory_segment();
+        let return_fp = self.add_memory_segment();
+        let final_pc = self.add_memory_segment();
+
         stack.append(&mut vec![
-            return_fp,
-            MaybeRelocatable::RelocatableValue(end),
+            MaybeRelocatable::RelocatableValue(return_fp),
+            MaybeRelocatable::RelocatableValue(final_pc),
         ]);
-        if let Some(base) = &self.execution_base {
-            self.initial_fp = Some(Relocatable {
-                segment_index: base.segment_index,
-                offset: base.offset + stack.len(),
-            });
-            self.initial_ap = self.initial_fp;
-        } else {
-            return Err(RunnerError::NoExecBase);
-        }
-        self.initialize_state(entrypoint, stack)?;
-        self.final_pc = Some(end);
-        Ok(end)
+
+        self.initialize_pc(entrypoint)?;
+        self.initialize_stack(&stack)?;
+
+        let execution_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
+        self.initial_fp = Some((execution_base + stack.len())?);
+        self.initial_ap = self.initial_fp;
+        self.final_pc = Some(final_pc);
+        Ok(final_pc)
     }
 
-    fn initialize_state(
-        &mut self,
-        entrypoint: usize,
-        stack: Vec<MaybeRelocatable>,
-    ) -> Result<(), RunnerError> {
-        let prog_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
-        let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
-        self.initial_pc = Some((prog_base + entrypoint)?);
+    fn initialize_pc(&mut self, entrypoint: usize) -> Result<(), RunnerError> {
+        let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        self.initial_pc = Some((program_base + entrypoint)?);
+        Ok(())
+    }
+
+    fn initialize_stack(&mut self, stack: &[MaybeRelocatable]) -> Result<(), RunnerError> {
+        let execution_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
         self.memory
-            .load_data(exec_base, &stack)
+            .load_data(execution_base, stack)
             .map_err(RunnerError::MemoryInitializationError)?;
         Ok(())
     }
