@@ -198,6 +198,13 @@ jobs:
     - name: Run clippy
       run: make clippy
 
+  # Check for unnecessary dependencies.
+  machete:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Machete
+        uses: bnjbvr/cargo-machete@v0.9.1
 
   # NOTE: the term "smoke test" comes from electronics design: the minimal
   # expectations anyone has in their device is to not catch fire on boot.
