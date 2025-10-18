@@ -1545,12 +1545,6 @@ impl CairoRunner {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SegmentInfo {
-    pub index: isize,
-    pub size: usize,
-}
-
 //* ----------------------
 //*   ExecutionResources
 //* ----------------------
