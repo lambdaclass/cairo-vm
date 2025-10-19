@@ -13,6 +13,7 @@ use crate::{
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
         trace::trace_entry::{relocate_trace_register, RelocatedTraceEntry, TraceEntry},
+        vm_memory::memory::MemoryCell,
     },
     Felt252,
 };
@@ -153,6 +154,7 @@ pub struct CairoRunner {
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
     run_ended: bool,
+    loaded_program: bool,
     segments_finalized: bool,
     execution_public_memory: Option<Vec<usize>>,
     pub(crate) runner_mode: RunnerMode,
@@ -210,6 +212,7 @@ impl CairoRunner {
             initial_fp: None,
             initial_pc: None,
             run_ended: false,
+            loaded_program: false,
             segments_finalized: false,
             runner_mode: mode.clone(),
             relocated_memory: Vec::new(),
@@ -486,18 +489,47 @@ impl CairoRunner {
         let prog_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
         let exec_base = self.execution_base.ok_or(RunnerError::NoExecBase)?;
         self.initial_pc = Some((prog_base + entrypoint)?);
-        self.vm
-            .load_data(prog_base, &self.program.shared_program_data.data)
-            .map_err(RunnerError::MemoryInitializationError)?;
-
-        // Mark all addresses from the program segment as accessed
-        for i in 0..self.program.shared_program_data.data.len() {
-            self.vm.segments.memory.mark_as_accessed((prog_base + i)?);
+        if !self.loaded_program {
+            self.load_program()?;
         }
         self.vm
             .segments
             .load_data(exec_base, &stack)
             .map_err(RunnerError::MemoryInitializationError)?;
+        Ok(())
+    }
+
+    /// Loads the program in the program segment
+    ///
+    /// If this method is not called, the program is loaded automatically before
+    /// execution, in `initialize_state`.
+    pub fn load_program(&mut self) -> Result<(), RunnerError> {
+        let prog_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
+        self.vm
+            .load_data(prog_base, &self.program.shared_program_data.data)
+            .map_err(RunnerError::MemoryInitializationError)?;
+        // Mark all addresses from the program segment as accessed
+        for i in 0..self.program.shared_program_data.data.len() {
+            self.vm.segments.memory.mark_as_accessed((prog_base + i)?);
+        }
+        self.loaded_program = true;
+        Ok(())
+    }
+
+    /// Loads the given program in the program segment.
+    ///
+    /// If this method is not called, the program is loaded automatically before
+    /// execution, in `initialize_state`.
+    ///
+    /// # Safety
+    ///
+    /// The given program must be the same as the one defined in the runner.
+    pub fn load_cached_program(&mut self, data: Vec<MemoryCell>) -> Result<(), RunnerError> {
+        self.vm
+            .segments
+            .memory
+            .replace_segment(self.program_base.unwrap(), data)?;
+        self.loaded_program = true;
         Ok(())
     }
 
