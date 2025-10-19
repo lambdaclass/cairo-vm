@@ -2,6 +2,8 @@
 
 # How does the Cairo VM work?
 
+> For a general overview, see the [main README](../../README.md). For the documentation structure, see [docs/README.md](../README.md).
+
 ## High Level Overview
 
 The Cairo virtual machine is meant to be used in the context of STARK validity proofs. What this means is that the point of Cairo is not just to execute some code and get a result, but to *prove* to someone else that said execution was done correctly, without them having to re-execute the entire thing. The rough flow for it looks like this:
