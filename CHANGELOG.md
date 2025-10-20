@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: Remove unused dependencies [#2238](https://github.com/lambdaclass/cairo-vm/pull/2238)
+
 * chore: Unify deps makefile target [#2211](https://github.com/lambdaclass/cairo-vm/pull/2211)
 
 * Fix bug affecting cairo1 programs with input and System builtin [#2207](https://github.com/lambdaclass/cairo-vm/pull/2207)
