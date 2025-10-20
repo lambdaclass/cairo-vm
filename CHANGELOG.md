@@ -4,6 +4,8 @@
 
 * fix: error mapping for fee_provision in excess_balance hint [#2236](https://github.com/lambdaclass/cairo-vm/pull/2236)
 
+* fix: Remove unused dependency getrandom for cairo1-run, and serde_json for wasm-demo-cairo1 [#2238](https://github.com/lambdaclass/cairo-vm/pull/2238)
+
 * chore: Unify deps makefile target [#2211](https://github.com/lambdaclass/cairo-vm/pull/2211)
 
 * Fix bug affecting cairo1 programs with input and System builtin [#2207](https://github.com/lambdaclass/cairo-vm/pull/2207)
