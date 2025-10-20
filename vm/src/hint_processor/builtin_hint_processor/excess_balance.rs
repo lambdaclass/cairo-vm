@@ -376,10 +376,12 @@ pub fn excess_balance_hint(
         .checked_add(unrealized_funding_pnl)
         .and_then(|sum| sum.checked_add(token_assets_value_d))
         .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("account_value".into()))?;
-    let fee_provision = fees
+    let fee = fees
         .get(&account)
-        .and_then(|fee| abs_balance_value.checked_mul(*fee))
         .ok_or_else(|| HintError::ExcessBalanceKeyError("fees".into()))?;
+    let fee_provision = abs_balance_value
+        .checked_mul(*fee)
+        .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("fee_provision".into()))?;
     let margin_requirement = position_margin
         .checked_add(fee_provision)
         .ok_or_else(|| HintError::ExcessBalanceCalculationFailed("margin_requirements".into()))?;
