@@ -4,6 +4,7 @@ members = [
     "vm",
     "hint_accountant",
     "examples/wasm-demo",
+    "examples/wasm-demo-cairo1",
     "cairo1-run",
     "cairo-vm-tracer",
     "examples/hyper_threading",
@@ -87,6 +88,9 @@ lto = "fat"
 
 [profile.release.package.wasm-demo]
 # Tell `rustc` to optimize for small code size.
+opt-level = "s"
+
+[profile.release.package.wasm-demo-cairo1]
 opt-level = "s"
 
 [profile.test.package.proptest]

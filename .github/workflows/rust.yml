@@ -18,6 +18,7 @@ env:
     cairo_programs/**/*.json
     !cairo_programs/manually_compiled/*
     examples/wasm-demo/src/array_sum.json
+    cairo_programs/cairo-1-programs/bitwise.sierra
   TEST_COLLECT_COVERAGE: 1
   PROPTEST_CASES: 100
 
@@ -48,6 +49,7 @@ jobs:
         - cairo_test_programs
         - cairo_1_test_contracts
         - cairo_2_test_contracts
+        - wasm_cairo_1_example
     name: Build Cairo programs
     runs-on: ubuntu-24.04
     steps:
@@ -90,15 +92,19 @@ jobs:
           echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Install cairo 1 compiler
-      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_1_test_contracts'
+      if: steps.cache-programs.outputs.cache-hit != 'true' && (matrix.program-target == 'cairo_1_test_contracts' || matrix.program-target == 'wasm_cairo_1_example')
       run: make build-cairo-1-compiler
 
     - name: Install cairo 2 compiler
       if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_2_test_contracts'
       run: make build-cairo-2-compiler
 
+    - name: Build Cairo 1 WASM example
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'wasm_cairo_1_example'
+      run: ./cairo1/bin/cairo-compile -r cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
+
     - name: Build programs
-      if: steps.cache-programs.outputs.cache-hit != 'true'
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target != 'wasm_cairo_1_example'
       run: make -j ${{ matrix.program-target }}
 
   # NOTE: used to reduce the amount of cache steps we need in later jobs
@@ -146,6 +152,12 @@ jobs:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
         key: cairo_2_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
+    - name: Fetch WASM Cairo 1 Example
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ env.CAIRO_PROGRAMS_PATH }}
+        key: wasm_cairo_1_example-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        fail-on-cache-miss: true
 
     - name: Merge caches
       uses: actions/cache/save@v3
@@ -186,6 +198,13 @@ jobs:
     - name: Run clippy
       run: make clippy
 
+  # Check for unnecessary dependencies.
+  machete:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Machete
+        uses: bnjbvr/cargo-machete@v0.9.1
 
   # NOTE: the term "smoke test" comes from electronics design: the minimal
   # expectations anyone has in their device is to not catch fire on boot.
@@ -817,6 +836,27 @@ jobs:
       run: |
         cairo-compile cairo_programs/array_sum.cairo --no_debug_info --output cairo_programs/array_sum.json
         cd examples/wasm-demo
+        wasm-pack build --target=web
+
+  wasm-demo-cairo1: 
+    name: Build the wasm demo cairo1
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      
+    - name: Install wasm-pack dep
+      run: npm install -g wasm-pack 
+    
+    - name: Make deps
+      run: make deps
+
+    - name: Build wasm-demo-cairo1
+      run: |
+        ./cairo1/bin/cairo-compile -r cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
+        cd examples/wasm-demo-cairo1
         wasm-pack build --target=web
 
   compare-factorial-outputs-all-layouts:

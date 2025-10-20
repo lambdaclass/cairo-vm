@@ -4,7 +4,15 @@
 
 * fix: ArcTooBig parameter order in assert_le_felt. [#2234](https://github.com/lambdaclass/cairo-vm/pull/2234)
 
+* fix: Remove unused dependency getrandom for cairo1-run, and serde_json for wasm-demo-cairo1 [#2238](https://github.com/lambdaclass/cairo-vm/pull/2238)
+
+* chore: Unify deps makefile target [#2211](https://github.com/lambdaclass/cairo-vm/pull/2211)
+
+* Fix bug affecting cairo1 programs with input and System builtin [#2207](https://github.com/lambdaclass/cairo-vm/pull/2207)
+
 * chore: Pin generic-array version to 0.14.7 or lower. [#2227](https://github.com/lambdaclass/cairo-vm/pull/2227)
+
+* feat: Add support for WASM with Cairo 1 [#2216](https://github.com/lambdaclass/cairo-vm/pull/2216)
 
 * fix: Added `cairo_1_test_contracts` and `cairo_2_test_contracts` as dependencies for `test-extensive_hints` target [#2201](https://github.com/lambdaclass/cairo-vm/pull/2201)
 
