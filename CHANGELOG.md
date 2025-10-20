@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: ArcTooBig parameter order in assert_le_felt. [#2234](https://github.com/lambdaclass/cairo-vm/pull/2234)
+
 * chore: Pin generic-array version to 0.14.7 or lower. [#2227](https://github.com/lambdaclass/cairo-vm/pull/2227)
 
 * fix: Added `cairo_1_test_contracts` and `cairo_2_test_contracts` as dependencies for `test-extensive_hints` target [#2201](https://github.com/lambdaclass/cairo-vm/pull/2201)
