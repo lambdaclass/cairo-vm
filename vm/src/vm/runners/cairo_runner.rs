@@ -529,16 +529,18 @@ impl CairoRunnerBuilder {
         let mut stack = Vec::new();
 
         // Initialize stack for builtin runners
-        let builtin_runner_map = self
-            .builtin_runners
-            .iter()
-            .map(|b| (b.name(), b))
-            .collect::<HashMap<_, _>>();
-        for builtin_name in &self.program.builtins {
-            if let Some(builtin_runner) = builtin_runner_map.get(builtin_name) {
-                stack.append(&mut builtin_runner.initial_stack());
-            } else {
-                stack.push(Felt252::ZERO.into())
+        {
+            let builtin_runner_map = self
+                .builtin_runners
+                .iter()
+                .map(|b| (b.name(), b))
+                .collect::<HashMap<_, _>>();
+            for builtin_name in &self.program.builtins {
+                if let Some(builtin_runner) = builtin_runner_map.get(builtin_name) {
+                    stack.append(&mut builtin_runner.initial_stack());
+                } else {
+                    stack.push(Felt252::ZERO.into())
+                }
             }
         }
 
