@@ -1363,6 +1363,7 @@ pub struct VirtualMachineBuilder {
     instruction_cache: Vec<Option<Instruction>>,
     skip_instruction_execution: bool,
     run_finished: bool,
+    disable_trace_padding: bool,
     #[cfg(feature = "test_utils")]
     pub(crate) hooks: crate::vm::hooks::Hooks,
 }
@@ -1386,6 +1387,7 @@ impl Default for VirtualMachineBuilder {
             #[cfg(feature = "test_utils")]
             hooks: Default::default(),
             instruction_cache: Vec::new(),
+            disable_trace_padding: false,
         }
     }
 }
@@ -1408,6 +1410,11 @@ impl VirtualMachineBuilder {
 
     pub fn trace(mut self, trace: Option<Vec<TraceEntry>>) -> VirtualMachineBuilder {
         self.trace = trace;
+        self
+    }
+
+    pub fn disable_trace_padding(mut self, value: bool) -> VirtualMachineBuilder {
+        self.disable_trace_padding = value;
         self
     }
 
@@ -1458,7 +1465,7 @@ impl VirtualMachineBuilder {
             #[cfg(feature = "test_utils")]
             hooks: self.hooks,
             relocation_table: None,
-            disable_trace_padding: false,
+            disable_trace_padding: self.disable_trace_padding,
         }
     }
 }

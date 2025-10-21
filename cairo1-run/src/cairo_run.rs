@@ -44,7 +44,7 @@ use cairo_vm::{
     },
     vm::{
         errors::{runner_errors::RunnerError, vm_errors::VirtualMachineError},
-        runners::cairo_runner::{CairoRunner, RunResources, RunnerMode},
+        runners::cairo_runner::{CairoRunner, CairoRunnerBuilder, RunResources, RunnerMode},
         vm_core::VirtualMachine,
     },
     Felt252,
@@ -250,16 +250,25 @@ pub fn cairo_run_program(
         RunnerMode::ExecutionMode
     };
 
-    let mut runner = CairoRunner::new_v2(
+    let mut runner_builder = CairoRunnerBuilder::new(
         &program,
         cairo_run_config.layout,
         cairo_run_config.dynamic_layout_params.clone(),
         runner_mode,
-        cairo_run_config.trace_enabled,
-        false,
     )?;
-    let end = runner.initialize(cairo_run_config.proof_mode)?;
-    load_arguments(&mut runner, &cairo_run_config, main_func)?;
+    runner_builder.enable_trace(cairo_run_config.trace_enabled);
+    runner_builder.allow_missing_builtins(cairo_run_config.proof_mode);
+    runner_builder.initialize_builtin_runners_for_layout()?;
+    runner_builder.initialize_base_segments();
+    runner_builder.load_program()?;
+    runner_builder.initialize_builtin_segments();
+    runner_builder.initialize_builtin_zero_segments();
+    let end = runner_builder.initialize_main_entrypoint()?;
+    runner_builder.initialize_validation_rules()?;
+
+    load_arguments(&mut runner_builder, &cairo_run_config, main_func)?;
+
+    let mut runner = runner_builder.build()?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut hint_processor)?;
@@ -460,7 +469,7 @@ After the entry_code (up until calling main) has been ran by the VM:
 (*4) if gas builtin is present
 */
 fn load_arguments(
-    runner: &mut CairoRunner,
+    runner: &mut CairoRunnerBuilder,
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
 ) -> Result<(), Error> {
@@ -500,25 +509,28 @@ fn load_arguments(
     for arg in cairo_run_config.args {
         match arg {
             FuncArg::Array(args) => {
-                let array_start = runner.vm.add_memory_segment();
-                let array_end = runner.vm.load_data(
+                let array_start = runner.add_memory_segment();
+                let array_end = runner.load_memory_array(
                     array_start,
                     &args.iter().map(|f| f.into()).collect::<Vec<_>>(),
                 )?;
-                runner.vm.insert_value(
-                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                runner.load_memory_value(
+                    (runner.get_initial_ap().ok_or(RunnerError::NoAP)? + ap_offset)
+                        .map_err(VirtualMachineError::Math)?,
                     array_start,
                 )?;
                 ap_offset += 1;
-                runner.vm.insert_value(
-                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                runner.load_memory_value(
+                    (runner.get_initial_ap().ok_or(RunnerError::NoAP)? + ap_offset)
+                        .map_err(VirtualMachineError::Math)?,
                     array_end,
                 )?;
                 ap_offset += 1;
             }
             FuncArg::Single(arg) => {
-                runner.vm.insert_value(
-                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                runner.load_memory_value(
+                    (runner.get_initial_ap().ok_or(RunnerError::NoAP)? + ap_offset)
+                        .map_err(VirtualMachineError::Math)?,
                     arg,
                 )?;
                 ap_offset += 1;
