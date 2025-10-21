@@ -538,7 +538,7 @@ impl CairoRunnerBuilder {
 
                 self.initialize_function_entrypoint_with_stack(entrypoint, stack)?;
 
-                // We override the final PC, as we are not executing until
+                // We don't return final_pc, as we are not executing until
                 // control flow is returned, but rather until a fixed address.
                 let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
                 let program_end_offset = self
