@@ -152,7 +152,20 @@ impl ResourceTracker for RunResources {
 /// Handles the creation of a CairoRunner
 ///
 /// This structure can be cloned. This allows to compute the initial state once,
-/// and execute it many times. The following elements can be cached:
+/// and execute it many times.
+///
+/// The following elements must be initialized in order:
+/// - Base segments (program & execution segment)
+/// - Builtin runners
+/// - Builtin segments
+/// - Entrypoint
+///
+/// The following elements must be initialized in no particular order:
+/// - Validation rules
+/// - Program
+///
+/// The following elements don't need to be initialized, but can be cached to
+/// improve performance:
 /// - Compiled hints
 /// - Decoded instructions
 /// - Loaded program segment
@@ -470,9 +483,8 @@ impl CairoRunnerBuilder {
     /// Initializing the builtin segments.
     ///
     /// Depends on:
-    /// - [initialize_base_segments](Self::initialize_base_segments)
-    /// - [initialize_builtin_runners_for_layout](Self::initialize_builtin_runners_for_layout)
-    ///   or [initialize_builtin_runners](Self::initialize_builtin_runners)
+    /// - Base segments initialization
+    /// - Builtin runners initialization
     pub fn initialize_builtin_segments(&mut self) {
         for builtin_runner in self.builtin_runners.iter_mut() {
             builtin_runner.initialize_segments(&mut self.memory);
@@ -482,7 +494,7 @@ impl CairoRunnerBuilder {
     /// Initializing the builtin segments.
     ///
     /// Depends on:
-    /// - [initialize_builtin_segments](Self::initialize_builtin_segments)
+    /// - Builtin segment initialization
     pub fn initialize_builtin_zero_segments(&mut self) {
         for builtin_runner in self.builtin_runners.iter_mut() {
             if let BuiltinRunner::Mod(runner) = builtin_runner {
@@ -502,6 +514,12 @@ impl CairoRunnerBuilder {
             .map_err(RunnerError::MemoryValidationError)
     }
 
+    /// Initializes the stack for executing the main entrypoint.
+    ///
+    /// How the stack and registers are initialized depend on the execution mode.
+    ///
+    /// Depends on:
+    /// - Segment initialization
     pub fn initialize_main_entrypoint(&mut self) -> Result<Relocatable, RunnerError> {
         let mut stack = Vec::new();
 
@@ -610,6 +628,8 @@ impl CairoRunnerBuilder {
         }
     }
 
+    /// Depends on:
+    /// - Segment initialization
     pub fn initialize_function_entrypoint_with_args(
         &mut self,
         entrypoint: usize,
@@ -666,7 +686,7 @@ impl CairoRunnerBuilder {
     /// function must be called in other to load the program.
     ///
     /// If the entrypoint is initialized from the runner instead, and this
-    /// functions is not called, the program would be loaded by the runner.
+    /// functions is not called, the program will be loaded by the runner.
     pub fn load_program(&mut self) -> Result<(), RunnerError> {
         let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
         let program_data = &self.program.shared_program_data.data;
