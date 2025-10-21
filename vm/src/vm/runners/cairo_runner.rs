@@ -158,7 +158,6 @@ impl ResourceTracker for RunResources {
 /// - Loaded program segment
 ///
 /// TODO: Add support for Cairo PIE?
-/// TODO: Add support for cairo1 load_arguments?
 pub struct CairoRunnerBuilder {
     program: Program,
     layout: CairoLayout,
@@ -259,20 +258,40 @@ impl CairoRunnerBuilder {
             || self.runner_mode == RunnerMode::ProofModeCairo1
     }
 
+    pub fn get_program(&self) -> &Program {
+        &self.program
+    }
+
     pub fn get_program_base(&self) -> Option<Relocatable> {
         self.program_base
+    }
+
+    pub fn get_initial_ap(&self) -> Option<Relocatable> {
+        self.initial_ap
+    }
+
+    pub fn get_builtin_runners(&self) -> &[BuiltinRunner] {
+        &self.builtin_runners
     }
 
     pub fn add_memory_segment(&mut self) -> Relocatable {
         self.memory.add()
     }
 
-    pub fn load_memory(
+    pub fn load_memory_array(
         &mut self,
         ptr: Relocatable,
         data: &[MaybeRelocatable],
     ) -> Result<Relocatable, MemoryError> {
         self.memory.load_data(ptr, data)
+    }
+
+    pub fn load_memory_value(
+        &mut self,
+        ptr: Relocatable,
+        data: impl Into<MaybeRelocatable>,
+    ) -> Result<(), MemoryError> {
+        self.memory.memory.insert_value(ptr, data)
     }
 
     /// *Initializes* all the builtin supported by the current layout, but only
@@ -441,10 +460,6 @@ impl CairoRunnerBuilder {
             self.builtin_runners.push(builtin_runner);
         }
         Ok(())
-    }
-
-    pub fn get_builtin_runners(&self) -> &[BuiltinRunner] {
-        &self.builtin_runners
     }
 
     pub fn initialize_base_segments(&mut self) {

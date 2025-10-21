@@ -155,7 +155,7 @@ fn run_cairo_1_entrypoint(
         vec![0.into(), 0.into(), 0.into(), 0.into(), 0.into()];
     let builtin_costs_ptr = runner_builder.add_memory_segment();
     runner_builder
-        .load_memory(builtin_costs_ptr, &builtin_costs)
+        .load_memory_array(builtin_costs_ptr, &builtin_costs)
         .unwrap();
 
     // Load extra data
@@ -165,12 +165,12 @@ fn run_cairo_1_entrypoint(
     let program_extra_data: Vec<MaybeRelocatable> =
         vec![0x208B7FFF7FFF7FFE.into(), builtin_costs_ptr.into()];
     runner_builder
-        .load_memory(core_program_end_ptr, &program_extra_data)
+        .load_memory_array(core_program_end_ptr, &program_extra_data)
         .unwrap();
 
     // Load calldata
     let calldata_start = runner_builder.add_memory_segment();
-    let calldata_end = runner_builder.load_memory(calldata_start, args).unwrap();
+    let calldata_end = runner_builder.load_memory_array(calldata_start, args).unwrap();
 
     // Create entrypoint_args
     let mut entrypoint_args: Vec<CairoArg> = implicit_args
@@ -264,7 +264,7 @@ fn run_cairo_1_entrypoint_with_run_resources(
     let builtin_costs: Vec<MaybeRelocatable> =
         vec![0.into(), 0.into(), 0.into(), 0.into(), 0.into()];
     let builtin_costs_ptr = runner_builder.add_memory_segment();
-    runner_builder.load_memory(builtin_costs_ptr, &builtin_costs)?;
+    runner_builder.load_memory_array(builtin_costs_ptr, &builtin_costs)?;
 
     // Load extra data
     let core_program_end_ptr = (runner_builder.get_program_base().unwrap()
@@ -272,11 +272,11 @@ fn run_cairo_1_entrypoint_with_run_resources(
     .unwrap();
     let program_extra_data: Vec<MaybeRelocatable> =
         vec![0x208B7FFF7FFF7FFE.into(), builtin_costs_ptr.into()];
-    runner_builder.load_memory(core_program_end_ptr, &program_extra_data)?;
+    runner_builder.load_memory_array(core_program_end_ptr, &program_extra_data)?;
 
     // Load calldata
     let calldata_start = runner_builder.add_memory_segment();
-    let calldata_end = runner_builder.load_memory(calldata_start, args)?;
+    let calldata_end = runner_builder.load_memory_array(calldata_start, args)?;
     // Create entrypoint_args
     let mut entrypoint_args: Vec<CairoArg> = implicit_args
         .iter()
