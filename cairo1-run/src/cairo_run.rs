@@ -515,13 +515,13 @@ fn load_arguments(
                     &args.iter().map(|f| f.into()).collect::<Vec<_>>(),
                 )?;
                 runner.load_memory_value(
-                    (runner.get_initial_ap().unwrap() + ap_offset)
+                    (runner.get_initial_ap().ok_or(RunnerError::NoAP)? + ap_offset)
                         .map_err(VirtualMachineError::Math)?,
                     array_start,
                 )?;
                 ap_offset += 1;
                 runner.load_memory_value(
-                    (runner.get_initial_ap().unwrap() + ap_offset)
+                    (runner.get_initial_ap().ok_or(RunnerError::NoAP)? + ap_offset)
                         .map_err(VirtualMachineError::Math)?,
                     array_end,
                 )?;
@@ -529,7 +529,7 @@ fn load_arguments(
             }
             FuncArg::Single(arg) => {
                 runner.load_memory_value(
-                    (runner.get_initial_ap().unwrap() + ap_offset)
+                    (runner.get_initial_ap().ok_or(RunnerError::NoAP)? + ap_offset)
                         .map_err(VirtualMachineError::Math)?,
                     arg,
                 )?;
