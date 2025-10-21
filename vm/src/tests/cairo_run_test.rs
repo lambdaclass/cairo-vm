@@ -1229,6 +1229,7 @@ fn run_program_with_custom_mod_builtin_params(
     .unwrap();
     runner_builder.enable_trace(cairo_run_config.trace_enabled);
     runner_builder.allow_missing_builtins(false);
+    runner_builder.disable_trace_padding(cairo_run_config.disable_trace_padding);
     runner_builder
         .initialize_builtin_runners_for_layout()
         .unwrap();
