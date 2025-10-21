@@ -507,9 +507,9 @@ impl CairoRunnerBuilder {
             RunnerMode::ExecutionMode => {
                 // On ExecutionMode, we execute until control flow is returned.
                 // The stack is arranged as if we are at the start of a function call.
-                // Input arguments are set as input arguments to the the function.
+                // Builtin bases are set as input arguments to the the function.
                 //
-                // <-------- ARGUMENTS ----
+                // <----- BUILTIN BASES ----
                 //     ┌────┬────┬────┬────┬────────┬────────┬ ─ ─ ─ ─ ┐
                 // ... │    │    │    │    │ RET FP │ RET PC │
                 //     └────┴────┴────┴────┴────────┴────────┴ ─ ─ ─ ─ ┘
@@ -550,9 +550,9 @@ impl CairoRunnerBuilder {
             }
             RunnerMode::ProofModeCanonical => {
                 // On standalone, we execute until a fixed address.
-                // Input arguments are set as local variables to the current frame.
+                // Builtin bases are set as local variables to the current frame.
                 //
-                //                      ---- ARGUMENTS ------------------>
+                //                      ---- BUILTIN BASES ------------------->
                 // ┌─────────┬─────────┬─────────┬────┬────┬────┬────┬────┐
                 // │ INIT FP │ ZERO    │         │    │    │    │    │    │ ...
                 // └─────────┴─────────┴─────────┴────┴────┴────┴────┴────┘
