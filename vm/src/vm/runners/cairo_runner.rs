@@ -157,7 +157,8 @@ impl ResourceTracker for RunResources {
 /// - Decoded instructions
 /// - Loaded program segment
 ///
-/// TODO: Add support for Cairo PIE
+/// TODO: Add support for Cairo PIE?
+/// TODO: Add support for cairo1 load_arguments?
 pub struct CairoRunnerBuilder {
     program: Program,
     layout: CairoLayout,
