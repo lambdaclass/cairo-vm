@@ -170,7 +170,9 @@ fn run_cairo_1_entrypoint(
 
     // Load calldata
     let calldata_start = runner_builder.add_memory_segment();
-    let calldata_end = runner_builder.load_memory_array(calldata_start, args).unwrap();
+    let calldata_end = runner_builder
+        .load_memory_array(calldata_start, args)
+        .unwrap();
 
     // Create entrypoint_args
     let mut entrypoint_args: Vec<CairoArg> = implicit_args
