@@ -198,8 +198,8 @@ jobs:
     - name: Run clippy
       run: make clippy
 
-  # Check for unnecessary dependencies.
-  machete:
+  unused-deps:
+    name: No unused dependencies
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
