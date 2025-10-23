@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: honor relocate_mem and trace_enabled when relocating [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
+
 * chore: Remove dead SegmentInfo struct from cairo_runner.rs [#2235](https://github.com/lambdaclass/cairo-vm/pull/2235)
 
 * fix: Remove unused dependency getrandom for cairo1-run, and serde_json for wasm-demo-cairo1 [#2238](https://github.com/lambdaclass/cairo-vm/pull/2238)
