@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: Remove dead SegmentInfo struct from cairo_runner.rs [#2235](https://github.com/lambdaclass/cairo-vm/pull/2235)
+
 * fix: Remove unused dependency getrandom for cairo1-run, and serde_json for wasm-demo-cairo1 [#2238](https://github.com/lambdaclass/cairo-vm/pull/2238)
 
 * chore: Unify deps makefile target [#2211](https://github.com/lambdaclass/cairo-vm/pull/2211)
