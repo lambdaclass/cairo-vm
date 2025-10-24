@@ -68,7 +68,7 @@ fn program_array_sum(
     let populated_array = array
         .iter()
         .enumerate()
-        .map(|(index, num)| format!("assert [ptr + {}] = {};  \n", index, num))
+        .map(|(index, num)| format!("assert [ptr + {}] = {};\n", index, num))
         .collect::<Vec<_>>()
         .join("            ")
         .repeat(array.len());
@@ -137,7 +137,7 @@ fn program_unsafe_keccak(
     let populated_array = array
         .iter()
         .enumerate()
-        .map(|(index, num)| format!("assert data[{}] = {}; \n", index, num))
+        .map(|(index, num)| format!("assert data[{}] = {};\n", index, num))
         .collect::<Vec<_>>()
         .join("            ");
 
@@ -207,17 +207,18 @@ fn program_bitwise(
     let and = bnum1 & bnum2;
     let xor = bnum1 ^ bnum2;
     let or = bnum1 | bnum2;
-    let file_content = format!("
+    let file_content = format!(
+        "
     %builtins bitwise
     from starkware.cairo.common.bitwise import bitwise_and, bitwise_xor, bitwise_or, bitwise_operations
     from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 
     func main{{bitwise_ptr: BitwiseBuiltin*}}() {{
-        let (and_a) = bitwise_and({num1}, {num2});  
-        assert and_a = {and}; 
-        let (xor_a) = bitwise_xor(num1, num2);
+        let (and_a) = bitwise_and({num1}, {num2});
+        assert and_a = {and};
+        let (xor_a) = bitwise_xor({num1}, {num2});
         assert xor_a = {xor};
-        let (or_a) = bitwise_or(num1, num2);
+        let (or_a) = bitwise_or({num1}, {num2});
         assert or_a = {or};
 
         let (and_b, xor_b, or_b) = bitwise_operations({num1}, {num2});
@@ -227,7 +228,13 @@ fn program_bitwise(
         return ();
     }}
 
-    ");
+    ",
+        num1 = num1,
+        num2 = num2,
+        and = and,
+        xor = xor,
+        or = or
+    );
 
     // Create programs names and program
     let cairo_path_bitwise = format!("cairo_programs/bitwise-{:?}.cairo", FUZZ_ITERATION_COUNT);
