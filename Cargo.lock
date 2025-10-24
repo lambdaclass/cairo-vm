@@ -977,7 +977,6 @@ dependencies = [
  "cairo-lang-utils",
  "cairo-vm",
  "clap",
- "getrandom 0.2.16",
  "itertools 0.11.0",
  "num-bigint",
  "num-traits",
@@ -3608,7 +3607,6 @@ dependencies = [
  "cairo-vm",
  "cairo1-run",
  "console_error_panic_hook",
- "serde_json",
  "wasm-bindgen",
 ]
 

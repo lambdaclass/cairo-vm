@@ -975,7 +975,7 @@ impl VirtualMachine {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
+    pub fn get_integer(&'_ self, key: Relocatable) -> Result<Cow<'_, Felt252>, MemoryError> {
         self.segments.memory.get_integer(key)
     }
 
@@ -1062,7 +1062,11 @@ impl VirtualMachine {
     }
 
     ///Gets n elements from memory starting from addr (n being size)
-    pub fn get_range(&self, addr: Relocatable, size: usize) -> Vec<Option<Cow<MaybeRelocatable>>> {
+    pub fn get_range(
+        &'_ self,
+        addr: Relocatable,
+        size: usize,
+    ) -> Vec<Option<Cow<'_, MaybeRelocatable>>> {
         self.segments.memory.get_range(addr, size)
     }
 
@@ -1077,10 +1081,10 @@ impl VirtualMachine {
 
     ///Gets n integer values from memory starting from addr (n being size),
     pub fn get_integer_range(
-        &self,
+        &'_ self,
         addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<Felt252>>, MemoryError> {
+    ) -> Result<Vec<Cow<'_, Felt252>>, MemoryError> {
         self.segments.memory.get_integer_range(addr, size)
     }
 
