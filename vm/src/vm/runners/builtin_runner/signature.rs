@@ -23,7 +23,7 @@ use crate::{
     },
 };
 use lazy_static::lazy_static;
-use num_bigint::{BigInt, Sign};
+use num_bigint::BigInt;
 use num_integer::div_ceil;
 use num_traits::{Num, One};
 use starknet_crypto::{verify, Signature};
@@ -61,17 +61,7 @@ impl SignatureBuiltinRunner {
         relocatable: Relocatable,
         (r, s): &(Felt252, Felt252),
     ) -> Result<(), MemoryError> {
-        let r_be_bytes = r.to_bytes_be();
-        let s_be_bytes = s.to_bytes_be();
-        let (r_felt, s_felt) = (
-            Felt252::from_bytes_be(&r_be_bytes),
-            Felt252::from_bytes_be(&s_be_bytes),
-        );
-
-        let signature = Signature {
-            r: r_felt,
-            s: s_felt,
-        };
+        let signature = Signature { r: *r, s: *s };
 
         self.signatures
             .borrow_mut()
@@ -131,9 +121,9 @@ impl SignatureBuiltinRunner {
                     .get(&pubkey_addr)
                     .ok_or_else(|| MemoryError::SignatureNotFound(Box::new(pubkey_addr)))?;
 
-                let public_key = Felt252::from_bytes_be(&pubkey.to_bytes_be());
+                let public_key = *pubkey;
                 let (r, s) = (signature.r, signature.s);
-                let message = Felt252::from_bytes_be(&msg.to_bytes_be());
+                let message = *msg;
                 match verify(&public_key, &message, &r, &s) {
                     Ok(true) => Ok(vec![]),
                     _ => Err(MemoryError::InvalidSignature(Box::new((
@@ -171,15 +161,7 @@ impl SignatureBuiltinRunner {
             .signatures
             .borrow()
             .iter()
-            .map(|(k, v)| {
-                (
-                    *k,
-                    (
-                        Felt252::from_bytes_be(&v.r.to_bytes_be()),
-                        Felt252::from_bytes_be(&v.s.to_bytes_be()),
-                    ),
-                )
-            })
+            .map(|(k, v)| (*k, (v.r, v.s)))
             .collect();
         BuiltinAdditionalData::Signature(signatures)
     }
@@ -197,13 +179,9 @@ impl SignatureBuiltinRunner {
             if addr.segment_index != self.base as isize {
                 return Err(RunnerError::InvalidAdditionalData(BuiltinName::ecdsa));
             }
-            self.signatures.borrow_mut().insert(
-                *addr,
-                Signature {
-                    r: Felt252::from_bytes_be(&r.to_bytes_be()),
-                    s: Felt252::from_bytes_be(&s.to_bytes_be()),
-                },
-            );
+            self.signatures
+                .borrow_mut()
+                .insert(*addr, Signature { r: *r, s: *s });
         }
         Ok(())
     }
@@ -235,14 +213,10 @@ impl SignatureBuiltinRunner {
                     pubkey: *pubkey,
                     msg: *msg,
                     signature_input: SignatureInput {
-                        r: Felt252::from_bytes_be(&signature.r.to_bytes_be()),
+                        r: signature.r,
                         w: Felt252::from(
-                            &div_mod(
-                                &BigInt::one(),
-                                &BigInt::from_bytes_be(Sign::Plus, &signature.s.to_bytes_be()),
-                                &EC_ORDER,
-                            )
-                            .unwrap_or_default(),
+                            &div_mod(&BigInt::one(), &signature.s.to_bigint(), &EC_ORDER)
+                                .unwrap_or_default(),
                         ),
                     },
                 }))
