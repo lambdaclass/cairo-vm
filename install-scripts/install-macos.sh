@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -ex -o pipefail
 
 # Install Rust and Cargo
 curl https://sh.rustup.rs -sSf | sh -s -- -y
