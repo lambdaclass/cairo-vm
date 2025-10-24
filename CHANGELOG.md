@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* bump: Bump Rust toolchain to 1.89 [#2245](https://github.com/lambdaclass/cairo-vm/pull/2245)
+* chore: Bump Rust toolchain to 1.89 [#2245](https://github.com/lambdaclass/cairo-vm/pull/2245)
 
 * chore: Remove dead SegmentInfo struct from cairo_runner.rs [#2235](https://github.com/lambdaclass/cairo-vm/pull/2235)
 
