@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: remove duplicate get_integer_from_var_name tests from memcpy_hint_utils [#2250](https://github.com/lambdaclass/cairo-vm/pull/2250)
+
 * chore: Bump Rust toolchain to 1.89 [#2245](https://github.com/lambdaclass/cairo-vm/pull/2245)
 
 * chore: Remove dead SegmentInfo struct from cairo_runner.rs [#2235](https://github.com/lambdaclass/cairo-vm/pull/2235)
