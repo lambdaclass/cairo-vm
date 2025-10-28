@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+#### [3.0.0-rc.4] - 2025-28-10
+
 * fix: error mapping for fee_provision in excess_balance hint [#2236](https://github.com/lambdaclass/cairo-vm/pull/2236)
 
 * fix: ArcTooBig parameter order in assert_le_felt. [#2234](https://github.com/lambdaclass/cairo-vm/pull/2234)
