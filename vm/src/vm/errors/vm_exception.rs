@@ -154,11 +154,13 @@ fn substitute_error_message_references(
         }
         if !invalid_references.is_empty() {
             // Add the invalid references (if any) to the error_msg
+            let references = invalid_references
+                .iter()
+                .map(|arg| format!("'{arg}'"))
+                .collect::<Vec<_>>()
+                .join(", ");
             error_msg.push_str(&format!(
-                " (Cannot evaluate ap-based or complex references: [{}])",
-                invalid_references
-                    .iter()
-                    .fold(String::new(), |acc, arg| acc + &format!("'{arg}'"))
+                " (Cannot evaluate ap-based or complex references: [{references}])"
             ));
         }
     }
