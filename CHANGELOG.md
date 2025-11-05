@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* perf: precompute prime/constants in get_data and avoid clones in field_element_repr [#2256](https://github.com/lambdaclass/cairo-vm/pull/2256)
+
 #### [3.0.0-rc.4] - 2025-28-10
 
 * fix: error mapping for fee_provision in excess_balance hint [#2236](https://github.com/lambdaclass/cairo-vm/pull/2236)
