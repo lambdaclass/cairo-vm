@@ -8,7 +8,6 @@ use axum::{
     routing::get,
     Json, Router,
 };
-use cairo_vm::utils::PRIME_STR;
 use cairo_vm::vm::trace::trace_entry::RelocatedTraceEntry;
 use cairo_vm::{serde::deserialize_program::DebugInfo, types::program::Program, Felt252};
 use include_dir::{include_dir, Dir};
@@ -57,6 +56,13 @@ pub async fn run_tracer(
 }
 
 async fn get_data(tracer_data: State<TracerData>) -> Json<DataReponse> {
+    // Precompute field modulus and constants once per request to avoid repeated allocations.
+    let prime_bigint =
+        BigInt::from_biguint(num_bigint::Sign::Plus, cairo_vm::utils::CAIRO_PRIME.clone());
+    let half_prime: BigInt = &prime_bigint >> 1u32;
+    let two_pow_40: BigInt = BigInt::one() << 40;
+    let two_pow_100: BigInt = BigInt::one() << 100;
+
     let data_response = DataReponse {
         code: tracer_data
             .input_files
@@ -71,7 +77,10 @@ async fn get_data(tracer_data: State<TracerData>) -> Json<DataReponse> {
             .map(|x| {
                 field_element_repr(
                     &x.to_bigint(),
-                    &BigInt::parse_bytes(&PRIME_STR.as_bytes()[2..], 16).unwrap(),
+                    &prime_bigint,
+                    &half_prime,
+                    &two_pow_40,
+                    &two_pow_100,
                 )
             })
             .enumerate()
@@ -108,17 +117,22 @@ async fn static_path(Path(path): Path<String>) -> impl IntoResponse {
     }
 }
 
-fn field_element_repr(val: &BigInt, prime: &BigInt) -> String {
+fn field_element_repr(
+    val: &BigInt,
+    prime: &BigInt,
+    half_prime: &BigInt,
+    two_pow_40: &BigInt,
+    two_pow_100: &BigInt,
+) -> String {
     // Shift val to the range (-prime / 2, prime / 2).
-    let shifted_val: BigInt = (val.clone() + prime.clone() / 2) % prime.clone() - prime.clone() / 2;
+    let shifted_val: BigInt = ((val + half_prime) % prime) - half_prime;
     // If shifted_val is small, use decimal representation.
-    let two_pow_40: BigInt = BigInt::one() << 40;
-    if shifted_val.abs() < two_pow_40 {
+    let abs = shifted_val.abs();
+    if &abs < two_pow_40 {
         return shifted_val.to_string();
     }
     // Otherwise, use hex representation (allowing a sign if the number is close to prime).
-    let two_pow_100: BigInt = BigInt::one() << 100;
-    if shifted_val.abs() < two_pow_100 {
+    if &abs < two_pow_100 {
         return format!("0x{:x}", shifted_val);
     }
     format!("0x{:x}", val)
