@@ -124,9 +124,9 @@ pub fn assert_le_felt(
     if lengths_and_indices[0].0 > &prime_div3 || lengths_and_indices[1].0 > &prime_div2 {
         return Err(HintError::ArcTooBig(Box::new((
             Felt252::from(&lengths_and_indices[0].0.clone()),
-            Felt252::from(&prime_div2),
-            Felt252::from(&lengths_and_indices[1].0.clone()),
             Felt252::from(&prime_div3),
+            Felt252::from(&lengths_and_indices[1].0.clone()),
+            Felt252::from(&prime_div2),
         ))));
     }
 

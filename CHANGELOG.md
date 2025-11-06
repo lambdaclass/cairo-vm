@@ -4,6 +4,12 @@
 
 * chore: remove duplicate get_integer_from_var_name tests from memcpy_hint_utils [#2250](https://github.com/lambdaclass/cairo-vm/pull/2250)
 
+#### [3.0.0-rc.4] - 2025-28-10
+
+* fix: error mapping for fee_provision in excess_balance hint [#2236](https://github.com/lambdaclass/cairo-vm/pull/2236)
+
+* fix: ArcTooBig parameter order in assert_le_felt. [#2234](https://github.com/lambdaclass/cairo-vm/pull/2234)
+
 * chore: Bump Rust toolchain to 1.89 [#2245](https://github.com/lambdaclass/cairo-vm/pull/2245)
 
 * chore: Remove dead SegmentInfo struct from cairo_runner.rs [#2235](https://github.com/lambdaclass/cairo-vm/pull/2235)
