@@ -489,6 +489,7 @@ mod tests {
     fn serialize_air_private_input_small_layout_only_builtins() {
         let config = crate::cairo_run::CairoRunConfig {
             proof_mode: true,
+            fill_holes: true,
             relocate_mem: true,
             trace_enabled: true,
             layout: LayoutName::small,

@@ -12,11 +12,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@1.87.0
-      - name: Set up Cargo cache
-        uses: Swatinem/rust-cache@v2
+        uses: dtolnay/rust-toolchain@1.89.0
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Cargo cache
+        uses: Swatinem/rust-cache@v2
       - name: install corelib
         run:  cd cairo1-run/ && make deps
       - name: Run tests

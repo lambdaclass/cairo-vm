@@ -1,6 +1,6 @@
 use super::blake2s_utils::example_blake2s_compress;
 use super::{
-    blake2s_utils::finalize_blake2s_v3,
+    blake2s_utils::{blake2s_unpack_felts, finalize_blake2s_v3, is_less_than_63_bits_and_not_end},
     ec_recover::{
         ec_recover_divmod_n_packed, ec_recover_product_div_m, ec_recover_product_mod,
         ec_recover_sub_a_b,
@@ -133,6 +133,7 @@ pub struct HintProcessorData {
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
     pub accessible_scopes: Vec<String>,
+    pub constants: Rc<HashMap<String, Felt252>>,
 }
 
 impl HintProcessorData {
@@ -142,6 +143,7 @@ impl HintProcessorData {
             ap_tracking: ApTracking::default(),
             ids_data,
             accessible_scopes: vec![],
+            constants: Default::default(),
         }
     }
 }
@@ -189,11 +191,11 @@ impl HintProcessorLogic for BuiltinHintProcessor {
         vm: &mut VirtualMachine,
         exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
-        constants: &HashMap<String, Felt252>,
     ) -> Result<(), HintError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
             .ok_or(HintError::WrongHintData)?;
+        let constants = hint_data.constants.as_ref();
 
         if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
             return hint_func.0(
@@ -361,6 +363,12 @@ impl HintProcessorLogic for BuiltinHintProcessor {
             }
             hint_code::BLAKE2S_ADD_UINT256_BIGEND => {
                 blake2s_add_uint256_bigend(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::IS_LESS_THAN_63_BITS_AND_NOT_END => {
+                is_less_than_63_bits_and_not_end(vm, &hint_data.ids_data, &hint_data.ap_tracking)
+            }
+            hint_code::BLAKE2S_UNPACK_FELTS => {
+                blake2s_unpack_felts(vm, &hint_data.ids_data, &hint_data.ap_tracking)
             }
             hint_code::UNSAFE_KECCAK => {
                 unsafe_keccak(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
@@ -1011,6 +1019,16 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                 &hint_data.ap_tracking,
                 constants,
             ),
+            #[cfg(feature = "test_utils")]
+            super::simulated_builtins::GET_SIMULATED_BUILTIN_BASE => {
+                super::simulated_builtins::get_simulated_builtin_base(
+                    vm,
+                    exec_scopes,
+                    &hint_data.ids_data,
+                    &hint_data.ap_tracking,
+                    constants,
+                )
+            }
 
             code => Err(HintError::UnknownHint(code.to_string().into_boxed_str())),
         }
@@ -1450,24 +1468,14 @@ mod tests {
         let hint_data =
             HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
         assert_matches!(
-            hint_processor.execute_hint(
-                &mut vm,
-                exec_scopes,
-                &any_box!(hint_data),
-                &HashMap::new(),
-            ),
+            hint_processor.execute_hint(&mut vm, exec_scopes, &any_box!(hint_data)),
             Ok(())
         );
         assert_eq!(exec_scopes.data.len(), 2);
         let hint_data =
             HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
         assert_matches!(
-            hint_processor.execute_hint(
-                &mut vm,
-                exec_scopes,
-                &any_box!(hint_data),
-                &HashMap::new(),
-            ),
+            hint_processor.execute_hint(&mut vm, exec_scopes, &any_box!(hint_data)),
             Ok(())
         );
         assert_eq!(exec_scopes.data.len(), 3);

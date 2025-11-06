@@ -188,7 +188,7 @@ for case in "${CASES[@]}"; do
     # Run cairo-vm
     echo "Running cairo-vm with case: $case"
     cargo run -p cairo-vm-cli --features mod_builtin --release -- "$full_program" \
-        --layout "dynamic" --cairo_layout_params_file "$full_layout" --proof_mode \
+        --layout "dynamic" --cairo_layout_params_file "$full_layout" --proof_mode --fill-holes false \
         --trace_file program_rs.trace --memory_file program_rs.memory --air_public_input program_rs.air_public_input --air_private_input program_rs.air_private_input
 
     # Run cairo-lang
@@ -254,7 +254,7 @@ for case in "${PIE_CASES[@]}"; do
     echo "Running cairo-vm with case: $case"
     cargo run -p cairo-vm-cli --features mod_builtin --release -- "$full_program" \
         --layout "dynamic" --cairo_layout_params_file "$full_layout" --run_from_cairo_pie  \
-        --trace_file program_rs.trace --memory_file program_rs.memory
+        --trace_file program_rs.trace --memory_file program_rs.memory --fill-holes false
 
     # Run cairo-lang
     echo "Running cairo-lang with case: $case"

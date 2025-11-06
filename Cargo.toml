@@ -4,6 +4,7 @@ members = [
     "vm",
     "hint_accountant",
     "examples/wasm-demo",
+    "examples/wasm-demo-cairo1",
     "cairo1-run",
     "cairo-vm-tracer",
     "examples/hyper_threading",
@@ -16,7 +17,7 @@ exclude = ["ensure-no_std"]
 resolver = "2"
 
 [workspace.package]
-version = "3.0.0-rc.1"
+version = "3.0.0-rc.4"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/lambdaclass/cairo-vm/"
@@ -24,8 +25,8 @@ readme = "README.md"
 keywords = ["starknet", "cairo", "vm", "wasm", "no_std"]
 
 [workspace.dependencies]
-cairo-vm = { path = "./vm", version = "3.0.0-rc.1", default-features = false }
-cairo-vm-tracer = { path = "./cairo-vm-tracer", version = "3.0.0-rc.1", default-features = false }
+cairo-vm = { path = "./vm", version = "3.0.0-rc.4", default-features = false }
+cairo-vm-tracer = { path = "./cairo-vm-tracer", version = "3.0.0-rc.4", default-features = false }
 mimalloc = { version = "0.1.37", default-features = false }
 num-bigint = { version = "0.4", default-features = false, features = [
     "serde",
@@ -43,7 +44,7 @@ hex = { version = "0.4.3", default-features = false }
 bincode = { version = "2.0.0-rc.3", default-features = false, features = [
     "serde",
 ] }
-starknet-crypto = { version = "0.7.3", default-features = false, features = [
+starknet-crypto = { version = "0.8.0", default-features = false, features = [
     "signature-display",
     "alloc",
 ] }
@@ -54,7 +55,7 @@ lazy_static = { version = "1.4.0", default-features = false, features = [
 ] }
 nom = { version = "7", default-features = false }
 sha2 = { version = "0.10.7", features = ["compress"], default-features = false }
-generic-array = { version = "0.14.7", default-features = false }
+generic-array = { version = ">=0.14.0, <=0.14.7", default-features = false }
 keccak = { version = "0.1.2", default-features = false }
 hashbrown = { version = "0.15.2", features = ["serde"] }
 anyhow = { version = "1.0.94", default-features = false }
@@ -87,6 +88,9 @@ lto = "fat"
 
 [profile.release.package.wasm-demo]
 # Tell `rustc` to optimize for small code size.
+opt-level = "s"
+
+[profile.release.package.wasm-demo-cairo1]
 opt-level = "s"
 
 [profile.test.package.proptest]
