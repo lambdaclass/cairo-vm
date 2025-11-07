@@ -124,7 +124,7 @@ impl SignatureBuiltinRunner {
                 let public_key = *pubkey;
                 let (r, s) = (signature.r, signature.s);
                 let message = *msg;
-                match verify(&public_key, &message, &r, &s) {
+                match verify(&pubkey, &msg, &r, &s) {
                     Ok(true) => Ok(vec![]),
                     _ => Err(MemoryError::InvalidSignature(Box::new((
                         format!("({}, {})", signature.r, signature.s),
