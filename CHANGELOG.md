@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: remove redundant Felt252<->bytes conversions and simplify [#2243](https://github.com/lambdaclass/cairo-vm/pull/2243)
+
 #### [3.0.0-rc.4] - 2025-28-10
 
 * fix: error mapping for fee_provision in excess_balance hint [#2236](https://github.com/lambdaclass/cairo-vm/pull/2236)
