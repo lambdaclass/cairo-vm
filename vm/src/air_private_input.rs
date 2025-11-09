@@ -197,7 +197,7 @@ impl From<AirPrivateInputSerializable> for AirPrivateInput {
         insert_input(BuiltinName::ec_op, private_input.ec_op);
         insert_input(BuiltinName::keccak, private_input.keccak);
         insert_input(BuiltinName::poseidon, private_input.poseidon);
-        
+
         // Handle add_mod and mul_mod as single PrivateInput values
         if let Some(add_mod) = private_input.add_mod {
             inputs.insert(BuiltinName::add_mod, vec![add_mod]);
@@ -300,13 +300,9 @@ mod mod_input_instance_batch_serde {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::types::layout_name::LayoutName;
-    #[cfg(feature = "std")]
-    use {
-        super::*,
-        crate::air_private_input::{AirPrivateInput, AirPrivateInputSerializable},
-        assert_matches::assert_matches,
-    };
+    use core::assert_matches::assert_matches;
 
     #[cfg(any(target_arch = "wasm32", not(feature = "std")))]
     use crate::alloc::string::ToString;
@@ -403,7 +399,7 @@ mod tests {
         assert_matches!(private_input.0.get(&BuiltinName::ec_op), data if data == serializable_private_input.ec_op.as_ref());
         assert_matches!(private_input.0.get(&BuiltinName::keccak), data if data == serializable_private_input.keccak.as_ref());
         assert_matches!(private_input.0.get(&BuiltinName::poseidon), data if data == serializable_private_input.poseidon.as_ref());
-        
+
         // Test add_mod and mul_mod are correctly wrapped in vectors
         assert_eq!(private_input.0.get(&BuiltinName::add_mod).unwrap().len(), 1);
         assert_eq!(private_input.0.get(&BuiltinName::mul_mod).unwrap().len(), 1);
@@ -485,6 +481,7 @@ mod tests {
         assert_matches!(private_input.0.get(&BuiltinName::poseidon), data if data == serializable_private_input.poseidon.as_ref());
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn serialize_air_private_input_small_layout_only_builtins() {
         let config = crate::cairo_run::CairoRunConfig {
