@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: complete From<AirPrivateInputSerializable> implementation [#2152](https://github.com/lambdaclass/cairo-vm/pull/2152)
+
 #### [3.0.0-rc.4] - 2025-28-10
 
 * fix: error mapping for fee_provision in excess_balance hint [#2236](https://github.com/lambdaclass/cairo-vm/pull/2236)
