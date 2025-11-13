@@ -24,7 +24,7 @@ for file in $(ls $tests_path | grep .rs.pie.zip$ | sed -E 's/\.rs.pie.zip$//'); 
         break
     fi
     echo "Running $file PIE with cairo-vm"
-     cargo run -p cairo-vm-cli --release $path_file.rs.pie.zip --run_from_cairo_pie  --trace_file $path_file.rs.trace.pie --memory_file $path_file.rs.memory.pie --cairo_pie_output $path_file.rs.pie.zip.pie --layout starknet_with_keccak
+     cargo run -p cairo-vm-cli --release $path_file.rs.pie.zip --run_from_cairo_pie  --trace_file $path_file.rs.trace.pie --memory_file $path_file.rs.memory.pie --cairo_pie_output $path_file.rs.pie.zip.pie --layout starknet_with_keccak --fill-holes false
     # Compare PIE outputs
     echo "Comparing $file.pie outputs"
 

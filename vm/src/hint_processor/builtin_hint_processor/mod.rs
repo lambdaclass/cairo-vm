@@ -1,6 +1,6 @@
 pub mod bigint;
-pub mod blake2s_hash;
-pub mod blake2s_utils;
+pub(crate) mod blake2s_hash;
+mod blake2s_utils;
 pub mod builtin_hint_processor_definition;
 pub mod cairo_keccak;
 pub mod dict_hint_utils;
@@ -28,6 +28,9 @@ pub mod segments;
 pub mod set;
 pub mod sha256_utils;
 pub mod signature;
+#[cfg(feature = "test_utils")]
+#[cfg_attr(docsrs, doc(cfg(feature = "test_utils")))]
+pub mod simulated_builtins;
 #[cfg(feature = "test_utils")]
 #[cfg_attr(docsrs, doc(cfg(feature = "test_utils")))]
 pub mod skip_next_instruction;

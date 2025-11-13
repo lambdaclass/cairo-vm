@@ -97,6 +97,8 @@ pub enum MemoryError {
     UnrelocatedMemory,
     #[error("Malformed public memory")]
     MalformedPublicMemory,
+    #[error("Temporary segment {0} has no relocation mapping (unmapped temporary segment).")]
+    UnmappedTemporarySegment(isize),
 }
 
 #[derive(Debug, PartialEq, Eq, Error)]

@@ -401,7 +401,7 @@ impl BuiltinRunner {
         }
     }
 
-    fn cells_per_instance(&self) -> u32 {
+    pub fn cells_per_instance(&self) -> u32 {
         match self {
             BuiltinRunner::Bitwise(_) => CELLS_PER_BITWISE,
             BuiltinRunner::EcOp(_) => CELLS_PER_EC_OP,
@@ -917,6 +917,7 @@ mod tests {
             let config_false = CairoRunConfig {
                 disable_trace_padding: false,
                 proof_mode: true,
+                fill_holes: true,
                 layout: LayoutName::all_cairo,
                 ..Default::default()
             };
@@ -930,6 +931,7 @@ mod tests {
             let config_true = CairoRunConfig {
                 disable_trace_padding: true,
                 proof_mode: true,
+                fill_holes: true,
                 layout: LayoutName::all_cairo,
                 ..Default::default()
             };

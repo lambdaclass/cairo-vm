@@ -72,6 +72,27 @@ if ids.v % 2 == y % 2:
     value = y
 else:
     value = (-y) % SECP256R1.prime"#}),
+(SECP_R1_GET_POINT_FROM_X_V2, indoc! {r#"from starkware.cairo.common.cairo_secp.secp_utils import SECP256R1, pack
+from starkware.python.math_utils import y_squared_from_x
+
+y_square_int = y_squared_from_x(
+    x=pack(ids.x, PRIME),
+    alpha=SECP256R1.alpha,
+    beta=SECP256R1.beta,
+    field_prime=SECP256R1.prime,
+)
+
+# Note that (y_square_int ** ((SECP256R1.prime + 1) / 4)) ** 2 =
+#   = y_square_int ** ((SECP256R1.prime + 1) / 2) =
+#   = y_square_int ** ((SECP256R1.prime - 1) / 2 + 1) =
+#   = y_square_int * y_square_int ** ((SECP256R1.prime - 1) / 2) = y_square_int * {+/-}1.
+y = pow(y_square_int, (SECP256R1.prime + 1) // 4, SECP256R1.prime)
+
+# We need to decide whether to take y or prime - y.
+if ids.v % 2 == y % 2:
+    value = y
+else:
+    value = (-y) % SECP256R1.prime"#}),
 (IS_ON_CURVE_2, indoc! {r#"ids.is_on_curve = (y * y) % SECP256R1.prime == y_square_int"#}),
 (SECP_DOUBLE_ASSIGN_NEW_X, indoc! {r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
 from starkware.cairo.common.cairo_secp.secp_utils import pack
@@ -79,6 +100,14 @@ from starkware.cairo.common.cairo_secp.secp_utils import pack
 slope = pack(ids.slope, SECP256R1_P)
 x = pack(ids.point.x, SECP256R1_P)
 y = pack(ids.point.y, SECP256R1_P)
+
+value = new_x = (pow(slope, 2, SECP256R1_P) - 2 * x) % SECP256R1_P"#}),
+(SECP_DOUBLE_ASSIGN_NEW_X_V2, indoc! {r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_P
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+
+slope = pack(ids.slope, PRIME)
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
 
 value = new_x = (pow(slope, 2, SECP256R1_P) - 2 * x) % SECP256R1_P"#}),
 (GENERATE_NIBBLES, indoc! {r#"num = (ids.scalar.high << 128) + ids.scalar.low
@@ -172,6 +201,7 @@ pub fn r1_get_point_from_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     _constants: &HashMap<String, Felt252>,
+    pack_prime: &BigUint,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
 
@@ -204,9 +234,8 @@ pub fn r1_get_point_from_x(
     //     if (y & 1) != request.y_parity:
     //         y = (-y) % prime
 
-    let x = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?
-        .pack86()
-        .mod_floor(&SECP256R1_P);
+    let x = Uint384::from_var_name("x", vm, ids_data, ap_tracking)?;
+    let x = x.pack86_for_prime(pack_prime);
 
     let y_square_int = y_squared_from_x(&x, &SECP256R1_ALPHA, &SECP256R1_B, &SECP256R1_P);
     exec_scopes.insert_value::<BigInt>("y_square_int", y_square_int.clone());
@@ -255,6 +284,7 @@ pub fn secp_double_assign_new_x(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     _constants: &HashMap<String, Felt252>,
+    pack_prime: &BigUint,
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
     //ids.slope
@@ -262,9 +292,9 @@ pub fn secp_double_assign_new_x(
     //ids.point
     let point = EcPoint::from_var_name("point", vm, ids_data, ap_tracking)?;
 
-    let slope = slope.pack86().mod_floor(&SECP256R1_P);
-    let x = point.x.pack86().mod_floor(&SECP256R1_P);
-    let y = point.y.pack86().mod_floor(&SECP256R1_P);
+    let slope = slope.pack86_for_prime(pack_prime);
+    let x = point.x.pack86_for_prime(pack_prime);
+    let y = point.y.pack86_for_prime(pack_prime);
 
     let value =
         (slope.modpow(&(2usize.into()), &SECP256R1_P) - (&x << 1u32)).mod_floor(&SECP256R1_P);
@@ -531,6 +561,7 @@ mod tests {
             &ids_data,
             &ap_tracking,
             &constants,
+            SECP256R1_P.magnitude(),
         )
         .expect("calculate_value() failed");
 

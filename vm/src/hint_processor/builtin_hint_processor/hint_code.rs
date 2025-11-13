@@ -426,6 +426,17 @@ segments.write_arg(ids.data + 4, [(ids.high >> (B * i)) & MASK for i in range(4)
 MASK = 2 ** 32 - 1
 segments.write_arg(ids.data, [(ids.high >> (B * (3 - i))) & MASK for i in range(4)])
 segments.write_arg(ids.data + 4, [(ids.low >> (B * (3 - i))) & MASK for i in range(4)])"#}),
+(IS_LESS_THAN_63_BITS_AND_NOT_END, indoc! {r#"memory[ap] = to_felt_or_relocatable((ids.end != ids.packed_values) and (memory[ids.packed_values] < 2**63))"#}),
+(BLAKE2S_UNPACK_FELTS, indoc! {r#"offset = 0
+for i in range(ids.packed_values_len):
+    val = (memory[ids.packed_values + i] % PRIME)
+    val_len = 2 if val < 2**63 else 8
+    if val_len == 8:
+        val += 2**255
+    for i in range(val_len - 1, -1, -1):
+        val, memory[ids.unpacked_u32s + offset + i] = divmod(val, 2**32)
+    assert val == 0
+    offset += val_len"#}),
 (EXAMPLE_BLAKE2S_COMPRESS, indoc! {r#"from starkware.cairo.common.cairo_blake2s.blake2s_utils import IV, blake2s_compress
 
 _blake2s_input_chunk_size_felts = int(ids.BLAKE2S_INPUT_CHUNK_SIZE_FELTS)
@@ -608,6 +619,14 @@ from starkware.python.math_utils import ec_double_slope
 # Compute the slope.
 x = pack(ids.point.x, SECP256R1_P)
 y = pack(ids.point.y, SECP256R1_P)
+value = slope = ec_double_slope(point=(x, y), alpha=SECP256R1_ALPHA, p=SECP256R1_P)"#}),
+(EC_DOUBLE_SLOPE_V5, indoc! {r#"from starkware.cairo.common.cairo_secp.secp256r1_utils import SECP256R1_ALPHA, SECP256R1_P
+from starkware.cairo.common.cairo_secp.secp_utils import pack
+from starkware.python.math_utils import ec_double_slope
+
+# Compute the slope.
+x = pack(ids.point.x, PRIME)
+y = pack(ids.point.y, PRIME)
 value = slope = ec_double_slope(point=(x, y), alpha=SECP256R1_ALPHA, p=SECP256R1_P)"#}),
 (EC_DOUBLE_SLOPE_EXTERNAL_CONSTS, indoc! {r#"from starkware.cairo.common.cairo_secp.secp_utils import pack
 from starkware.python.math_utils import ec_double_slope

@@ -83,6 +83,8 @@ struct Args {
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     run_from_cairo_pie: bool,
+    #[arg(long)]
+    fill_holes: Option<bool>,
 }
 
 #[derive(Debug, Error)]
@@ -165,6 +167,7 @@ fn start_tracer(cairo_runner: &CairoRunner) -> Result<(), TraceDataError> {
     Ok(())
 }
 
+#[allow(clippy::result_large_err)]
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let args = Args::try_parse_from(args)?;
 
@@ -179,12 +182,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         entrypoint: &args.entrypoint,
         trace_enabled,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
+        relocate_trace: trace_enabled,
         layout: args.layout,
         proof_mode: args.proof_mode,
+        fill_holes: args.fill_holes.unwrap_or(args.proof_mode),
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
         dynamic_layout_params: cairo_layout_params,
-        ..Default::default()
+        disable_trace_padding: false,
     };
 
     let mut cairo_runner = match if args.run_from_cairo_pie {
@@ -281,6 +286,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     Ok(())
 }
 
+#[allow(clippy::result_large_err)]
 fn main() -> Result<(), Error> {
     #[cfg(test)]
     return Ok(());
