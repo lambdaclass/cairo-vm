@@ -388,6 +388,7 @@ pub fn fast_ec_add_assign_new_x(
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
     exec_scopes.insert_value("x0", x0);
+    exec_scopes.insert_value("x1", x1);
     exec_scopes.insert_value("y0", y0);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_x", value);
