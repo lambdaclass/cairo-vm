@@ -493,7 +493,7 @@ pub fn parse_program_json(
     };
     Ok(Program {
         shared_program_data: Arc::new(shared_program_data),
-        constants,
+        constants: Arc::new(constants),
         builtins: program_json.builtins,
     })
 }
