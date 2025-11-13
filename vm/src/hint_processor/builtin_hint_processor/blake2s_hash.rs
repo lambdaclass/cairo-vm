@@ -101,7 +101,7 @@ fn blake_round(mut state: Vec<u32>, message: &[u32; 16], sigma: [usize; 16]) -> 
     state
 }
 
-pub(crate) fn blake2s_compress(
+pub fn blake2s_compress(
     h: &[u32; 8],
     message: &[u32; 16],
     t0: u32,
