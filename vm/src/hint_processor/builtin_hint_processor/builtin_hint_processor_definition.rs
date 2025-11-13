@@ -133,6 +133,7 @@ pub struct HintProcessorData {
     pub ap_tracking: ApTracking,
     pub ids_data: HashMap<String, HintReference>,
     pub accessible_scopes: Vec<String>,
+    pub constants: Rc<HashMap<String, Felt252>>,
 }
 
 impl HintProcessorData {
@@ -142,6 +143,7 @@ impl HintProcessorData {
             ap_tracking: ApTracking::default(),
             ids_data,
             accessible_scopes: vec![],
+            constants: Default::default(),
         }
     }
 }
@@ -189,11 +191,11 @@ impl HintProcessorLogic for BuiltinHintProcessor {
         vm: &mut VirtualMachine,
         exec_scopes: &mut ExecutionScopes,
         hint_data: &Box<dyn Any>,
-        constants: &HashMap<String, Felt252>,
     ) -> Result<(), HintError> {
         let hint_data = hint_data
             .downcast_ref::<HintProcessorData>()
             .ok_or(HintError::WrongHintData)?;
+        let constants = hint_data.constants.as_ref();
 
         if let Some(hint_func) = self.extra_hints.get(&hint_data.code) {
             return hint_func.0(
@@ -1466,24 +1468,14 @@ mod tests {
         let hint_data =
             HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
         assert_matches!(
-            hint_processor.execute_hint(
-                &mut vm,
-                exec_scopes,
-                &any_box!(hint_data),
-                &HashMap::new(),
-            ),
+            hint_processor.execute_hint(&mut vm, exec_scopes, &any_box!(hint_data)),
             Ok(())
         );
         assert_eq!(exec_scopes.data.len(), 2);
         let hint_data =
             HintProcessorData::new_default(String::from("enter_scope_custom_a"), HashMap::new());
         assert_matches!(
-            hint_processor.execute_hint(
-                &mut vm,
-                exec_scopes,
-                &any_box!(hint_data),
-                &HashMap::new(),
-            ),
+            hint_processor.execute_hint(&mut vm, exec_scopes, &any_box!(hint_data)),
             Ok(())
         );
         assert_eq!(exec_scopes.data.len(), 3);
