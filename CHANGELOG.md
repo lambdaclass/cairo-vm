@@ -4,6 +4,8 @@
 
 * fix: use div_mod_unsigned and remove unwrap_or_default in inv_mod_p_uint256 and uint384_div [#2262](https://github.com/lambdaclass/cairo-vm/pull/2262)
 
+* Refactor: Remove unused error variants [#1760](https://github.com/lambdaclass/cairo-vm/pull/1760/)
+
 * opt(breaking): Avoid cloning constants when compiling hints [#2208](https://github.com/lambdaclass/cairo-vm/pull/2208)
 
 * dev(BREAKING): Make blake2s API internal [#2265](https://github.com/lambdaclass/cairo-vm/pull/2265)
