@@ -2,8 +2,6 @@
 
 #### Upcoming Changes
 
-* chore: remove duplicate get_integer_from_var_name tests from memcpy_hint_utils [#2250](https://github.com/lambdaclass/cairo-vm/pull/2250)
-
 * opt(breaking): Avoid cloning constants when compiling hints [#2208](https://github.com/lambdaclass/cairo-vm/pull/2208)
 
 * dev(BREAKING): Make blake2s API internal [#2265](https://github.com/lambdaclass/cairo-vm/pull/2265)
