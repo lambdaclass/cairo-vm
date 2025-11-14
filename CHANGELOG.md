@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: save x1 variable to execution scope in fast_ec_add_assign_new_x [#2266](https://github.com/lambdaclass/cairo-vm/pull/2266)
+
 * fix: use div_mod_unsigned and remove unwrap_or_default in inv_mod_p_uint256 and uint384_div [#2262](https://github.com/lambdaclass/cairo-vm/pull/2262)
 
 * Refactor: Remove unused error variants [#1760](https://github.com/lambdaclass/cairo-vm/pull/1760/)
