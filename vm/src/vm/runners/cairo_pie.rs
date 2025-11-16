@@ -619,9 +619,14 @@ pub(super) mod serde_impl {
             };
         }
 
-        let string = res
-            .iter()
-            .fold(String::new(), |string, b| string + &format!("{:02x}", b));
+        let string = res.iter().fold(
+            String::with_capacity(res.len() * 2),
+            |mut string, b| {
+                use core::fmt::Write;
+                write!(&mut string, "{:02x}", b).unwrap();
+                string
+            },
+        );
 
         serializer.serialize_str(&string)
     }
