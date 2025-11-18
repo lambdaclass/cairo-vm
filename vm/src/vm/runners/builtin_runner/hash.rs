@@ -134,10 +134,10 @@ impl HashBuiltinRunner {
                 return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen));
             }
             // Mark offset as verified
-            if addr.offset > verified_addresses.len() {
-                verified_addresses.resize(addr.offset, false);
+            if addr.offset >= verified_addresses.len() {
+                verified_addresses.resize(addr.offset + 1, false);
             }
-            verified_addresses.insert(addr.offset, true)
+            verified_addresses[addr.offset] = true;
         }
         Ok(())
     }
