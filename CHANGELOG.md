@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* docs: align README with current fuzzer and generator behavior [#2272](https://github.com/lambdaclass/cairo-vm/pull/2272)
+
 #### [3.0.0] - 2025-11-19
 
 #### [3.0.0-rc.5] - 2025-11-14
