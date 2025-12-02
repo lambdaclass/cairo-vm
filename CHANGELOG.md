@@ -2,6 +2,34 @@
 
 #### Upcoming Changes
 
+#### [3.0.0] - 2025-11-19
+
+#### [3.0.0-rc.5] - 2025-11-14
+
+* fix: save x1 variable to execution scope in fast_ec_add_assign_new_x [#2266](https://github.com/lambdaclass/cairo-vm/pull/2266)
+
+* fix: use div_mod_unsigned and remove unwrap_or_default in inv_mod_p_uint256 and uint384_div [#2262](https://github.com/lambdaclass/cairo-vm/pull/2262)
+
+* Refactor: Remove unused error variants [#1760](https://github.com/lambdaclass/cairo-vm/pull/1760/)
+
+* opt(breaking): Avoid cloning constants when compiling hints [#2208](https://github.com/lambdaclass/cairo-vm/pull/2208)
+
+* dev(BREAKING): Make blake2s API internal [#2265](https://github.com/lambdaclass/cairo-vm/pull/2265)
+
+* bugfix: Fix temp segment chain bug [#2195](https://github.com/lambdaclass/cairo-vm/pull/2195)
+
+#### [3.0.0-rc.4] - 2025-28-10
+
+* fix: error mapping for fee_provision in excess_balance hint [#2236](https://github.com/lambdaclass/cairo-vm/pull/2236)
+
+* fix: ArcTooBig parameter order in assert_le_felt. [#2234](https://github.com/lambdaclass/cairo-vm/pull/2234)
+
+* chore: Bump Rust toolchain to 1.89 [#2245](https://github.com/lambdaclass/cairo-vm/pull/2245)
+
+* chore: Remove dead SegmentInfo struct from cairo_runner.rs [#2235](https://github.com/lambdaclass/cairo-vm/pull/2235)
+
+* fix: Remove unused dependency getrandom for cairo1-run, and serde_json for wasm-demo-cairo1 [#2238](https://github.com/lambdaclass/cairo-vm/pull/2238)
+
 * chore: Unify deps makefile target [#2211](https://github.com/lambdaclass/cairo-vm/pull/2211)
 
 * Fix bug affecting cairo1 programs with input and System builtin [#2207](https://github.com/lambdaclass/cairo-vm/pull/2207)

@@ -201,7 +201,7 @@ pub type HintRange = (usize, NonZeroUsize);
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub shared_program_data: Arc<SharedProgramData>,
-    pub constants: HashMap<String, Felt252>,
+    pub constants: Arc<HashMap<String, Felt252>>,
     pub(crate) builtins: Vec<BuiltinName>,
 }
 
@@ -235,7 +235,7 @@ impl Program {
         };
         Ok(Self {
             shared_program_data: Arc::new(shared_program_data),
-            constants,
+            constants: Arc::new(constants),
             builtins,
         })
     }
@@ -269,7 +269,7 @@ impl Program {
         };
         Ok(Self {
             shared_program_data: Arc::new(shared_program_data),
-            constants,
+            constants: Arc::new(constants),
             builtins,
         })
     }
@@ -420,7 +420,7 @@ impl Default for Program {
     fn default() -> Self {
         Self {
             shared_program_data: Arc::new(SharedProgramData::default()),
-            constants: HashMap::new(),
+            constants: Arc::new(HashMap::new()),
             builtins: Vec::new(),
         }
     }
@@ -760,7 +760,8 @@ mod tests {
             [("__main__.main.SIZEOF_LOCALS", Felt252::ZERO)]
                 .into_iter()
                 .map(|(key, value)| (key.to_string(), value))
-                .collect::<HashMap<_, _>>(),
+                .collect::<HashMap<_, _>>()
+                .into(),
         );
     }
 
@@ -1413,7 +1414,7 @@ mod tests {
         .map(|(key, value)| (key.to_string(), value))
         .collect::<HashMap<_, _>>();
 
-        assert_eq!(program.constants, constants);
+        assert_eq!(program.constants, constants.into());
     }
 
     #[test]
@@ -1439,7 +1440,7 @@ mod tests {
         };
         let program = Program {
             shared_program_data: Arc::new(shared_program_data),
-            constants: HashMap::new(),
+            constants: Arc::new(HashMap::new()),
             builtins: Vec::new(),
         };
 
