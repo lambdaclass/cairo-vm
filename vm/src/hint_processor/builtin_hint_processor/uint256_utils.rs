@@ -8,13 +8,7 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::{isqrt, pow2_const, pow2_const_nz},
     serde::deserialize_program::ApTracking,
-    stdlib::{
-        borrow::Cow,
-        boxed::Box,
-        collections::HashMap,
-        ops::{Shl, Shr},
-        prelude::*,
-    },
+    stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*},
     types::{errors::math_errors::MathError, relocatable::Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -329,8 +323,10 @@ pub fn uint256_signed_nn(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
-    let a_high = a.high;
+    let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
+    let a_high = vm.get_integer((a_addr + 1)?).map_err(|_| {
+        HintError::IdentifierHasNoMember(Box::new(("a".to_string(), "high".to_string())))
+    })?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
     let result: Felt252 =
@@ -392,18 +388,9 @@ pub fn uint256_offseted_unsigned_div_rem(
     div_offset_high: usize,
 ) -> Result<(), HintError> {
     let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
-    let a_low = a.low.as_ref();
-    let a_high = a.high.as_ref();
-
-    let div = if div_offset_low == 0 && div_offset_high == 1 {
-        // Standard Uint256 layout
-        Uint256::from_var_name("div", vm, ids_data, ap_tracking)?
-    } else {
-        let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
-        Uint256::from_base_addr_with_offsets(div_addr, "div", vm, div_offset_low, div_offset_high)?
-    };
-    let div_low = div.low.as_ref();
-    let div_high = div.high.as_ref();
+    let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
+    let div =
+        Uint256::from_base_addr_with_offsets(div_addr, "div", vm, div_offset_low, div_offset_high)?;
 
     //Main logic
     //a = (ids.a.high << 128) + ids.a.low
@@ -415,8 +402,8 @@ pub fn uint256_offseted_unsigned_div_rem(
     //ids.remainder.low = remainder & ((1 << 128) - 1)
     //ids.remainder.high = remainder >> 128
 
-    let a = (a_high.to_biguint() << 128_u32) + a_low.to_biguint();
-    let div = (div_high.to_biguint() << 128_u32) + div_low.to_biguint();
+    let a = a.pack();
+    let div = div.pack();
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
