@@ -4,6 +4,22 @@
 
 * fix: complete From<AirPrivateInputSerializable> implementation [#2152](https://github.com/lambdaclass/cairo-vm/pull/2152)
 
+#### [3.0.0] - 2025-11-19
+
+#### [3.0.0-rc.5] - 2025-11-14
+
+* fix: save x1 variable to execution scope in fast_ec_add_assign_new_x [#2266](https://github.com/lambdaclass/cairo-vm/pull/2266)
+
+* fix: use div_mod_unsigned and remove unwrap_or_default in inv_mod_p_uint256 and uint384_div [#2262](https://github.com/lambdaclass/cairo-vm/pull/2262)
+
+* Refactor: Remove unused error variants [#1760](https://github.com/lambdaclass/cairo-vm/pull/1760/)
+
+* opt(breaking): Avoid cloning constants when compiling hints [#2208](https://github.com/lambdaclass/cairo-vm/pull/2208)
+
+* dev(BREAKING): Make blake2s API internal [#2265](https://github.com/lambdaclass/cairo-vm/pull/2265)
+
+* bugfix: Fix temp segment chain bug [#2195](https://github.com/lambdaclass/cairo-vm/pull/2195)
+
 #### [3.0.0-rc.4] - 2025-28-10
 
 * fix: error mapping for fee_provision in excess_balance hint [#2236](https://github.com/lambdaclass/cairo-vm/pull/2236)

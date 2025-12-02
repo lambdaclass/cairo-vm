@@ -9,7 +9,7 @@ use super::hint_processor_utils::*;
 use crate::any_box;
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::stdlib::rc::Rc;
+use crate::stdlib::sync::Arc;
 use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::runners::cairo_runner::ResourceTracker;
@@ -1267,7 +1267,7 @@ impl HintProcessorLogic for Cairo1HintProcessor {
         // List of accessible scopes in the hint
         _accessible_scopes: &[String],
         // Identifiers stored in the hint's program.
-        _constants: Rc<HashMap<String, Felt252>>,
+        _constants: Arc<HashMap<String, Felt252>>,
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         let data = hint_code.parse().ok().and_then(|x: usize| self.hints.get(&x).cloned())
         .ok_or_else(|| VirtualMachineError::CompileHintFail(
