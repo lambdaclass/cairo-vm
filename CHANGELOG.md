@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-* fix: honor relocate_mem and trace_enabled flags on cairo1-run [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
+* fix: Make cairo1-run to conditionally relocate memory and trace [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
 
 #### [3.0.0] - 2025-11-19
 
