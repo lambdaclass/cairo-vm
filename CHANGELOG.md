@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore(vm): unify Uint256 usage across u256 hints and split quotient via Uint512 [#2237](https://github.com/lambdaclass/cairo-vm/pull/2237) 
+
 #### [3.0.0] - 2025-11-19
 
 #### [3.0.0-rc.5] - 2025-11-14
