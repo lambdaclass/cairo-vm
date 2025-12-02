@@ -346,7 +346,10 @@ pub fn cairo_run_program(
         }
     }
 
-    runner.relocate(cairo_run_config.relocate_mem, cairo_run_config.trace_enabled)?;
+    runner.relocate(
+        cairo_run_config.relocate_mem,
+        cairo_run_config.trace_enabled,
+    )?;
 
     Ok((runner, return_values, serialized_output))
 }
