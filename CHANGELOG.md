@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: complete From<AirPrivateInputSerializable> implementation [#2152](https://github.com/lambdaclass/cairo-vm/pull/2152)
+
 #### [3.0.0] - 2025-11-19
 
 #### [3.0.0-rc.5] - 2025-11-14
