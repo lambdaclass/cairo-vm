@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix(hash): keep verified_addresses index=offset invariant [#2275](https://github.com/lambdaclass/cairo-vm/pull/2275)
+
 #### [3.0.0] - 2025-11-19
 
 #### [3.0.0-rc.5] - 2025-11-14
