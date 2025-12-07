@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: rename y_cube_int to y_square_int in get_point_from_x [#2271](https://github.com/lambdaclass/cairo-vm/pull/2271)
+
 #### [3.0.0] - 2025-11-19
 
 #### [3.0.0-rc.5] - 2025-11-14
