@@ -4,6 +4,8 @@
 
 #### [3.0.0] - 2025-11-19
 
+* refactor: remove unused SECP256R1_P entries from exec scopes 
+
 #### [3.0.0-rc.5] - 2025-11-14
 
 * fix: save x1 variable to execution scope in fast_ec_add_assign_new_x [#2266](https://github.com/lambdaclass/cairo-vm/pull/2266)
