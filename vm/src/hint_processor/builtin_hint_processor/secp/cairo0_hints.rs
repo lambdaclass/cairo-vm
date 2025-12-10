@@ -168,8 +168,6 @@ pub fn compute_ids_high_low(
     ap_tracking: &ApTracking,
     constants: &HashMap<String, Felt252>,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
-
     const UPPER_BOUND: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
     const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.SHIFT";
 
@@ -286,7 +284,6 @@ pub fn secp_double_assign_new_x(
     _constants: &HashMap<String, Felt252>,
     pack_prime: &BigUint,
 ) -> Result<(), HintError> {
-    exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
     //ids.slope
     let slope = BigInt3::from_var_name("slope", vm, ids_data, ap_tracking)?;
     //ids.point
