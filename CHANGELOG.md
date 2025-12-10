@@ -4,7 +4,7 @@
 
 #### [3.0.0] - 2025-11-19
 
-* refactor: remove unused SECP256R1_P entries from exec scopes 
+* refactor: remove unused SECP256R1_P entries from exec scopes [#2278](https://github.com/lambdaclass/cairo-vm/pull/2278)
 
 #### [3.0.0-rc.5] - 2025-11-14
 
