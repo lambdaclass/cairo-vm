@@ -58,9 +58,20 @@ pub mod test_utils {
 
     #[macro_export]
     macro_rules! felt_hex {
-        ($val: expr) => {
-            $crate::Felt252::from_hex($val).expect("Couldn't parse bytes")
-        };
+        ($val: expr) => {{
+            // This is a workaround to fix a issue with `Felt::from_hex`. Since
+            // it no longer supports values bigger than prime, we need a way of
+            // representing those values and apply the wrapping operation.
+            // This macro might change in the future.
+            let felt_biguint = if $val.starts_with("0x") {
+                $crate::biguint_str!($val[2..], 16)
+            } else {
+                $crate::biguint_str!($val, 16)
+            };
+
+            $crate::Felt252::try_from(felt_biguint % &*$crate::utils::CAIRO_PRIME)
+                .expect("Couldn't create")
+        }};
     }
 
     #[macro_export]
