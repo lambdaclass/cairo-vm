@@ -30,7 +30,7 @@ use cairo_lang_sierra_to_casm::{
     compiler::{CairoProgram, SierraToCasmConfig},
     metadata::calc_metadata_ap_change_only,
 };
-use cairo_lang_sierra_type_size::get_type_size_map;
+use cairo_lang_sierra_type_size::{get_type_size_map, ProgramRegistryInfo};
 use cairo_lang_utils::{
     bigint::BigIntAsHex, casts::IntoOrPanic, unordered_hash_map::UnorderedHashMap,
 };
@@ -134,7 +134,8 @@ pub fn cairo_run_program(
     sierra_program: &SierraProgram,
     cairo_run_config: Cairo1RunConfig,
 ) -> Result<(CairoRunner, Vec<MaybeRelocatable>, Option<String>), Error> {
-    let metadata = calc_metadata_ap_change_only(sierra_program)
+    let sierra_program_registry_info = ProgramRegistryInfo::new(sierra_program)?;
+    let metadata = calc_metadata_ap_change_only(sierra_program, &sierra_program_registry_info)
         .map_err(|_| VirtualMachineError::Unexpected)?;
     let sierra_program_registry = ProgramRegistry::<CoreType, CoreLibfunc>::new(sierra_program)?;
     let type_sizes =
@@ -143,8 +144,12 @@ pub fn cairo_run_program(
         gas_usage_check: false,
         max_bytecode_size: usize::MAX,
     };
-    let casm_program =
-        cairo_lang_sierra_to_casm::compiler::compile(sierra_program, &metadata, config)?;
+    let casm_program = cairo_lang_sierra_to_casm::compiler::compile(
+        sierra_program,
+        &sierra_program_registry_info,
+        &metadata,
+        config,
+    )?;
 
     let main_func = find_function(sierra_program, "::main")?;
 
@@ -1571,6 +1576,7 @@ mod tests {
     use cairo_lang_compiler::{
         compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
     };
+    use cairo_lang_filesystem::ids::CrateInput;
     use cairo_vm::{program_hash::compute_program_hash_chain, types::relocatable::Relocatable};
     use rstest::rstest;
 
@@ -1584,7 +1590,11 @@ mod tests {
             .skip_auto_withdraw_gas()
             .build()
             .unwrap();
-        let main_crate_ids = setup_project(&mut db, Path::new(filename)).unwrap();
+        let main_crate_ids = {
+            let main_crate_inputs =
+                setup_project(&mut db, Path::new(filename)).expect("failed to setup project");
+            CrateInput::into_crate_ids(&db, main_crate_inputs)
+        };
         compile_prepared_db(&db, main_crate_ids, compiler_config)
             .unwrap()
             .program
