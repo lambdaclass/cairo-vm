@@ -1,4 +1,4 @@
-use crate::stdlib::{any::Any, boxed::Box, collections::HashMap, prelude::*, rc::Rc};
+use crate::stdlib::{any::Any, boxed::Box, collections::HashMap, prelude::*, sync::Arc};
 
 use crate::any_box;
 use crate::serde::deserialize_program::ApTracking;
@@ -44,7 +44,7 @@ pub trait HintProcessorLogic {
         // List of accessible scopes in the hint
         accessible_scopes: &[String],
         // Identifiers stored in the hint's program.
-        constants: Rc<HashMap<String, Felt252>>,
+        constants: Arc<HashMap<String, Felt252>>,
     ) -> Result<Box<dyn Any>, VirtualMachineError> {
         Ok(any_box!(HintProcessorData {
             code: hint_code.to_string(),

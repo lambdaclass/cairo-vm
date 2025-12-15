@@ -6,13 +6,13 @@ use crate::{
         builtin_hint_processor::secp::bigint_utils::Uint512,
         hint_processor_definition::HintReference,
     },
-    math_utils::div_mod,
+    math_utils::div_mod_unsigned,
     serde::deserialize_program::ApTracking,
     stdlib::{collections::HashMap, prelude::*},
     types::errors::math_errors::MathError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
-use num_bigint::{BigInt, ToBigInt};
+use num_bigint::BigUint;
 use num_integer::div_rem;
 use num_traits::{One, Zero};
 
@@ -98,19 +98,13 @@ pub fn inv_mod_p_uint256(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     // 'a' is not used here or in following hints, so we skip it
-    let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?
-        .pack()
-        .to_bigint()
-        .unwrap_or_default();
-    let p = Uint256::from_var_name("p", vm, ids_data, ap_tracking)?
-        .pack()
-        .to_bigint()
-        .unwrap_or_default();
+    let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?.pack();
+    let p = Uint256::from_var_name("p", vm, ids_data, ap_tracking)?.pack();
 
     // Main logic:
-    let b_inverse_mod_p = div_mod(&BigInt::one(), &b, &p)?;
+    let b_inverse_mod_p = div_mod_unsigned(&BigUint::one(), &b, &p)?;
 
-    let res = Uint256::from(&b_inverse_mod_p.to_biguint().unwrap_or_default());
+    let res = Uint256::from(&b_inverse_mod_p);
     res.insert_from_var_name("b_inverse_mod_p", vm, ids_data, ap_tracking)
 }
 
