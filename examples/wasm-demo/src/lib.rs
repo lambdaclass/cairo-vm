@@ -39,7 +39,7 @@ pub fn run_cairo_program() -> Result<String, JsError> {
         ..Default::default()
     };
 
-    let mut runner = wrap_error!(cairo_run(
+    let mut runner = wrap_error!(caio_run(
         PROGRAM_JSON,
         &cairo_run_config,
         &mut hint_executor

@@ -6,6 +6,8 @@
 
 #### [3.0.0-rc.5] - 2025-11-14
 
+* chore: bump cairo-lang to 2.14.1-dev.1
+
 * fix: save x1 variable to execution scope in fast_ec_add_assign_new_x [#2266](https://github.com/lambdaclass/cairo-vm/pull/2266)
 
 * fix: use div_mod_unsigned and remove unwrap_or_default in inv_mod_p_uint256 and uint384_div [#2262](https://github.com/lambdaclass/cairo-vm/pull/2262)
