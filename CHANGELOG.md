@@ -6,7 +6,7 @@
 
 #### [3.0.0-rc.5] - 2025-11-14
 
-* chore: bump cairo-lang to 2.14.1-dev.1
+* chore: bump cairo-lang to 2.14.1-dev.1 [#2279](https://github.com/lambdaclass/cairo-vm/pull/2279)
 
 * fix: save x1 variable to execution scope in fast_ec_add_assign_new_x [#2266](https://github.com/lambdaclass/cairo-vm/pull/2266)
 

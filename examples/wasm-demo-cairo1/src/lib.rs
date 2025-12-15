@@ -1,6 +1,6 @@
 mod utils;
 
-use cairo1_run::{Cairo1RunConfig, FuncArg};
+use cairo1_run::Cairo1RunConfig;
 use cairo_lang_sierra::ProgramParser;
 use cairo_vm::types::layout_name::LayoutName;
 use wasm_bindgen::prelude::*;
@@ -29,12 +29,11 @@ pub fn run_cairo_program() -> Result<String, JsValue> {
         relocate_mem: true,
         trace_enabled: true,
         serialize_output: true,
-        args: &[FuncArg::Single(1.into()), FuncArg::Single(1.into())],
         ..Default::default()
     };
 
     let sierra_program = {
-        let program_str = include_str!("../bitwise.sierra");
+        let program_str = include_str!("../../../cairo_programs/cairo-1-programs/bitwise.sierra");
         wrap_error!(ProgramParser::new().parse(program_str))?
     };
 
