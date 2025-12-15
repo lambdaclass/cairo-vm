@@ -63,8 +63,8 @@ pub mod test_utils {
             // it no longer supports values bigger than prime, we need a way of
             // representing those values and apply the wrapping operation.
             // This macro might change in the future.
-            let felt_biguint = if $val.starts_with("0x") {
-                $crate::biguint_str!($val[2..], 16)
+            let felt_biguint = if let Some(striped_val) = $val.strip_prefix("0x") {
+                $crate::biguint_str!(striped_val, 16)
             } else {
                 $crate::biguint_str!($val, 16)
             };
