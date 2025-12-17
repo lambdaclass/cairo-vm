@@ -3835,8 +3835,3 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
-
-[[patch.unused]]
-name = "cairo-lang-runner"
-version = "2.12.0-dev.0"
-source = "git+https://github.com/starkware-libs/cairo.git?tag=v2.12.0-dev.0#879302d8cea7206ed6349bcc2bff2b3bfa0c7521"
