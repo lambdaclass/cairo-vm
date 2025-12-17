@@ -81,6 +81,16 @@ ark-std = { version = "0.4.0", default-features = false }
 # For fuzzing
 arbitrary = { version = "1.3.0", features = ["derive"] }
 
+[patch.crates-io]
+cairo-lang-casm = { git = "https://github.com/starkware-libs/cairo.git", tag = "v2.12.0-dev.0"}
+cairo-lang-starknet-classes = { git = "https://github.com/starkware-libs/cairo.git", tag = "v2.12.0-dev.0"}
+cairo-lang-compiler = { git = "https://github.com/starkware-libs/cairo.git", tag = "v2.12.0-dev.0"}
+cairo-lang-sierra-to-casm = { git = "https://github.com/starkware-libs/cairo.git", tag = "v2.12.0-dev.0"}
+cairo-lang-sierra = { git = "https://github.com/starkware-libs/cairo.git", tag = "v2.12.0-dev.0"}
+cairo-lang-runner = { git = "https://github.com/starkware-libs/cairo.git", tag = "v2.12.0-dev.0"}
+cairo-lang-utils = { git = "https://github.com/starkware-libs/cairo.git", tag = "v2.12.0-dev.0"}
+cairo-lang-sierra-type-size = { git = "https://github.com/starkware-libs/cairo.git", tag = "v2.12.0-dev.0"}
+
 [profile.test]
 opt-level = 2
 
