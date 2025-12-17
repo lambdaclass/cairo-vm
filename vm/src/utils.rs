@@ -59,9 +59,9 @@ pub mod test_utils {
     #[macro_export]
     macro_rules! felt_hex {
         ($val: expr) => {{
-            // This is a workaround to fix a issue with `Felt::from_hex`. Since
-            // it no longer supports values bigger than prime, we need a way of
-            // representing those values and apply the wrapping operation.
+            // This is a workaround to fix an issue with `Felt::from_hex`. Since
+            // it no longer supports values bigger than prime, we need to parse
+            // it into a BigUint, reduce it, and then convert it to a Felt.
             // This macro might change in the future.
             let felt_biguint = if let Some(striped_val) = $val.strip_prefix("0x") {
                 $crate::biguint_str!(striped_val, 16)
