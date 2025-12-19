@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: correct duplicate tuple index in InvalidTrackingGroup error message [#2276](https://github.com/lambdaclass/cairo-vm/pull/2276)
+
 #### [3.0.0] - 2025-11-19
 
 #### [3.0.0-rc.5] - 2025-11-14
