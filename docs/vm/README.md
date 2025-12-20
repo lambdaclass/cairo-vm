@@ -187,10 +187,10 @@ ap = 10
 pc = 15
 ```
 Then:
-- `op1` is `[fp + 2]`, which is resolved to `[7]`.
-- `op2` is `[pc + 1]`, which is resolved to `[16] == 3`.
+- `op0` is `[fp + 2]`, which is resolved to `[7]`.
+- `op1` is `[pc + 1]`, which is resolved to `[16] == 3`.
 - `dst` is `[ap + 1]`, which is resolved to `[11]`
-- The result of `op1 + op2` is stored at `dst`
+- The result of `op0 + op1` is stored at `dst`
 - The register `pc` is increased by 2, we skip the next instruction because it was the immediate.
 - The register `fp` is not updated
 - The register `ap` is not updated
