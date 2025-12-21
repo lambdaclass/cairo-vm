@@ -484,6 +484,24 @@ mod tests {
     }
 
     #[test]
+    fn extend_additional_data_preserves_existing_verified_flags() {
+        let mut builtin = HashBuiltinRunner::new(Some(1), true);
+        builtin.verified_addresses = RefCell::new(vec![false, false, true, false, false, true]);
+
+        let additional_data = BuiltinAdditionalData::Hash(vec![
+            Relocatable::from((0, 0)),
+            Relocatable::from((0, 4)),
+        ]);
+
+        builtin.extend_additional_data(&additional_data).unwrap();
+
+        assert_eq!(
+            *builtin.verified_addresses.borrow(),
+            vec![true, false, true, false, true, true]
+        );
+    }
+
+    #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_air_private_input() {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(None, true).into();
