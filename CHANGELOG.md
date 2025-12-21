@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: preserve verified offset flags in `HashBuiltinRunner::extend_additional_data` [#2269](https://github.com/lambdaclass/cairo-vm/pull/2269)
+
 #### [3.0.0] - 2025-11-19
 
 #### [3.0.0-rc.5] - 2025-11-14
@@ -2494,3 +2496,4 @@
         * `pub fn get_location(pc: &usize, runner: &CairoRunner) -> Option<Location>` is now `pub fn get_location(pc: usize, runner: &CairoRunner) -> Option<Location>`
         * `pub fn decode_instruction(encoded_instr: i64, mut imm: Option<BigInt>) -> Result<instruction::Instruction, VirtualMachineError>` is now `pub fn decode_instruction(encoded_instr: i64, mut imm: Option<&BigInt>) -> Result<instruction::Instruction, VirtualMachineError>`
         * `VmException` fields' string format now mirrors their cairo-lang counterparts.
+        
