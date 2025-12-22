@@ -2,8 +2,6 @@
 
 #### Upcoming Changes
 
-* docs: align BuiltinHintProcessor documentation with current implementation [#2274](https://github.com/lambdaclass/cairo-vm/pull/2274)
-
 #### [3.0.0] - 2025-11-19
 
 #### [3.0.0-rc.5] - 2025-11-14
