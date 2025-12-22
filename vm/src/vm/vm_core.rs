@@ -451,6 +451,7 @@ impl VirtualMachine {
         self.segments
             .memory
             .mark_as_accessed(operands_addresses.op1_addr);
+        self.segments.memory.mark_as_accessed(self.run_context.pc);
 
         if instruction.opcode_extension == OpcodeExtension::Blake
             || instruction.opcode_extension == OpcodeExtension::BlakeFinalize
@@ -3699,11 +3700,16 @@ mod tests {
             ],
         );
         //Check that the following addresses have been accessed:
-        // Addresses have been copied from python execution:
+        // Addresses have been copied from python execution + addresses of accessed code:
         let mem = &vm.segments.memory.data;
+        assert!(mem[0][0].is_accessed());
         assert!(mem[0][1].is_accessed());
+        assert!(mem[0][2].is_accessed());
+        assert!(mem[0][3].is_accessed());
         assert!(mem[0][4].is_accessed());
+        assert!(mem[0][5].is_accessed());
         assert!(mem[0][6].is_accessed());
+        assert!(mem[0][7].is_accessed());
         assert!(mem[1][0].is_accessed());
         assert!(mem[1][1].is_accessed());
         assert!(mem[1][2].is_accessed());
@@ -3714,7 +3720,7 @@ mod tests {
             vm.segments
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(0),
-            Some(3)
+            Some(8)
         );
         assert_eq!(
             vm.segments
@@ -5543,11 +5549,16 @@ mod tests {
             ],
         );
         //Check that the following addresses have been accessed:
-        // Addresses have been copied from python execution:
+        // Addresses have been copied from python execution + addresses of accessed code:
         let mem = &vm.segments.memory.data;
+        assert!(mem[4][0].is_accessed());
         assert!(mem[4][1].is_accessed());
+        assert!(mem[4][2].is_accessed());
+        assert!(mem[4][3].is_accessed());
         assert!(mem[4][4].is_accessed());
+        assert!(mem[4][5].is_accessed());
         assert!(mem[4][6].is_accessed());
+        assert!(mem[4][7].is_accessed());
         assert!(mem[1][0].is_accessed());
         assert!(mem[1][1].is_accessed());
         assert!(mem[1][2].is_accessed());
@@ -5558,7 +5569,7 @@ mod tests {
             vm.segments
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(4),
-            Some(3)
+            Some(8)
         );
         assert_eq!(
             vm.segments
