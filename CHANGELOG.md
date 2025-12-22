@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: Fix compute_ids_high_low hint constant path [#2285](https://github.com/lambdaclass/cairo-vm/pull/2285)
+
 * feat: implemented delete_unaccessed function [#2282](https://github.com/lambdaclass/cairo-vm/pull/2282)
 
 * fix: rename y_cube_int to y_square_int in get_point_from_x [#2271](https://github.com/lambdaclass/cairo-vm/pull/2271)
