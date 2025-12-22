@@ -2,7 +2,7 @@
 
 #### Upcoming Changes
 
-*  fix: also mark PC as accessed in run_instruction [#2106](https://github.com/lambdaclass/cairo-vm/pull/2106)
+* fix: also mark PC as accessed in run_instruction [#2106](https://github.com/lambdaclass/cairo-vm/pull/2106)
 
 * feat: implemented delete_unaccessed function [#2282](https://github.com/lambdaclass/cairo-vm/pull/2282)
 
