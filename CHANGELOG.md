@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: Fix compute_ids_high_low hint constant path [#2285](https://github.com/lambdaclass/cairo-vm/pull/2285)
+
 * fix: also mark PC as accessed in run_instruction [#2106](https://github.com/lambdaclass/cairo-vm/pull/2106)
 
 * feat: Make Blake2s API public [#2286](https://github.com/lambdaclass/cairo-vm/pull/2286)
