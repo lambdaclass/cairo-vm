@@ -11,7 +11,6 @@ use cairo_vm::{
     vm::{context::run_context::RunContext, decoding::decoder::decode_instruction},
     Felt252,
 };
-use num_bigint::BigUint;
 use num_traits::ToPrimitive;
 
 use crate::{error::trace_data_errors::TraceDataError, types::memory_access::MemoryAccess};
@@ -140,8 +139,7 @@ impl TracerData {
         for entry in trace.iter() {
             let run_context = RunContext::new(Relocatable::from((0, entry.pc)), entry.ap, entry.fp);
 
-            let (instruction_encoding, _) =
-                get_instruction_encoding(entry.pc, &memory, program.prime())?;
+            let (instruction_encoding, _) = get_instruction_encoding(entry.pc, &memory)?;
 
             let instruction_encoding = instruction_encoding.to_u128();
             if instruction_encoding.is_none() {
@@ -205,17 +203,22 @@ impl TracerData {
 pub fn get_instruction_encoding(
     pc: usize,
     memory: &[Option<Felt252>],
-    prime: &str,
 ) -> Result<(Felt252, Option<Felt252>), TraceDataError> {
-    if memory[pc].is_none() {
+    if pc >= memory.len() {
         return Err(TraceDataError::InstructionIsNone(pc.to_string()));
     }
-    let instruction_encoding = memory[pc].unwrap();
-    let prime = BigUint::parse_bytes(&prime.as_bytes()[2..], 16).unwrap();
 
-    let imm_addr = BigUint::from(pc + 1) % prime;
-    let imm_addr = usize::try_from(imm_addr.clone())
-        .map_err(|_| TraceDataError::FailedToImmAddress(imm_addr.to_string()))?;
-    let optional_imm = memory[imm_addr];
+    let instruction_encoding = match memory[pc] {
+        Some(value) => value,
+        None => return Err(TraceDataError::InstructionIsNone(pc.to_string())),
+    };
+
+    let imm_index = pc + 1;
+    let optional_imm = if imm_index < memory.len() {
+        memory[imm_index]
+    } else {
+        None
+    };
+
     Ok((instruction_encoding, optional_imm))
 }
