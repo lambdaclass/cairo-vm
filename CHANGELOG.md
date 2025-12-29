@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: simplify tracer instruction encoding fetch [#2289](https://github.com/lambdaclass/cairo-vm/pull/2289)
+
 #### [3.0.1] - 2025-12-22
 
 * fix: Fix compute_ids_high_low hint constant path [#2285](https://github.com/lambdaclass/cairo-vm/pull/2285)
