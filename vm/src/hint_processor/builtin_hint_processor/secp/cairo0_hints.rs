@@ -170,8 +170,8 @@ pub fn compute_ids_high_low(
 ) -> Result<(), HintError> {
     exec_scopes.insert_value::<BigInt>("SECP256R1_P", SECP256R1_P.clone());
 
-    const UPPER_BOUND: &str = "starkware.cairo.common.math.assert_250_bit.UPPER_BOUND";
-    const SHIFT: &str = "starkware.cairo.common.math.assert_250_bit.SHIFT";
+    const UPPER_BOUND: &str = "starkware.cairo.common.secp256r1.field.assert_165_bit.UPPER_BOUND";
+    const SHIFT: &str = "starkware.cairo.common.secp256r1.field.assert_165_bit.SHIFT";
 
     let upper_bound = constants
         .get(UPPER_BOUND)

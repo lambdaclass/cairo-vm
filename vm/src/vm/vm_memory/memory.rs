@@ -186,6 +186,18 @@ impl Memory {
         }
     }
 
+    fn get_segment(&mut self, key: Relocatable) -> Result<&mut Vec<MemoryCell>, MemoryError> {
+        let (value_index, _) = from_relocatable_to_indexes(key);
+        let data = if key.segment_index.is_negative() {
+            &mut self.temp_data
+        } else {
+            &mut self.data
+        };
+        let data_len = data.len();
+        data.get_mut(value_index)
+            .ok_or_else(|| MemoryError::UnallocatedSegment(Box::new((value_index, data_len))))
+    }
+
     /// Inserts a value into a memory address
     /// Will return an Error if the segment index given by the address corresponds to a non-allocated segment,
     /// or if the inserted value is inconsistent with the current value at the memory cell
@@ -195,18 +207,8 @@ impl Memory {
         MaybeRelocatable: From<V>,
     {
         let val = MaybeRelocatable::from(val);
-        let (value_index, value_offset) = from_relocatable_to_indexes(key);
-
-        let data = if key.segment_index.is_negative() {
-            &mut self.temp_data
-        } else {
-            &mut self.data
-        };
-
-        let data_len = data.len();
-        let segment = data
-            .get_mut(value_index)
-            .ok_or_else(|| MemoryError::UnallocatedSegment(Box::new((value_index, data_len))))?;
+        let segment = self.get_segment(key)?;
+        let (_, value_offset) = from_relocatable_to_indexes(key);
 
         //Check if the element is inserted next to the last one on the segment
         //Forgoing this check would allow data to be inserted in a different index
@@ -236,6 +238,25 @@ impl Memory {
             }
         };
         self.validate_memory_cell(key)
+    }
+
+    pub(crate) fn delete_unaccessed(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
+        let (_, offset) = from_relocatable_to_indexes(addr);
+        let segment = self.get_segment(addr)?;
+
+        // Make sure the offset exists.
+        if offset >= segment.len() {
+            return Err(MemoryError::UnsetUnallocatedCell(addr));
+        }
+
+        // Ensure the cell has not been accessed.
+        if segment[offset].is_accessed() {
+            return Err(MemoryError::UnsetAccessedCell(addr));
+        }
+
+        // Unset the cell.
+        segment[offset] = MemoryCell::NONE;
+        Ok(())
     }
 
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
@@ -762,6 +783,11 @@ impl Memory {
             &self.data
         };
         data.get(i)?.get(j)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn get_cell_for_testing(&self, addr: Relocatable) -> Option<&MemoryCell> {
+        self.get_cell(addr)
     }
 
     pub fn is_accessed(&self, addr: &Relocatable) -> Result<bool, MemoryError> {
