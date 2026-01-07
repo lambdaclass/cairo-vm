@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: Make cairo1-run to conditionally relocate memory and trace [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
+
 #### [3.0.1] - 2025-12-22
 
 * fix: Fix compute_ids_high_low hint constant path [#2285](https://github.com/lambdaclass/cairo-vm/pull/2285)
