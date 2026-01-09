@@ -180,7 +180,7 @@ impl CairoRunner {
         mode: RunnerMode,
         trace_enabled: bool,
         disable_trace_padding: bool,
-        allow_disordered_builtins: bool
+        allow_disordered_builtins: bool,
     ) -> Result<CairoRunner, RunnerError> {
         let cairo_layout = match layout {
             LayoutName::plain => CairoLayout::plain_instance(),
@@ -236,7 +236,7 @@ impl CairoRunner {
         proof_mode: bool,
         trace_enabled: bool,
         disable_trace_padding: bool,
-        allow_disordered_builtins: bool
+        allow_disordered_builtins: bool,
     ) -> Result<CairoRunner, RunnerError> {
         // `disable_trace_padding` can only be used in `proof_mode`, so we enforce this here to
         // avoid unintended behavior.
@@ -251,7 +251,7 @@ impl CairoRunner {
                 RunnerMode::ProofModeCanonical,
                 trace_enabled,
                 disable_trace_padding,
-                allow_disordered_builtins
+                allow_disordered_builtins,
             )
         } else {
             Self::new_v2(
@@ -261,7 +261,7 @@ impl CairoRunner {
                 RunnerMode::ExecutionMode,
                 trace_enabled,
                 disable_trace_padding,
-                allow_disordered_builtins
+                allow_disordered_builtins,
             )
         }
     }
@@ -299,7 +299,9 @@ impl CairoRunner {
             BuiltinName::add_mod,
             BuiltinName::mul_mod,
         ];
-        if !self.allow_disordered_builtins && !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
+        if !self.allow_disordered_builtins
+            && !is_subsequence(&self.program.builtins, &builtin_ordered_list)
+        {
             return Err(RunnerError::DisorderedBuiltins);
         };
         let mut program_builtins: HashSet<&BuiltinName> = self.program.builtins.iter().collect();

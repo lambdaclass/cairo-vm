@@ -101,7 +101,7 @@ pub struct Cairo1RunConfig<'a> {
     /// Appends the return and input values to the output segment. This is performed by default when running in proof_mode
     pub append_return_values: bool,
     /// Avoids checking whether the provided list of builtins is in order.
-    pub allow_disordered_builtins: bool
+    pub allow_disordered_builtins: bool,
 }
 
 impl Default for Cairo1RunConfig<'_> {
@@ -116,7 +116,7 @@ impl Default for Cairo1RunConfig<'_> {
             finalize_builtins: false,
             append_return_values: false,
             dynamic_layout_params: None,
-            allow_disordered_builtins: false
+            allow_disordered_builtins: false,
         }
     }
 }
@@ -265,7 +265,7 @@ pub fn cairo_run_program(
         runner_mode,
         cairo_run_config.trace_enabled,
         false,
-        cairo_run_config.allow_disordered_builtins
+        cairo_run_config.allow_disordered_builtins,
     )?;
     let end = runner.initialize(cairo_run_config.proof_mode)?;
     load_arguments(&mut runner, &cairo_run_config, main_func)?;

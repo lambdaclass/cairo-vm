@@ -192,7 +192,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         allow_missing_builtins: args.allow_missing_builtins,
         dynamic_layout_params: cairo_layout_params,
         disable_trace_padding: false,
-        allow_disordered_builtins: args.allow_disordered_builtins.unwrap_or_default()
+        allow_disordered_builtins: args.allow_disordered_builtins.unwrap_or_default(),
     };
 
     let mut cairo_runner = match if args.run_from_cairo_pie {

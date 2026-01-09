@@ -67,7 +67,7 @@ struct Args {
     )]
     append_return_values: bool,
     #[arg(long = "allow_disordered_builtins", value_parser)]
-    allow_disordered_builtins: bool
+    allow_disordered_builtins: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -178,7 +178,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         finalize_builtins: args.air_public_input.is_some() || args.cairo_pie_output.is_some(),
         append_return_values: args.append_return_values,
         dynamic_layout_params: cairo_layout_params,
-        allow_disordered_builtins: args.allow_disordered_builtins
+        allow_disordered_builtins: args.allow_disordered_builtins,
     };
 
     // Try to parse the file as a sierra program

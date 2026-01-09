@@ -47,7 +47,7 @@ pub struct CairoRunConfig<'a> {
     ///   instances of the builtin) compared to their sizes at the end of the execution.
     pub disable_trace_padding: bool,
     pub allow_missing_builtins: Option<bool>,
-    pub allow_disordered_builtins: bool
+    pub allow_disordered_builtins: bool,
 }
 
 impl Default for CairoRunConfig<'_> {
@@ -65,7 +65,7 @@ impl Default for CairoRunConfig<'_> {
             disable_trace_padding: false,
             allow_missing_builtins: None,
             dynamic_layout_params: None,
-            allow_disordered_builtins: false
+            allow_disordered_builtins: false,
         }
     }
 }
@@ -93,7 +93,7 @@ pub fn cairo_run_program_with_initial_scope(
         cairo_run_config.proof_mode,
         cairo_run_config.trace_enabled,
         cairo_run_config.disable_trace_padding,
-        cairo_run_config.allow_disordered_builtins
+        cairo_run_config.allow_disordered_builtins,
     )?;
 
     cairo_runner.exec_scopes = exec_scopes;
@@ -191,7 +191,7 @@ pub fn cairo_run_pie(
         false,
         cairo_run_config.trace_enabled,
         cairo_run_config.disable_trace_padding,
-        cairo_run_config.allow_disordered_builtins
+        cairo_run_config.allow_disordered_builtins,
     )?;
 
     let end = cairo_runner.initialize(allow_missing_builtins)?;
@@ -270,7 +270,7 @@ pub fn cairo_run_fuzzed_program(
         cairo_run_config.proof_mode,
         cairo_run_config.trace_enabled,
         cairo_run_config.disable_trace_padding,
-        cairo_run_config.allow_disordered_builtins
+        cairo_run_config.allow_disordered_builtins,
     )?;
 
     let _end = cairo_runner.initialize(allow_missing_builtins)?;
