@@ -38,6 +38,7 @@ fn build_runner() {
         false,
         false,
         false,
+        false,
     )
     .unwrap();
     core::mem::drop(black_box(runner));
@@ -53,6 +54,7 @@ fn build_runner_helper() -> CairoRunner {
         &program,
         LayoutName::starknet_with_keccak,
         None,
+        false,
         false,
         false,
         false,
