@@ -256,12 +256,13 @@ pub mod test_utils {
                 false,
                 false,
                 false,
+                false,
             )
             .unwrap()
         };
         ($program:expr, $layout:expr) => {
             crate::vm::runners::cairo_runner::CairoRunner::new(
-                &$program, $layout, None, false, false, false,
+                &$program, $layout, None, false, false, false, false,
             )
             .unwrap()
         };
@@ -271,6 +272,7 @@ pub mod test_utils {
                 $layout,
                 None,
                 $proof_mode,
+                false,
                 false,
                 false,
             )
@@ -283,6 +285,7 @@ pub mod test_utils {
                 None,
                 $proof_mode,
                 $trace_enabled,
+                false,
                 false,
             )
             .unwrap()
