@@ -829,6 +829,7 @@ mod tests {
             proof_mode,
             false,
             false,
+            false
         )
         .unwrap();
 

@@ -1223,6 +1223,7 @@ fn run_program_with_custom_mod_builtin_params(
         cairo_run_config.proof_mode,
         cairo_run_config.trace_enabled,
         cairo_run_config.disable_trace_padding,
+        cairo_run_config.allow_disordered_builtins
     )
     .unwrap();
 

@@ -119,6 +119,7 @@ fn run_cairo_1_entrypoint(
         false,
         false,
         false,
+        false
     )
     .unwrap();
 
@@ -226,6 +227,7 @@ fn run_cairo_1_entrypoint_with_run_resources(
         false,
         false,
         false,
+        false
     )
     .unwrap();
 

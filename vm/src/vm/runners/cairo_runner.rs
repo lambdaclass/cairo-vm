@@ -153,6 +153,7 @@ pub struct CairoRunner {
     initial_ap: Option<Relocatable>,
     initial_fp: Option<Relocatable>,
     initial_pc: Option<Relocatable>,
+    allow_disordered_builtins: bool,
     run_ended: bool,
     segments_finalized: bool,
     execution_public_memory: Option<Vec<usize>>,
@@ -179,6 +180,7 @@ impl CairoRunner {
         mode: RunnerMode,
         trace_enabled: bool,
         disable_trace_padding: bool,
+        allow_disordered_builtins: bool
     ) -> Result<CairoRunner, RunnerError> {
         let cairo_layout = match layout {
             LayoutName::plain => CairoLayout::plain_instance(),
@@ -212,6 +214,7 @@ impl CairoRunner {
             initial_ap: None,
             initial_fp: None,
             initial_pc: None,
+            allow_disordered_builtins,
             run_ended: false,
             segments_finalized: false,
             runner_mode: mode.clone(),
@@ -233,6 +236,7 @@ impl CairoRunner {
         proof_mode: bool,
         trace_enabled: bool,
         disable_trace_padding: bool,
+        allow_disordered_builtins: bool
     ) -> Result<CairoRunner, RunnerError> {
         // `disable_trace_padding` can only be used in `proof_mode`, so we enforce this here to
         // avoid unintended behavior.
@@ -247,6 +251,7 @@ impl CairoRunner {
                 RunnerMode::ProofModeCanonical,
                 trace_enabled,
                 disable_trace_padding,
+                allow_disordered_builtins
             )
         } else {
             Self::new_v2(
@@ -256,6 +261,7 @@ impl CairoRunner {
                 RunnerMode::ExecutionMode,
                 trace_enabled,
                 disable_trace_padding,
+                allow_disordered_builtins
             )
         }
     }
@@ -293,7 +299,7 @@ impl CairoRunner {
             BuiltinName::add_mod,
             BuiltinName::mul_mod,
         ];
-        if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
+        if !self.allow_disordered_builtins && !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
             return Err(RunnerError::DisorderedBuiltins);
         };
         let mut program_builtins: HashSet<&BuiltinName> = self.program.builtins.iter().collect();
@@ -5537,7 +5543,7 @@ mod tests {
     fn test_disable_trace_padding_without_proof_mode() {
         let program = program!();
         // Attempt to create a runner in non-proof mode with trace padding disabled.
-        let result = CairoRunner::new(&program, LayoutName::plain, None, false, true, true);
+        let result = CairoRunner::new(&program, LayoutName::plain, None, false, true, true, false);
         match result {
             Err(RunnerError::DisableTracePaddingWithoutProofMode) => { /* test passed */ }
             _ => panic!("Expected DisableTracePaddingWithoutProofMode error"),
@@ -5739,7 +5745,7 @@ mod tests {
 
         let program: &Program = &program;
         let mut cairo_runner =
-            CairoRunner::new(program, LayoutName::plain, None, false, false, false)
+            CairoRunner::new(program, LayoutName::plain, None, false, false, false, false)
                 .expect("failed to create runner");
 
         // We allow missing builtins, as we will simulate them later.

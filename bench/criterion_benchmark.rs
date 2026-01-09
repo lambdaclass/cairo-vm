@@ -34,6 +34,7 @@ fn build_many_runners(c: &mut Criterion) {
                     black_box(false),
                     black_box(false),
                     black_box(false),
+                    black_box(false)
                 )
                 .unwrap(),
             );
@@ -55,6 +56,7 @@ fn load_program_data(c: &mut Criterion) {
                     false,
                     false,
                     false,
+                    false
                 )
                 .unwrap()
             },

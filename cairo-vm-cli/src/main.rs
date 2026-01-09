@@ -71,6 +71,8 @@ struct Args {
     cairo_pie_output: Option<String>,
     #[arg(long = "merge_extra_segments")]
     merge_extra_segments: bool,
+    #[arg(long = "allow_disordered_builtins")]
+    allow_disordered_builtins: Option<bool>,
     #[arg(long = "allow_missing_builtins")]
     allow_missing_builtins: Option<bool>,
     #[arg(long = "tracer")]
@@ -190,6 +192,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         allow_missing_builtins: args.allow_missing_builtins,
         dynamic_layout_params: cairo_layout_params,
         disable_trace_padding: false,
+        allow_disordered_builtins: args.allow_disordered_builtins.unwrap_or_default()
     };
 
     let mut cairo_runner = match if args.run_from_cairo_pie {
