@@ -1712,6 +1712,15 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn initialize_builtins_with_disordered_builtins_allow_disorder() {
+        let program = program![BuiltinName::range_check, BuiltinName::output];
+        let mut cairo_runner = cairo_runner!(program, LayoutName::small);
+        cairo_runner.allow_disordered_builtins = true;
+        assert!(cairo_runner.initialize_builtins(false).is_ok());
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_builtins_missing_builtins_no_allow_missing() {
         let program = program![BuiltinName::output, BuiltinName::ecdsa];
         let mut cairo_runner = cairo_runner!(program, LayoutName::plain);
