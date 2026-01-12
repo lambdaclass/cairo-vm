@@ -10,6 +10,7 @@ use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
 use cairo_vm::vm::runners::cairo_pie::CairoPie;
+#[cfg(feature = "with_tracer")]
 use cairo_vm::vm::runners::cairo_runner::CairoRunner;
 use cairo_vm::vm::runners::cairo_runner::RunResources;
 use cairo_vm::vm::trace::trace_entry;
@@ -317,6 +318,7 @@ mod tests {
     use assert_matches::assert_matches;
     use cairo_vm::{
         hint_processor::hint_processor_definition::HintProcessor, types::program::Program,
+        vm::runners::cairo_runner::CairoRunner,
     };
     use rstest::rstest;
 
