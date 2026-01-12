@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::{
@@ -14,7 +16,6 @@ use crate::{
 };
 
 use crate::Felt252;
-use bincode::enc::write::Writer;
 
 use thiserror::Error;
 
@@ -296,15 +297,15 @@ pub fn cairo_run_fuzzed_program(
 
 #[derive(Debug, Error)]
 #[error("Failed to encode trace at position {0}, serialize error: {1}")]
-pub struct EncodeTraceError(usize, bincode::error::EncodeError);
+pub struct EncodeTraceError(usize, std::io::Error);
 
 /// Writes the trace binary representation.
 ///
-/// Bincode encodes to little endian by default and each trace entry is composed of
+/// Encodes to little endian by default and each trace entry is composed of
 /// 3 usize values that are padded to always reach 64 bit size.
 pub fn write_encoded_trace(
     relocated_trace: &[crate::vm::trace::trace_entry::RelocatedTraceEntry],
-    dest: &mut impl Writer,
+    dest: &mut impl Write,
 ) -> Result<(), EncodeTraceError> {
     for (i, entry) in relocated_trace.iter().enumerate() {
         dest.write(&((entry.ap as u64).to_le_bytes()))
@@ -325,7 +326,7 @@ pub fn write_encoded_trace(
 /// * value -> 32-byte encoded
 pub fn write_encoded_memory(
     relocated_memory: &[Option<Felt252>],
-    dest: &mut impl Writer,
+    dest: &mut impl Write,
 ) -> Result<(), EncodeTraceError> {
     for (i, memory_cell) in relocated_memory.iter().enumerate() {
         match memory_cell {
@@ -355,7 +356,7 @@ mod tests {
         },
         utils::test_utils::*,
     };
-    use bincode::enc::write::SliceWriter;
+    use std::io::Cursor;
 
     use rstest::rstest;
     #[cfg(target_arch = "wasm32")]
@@ -460,7 +461,9 @@ mod tests {
 
         let trace_entries = cairo_runner.relocated_trace.unwrap();
         let mut buffer = [0; 24];
-        let mut buff_writer = SliceWriter::new(&mut buffer);
+        // Write is implemented only for Cursor<&mut [u8]>, this is why we need
+        // to use as_mut_slice().
+        let mut buff_writer = Cursor::new(buffer.as_mut_slice());
         // write cairo_rs vm trace file
         write_encoded_trace(&trace_entries, &mut buff_writer).unwrap();
 
@@ -483,7 +486,9 @@ mod tests {
         assert!(cairo_runner.relocate(true, true).is_ok());
 
         let mut buffer = [0; 120];
-        let mut buff_writer = SliceWriter::new(&mut buffer);
+        // Write is only implemented for Cursor<&mut [u8]>, this is why we need
+        // to use as_mut_slice().
+        let mut buff_writer = Cursor::new(buffer.as_mut_slice());
         // write cairo_rs vm memory file
         write_encoded_memory(&cairo_runner.relocated_memory, &mut buff_writer).unwrap();
 

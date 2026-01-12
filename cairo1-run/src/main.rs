@@ -1,4 +1,3 @@
-use bincode::enc::write::Writer;
 use cairo1_run::error::Error;
 use cairo1_run::{cairo_run_program, Cairo1RunConfig, FuncArg};
 use cairo_lang_compiler::{
@@ -127,17 +126,17 @@ pub struct FileWriter {
     bytes_written: usize,
 }
 
-impl Writer for FileWriter {
-    fn write(&mut self, bytes: &[u8]) -> Result<(), bincode::error::EncodeError> {
+impl Write for FileWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         self.buf_writer
-            .write_all(bytes)
-            .map_err(|e| bincode::error::EncodeError::Io {
-                inner: e,
-                index: self.bytes_written,
-            })?;
+            .write_all(bytes)?;
 
         self.bytes_written += bytes.len();
 
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
 }

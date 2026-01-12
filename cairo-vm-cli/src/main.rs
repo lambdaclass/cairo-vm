@@ -1,6 +1,5 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
-use bincode::enc::write::Writer;
 use cairo_vm::air_public_input::PublicInputError;
 use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
@@ -113,17 +112,17 @@ struct FileWriter {
     bytes_written: usize,
 }
 
-impl Writer for FileWriter {
-    fn write(&mut self, bytes: &[u8]) -> Result<(), bincode::error::EncodeError> {
+impl Write for FileWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         self.buf_writer
-            .write_all(bytes)
-            .map_err(|e| bincode::error::EncodeError::Io {
-                inner: e,
-                index: self.bytes_written,
-            })?;
+            .write_all(bytes)?;
 
         self.bytes_written += bytes.len();
 
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
 }
