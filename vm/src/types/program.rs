@@ -313,12 +313,8 @@ impl Program {
         &self,
         relocation_table: &[usize],
     ) -> Option<HashMap<usize, InstructionLocation>> {
-        self.shared_program_data.instruction_locations.as_ref()?;
-        let relocated_instructions = self
-            .shared_program_data
-            .instruction_locations
-            .as_ref()
-            .unwrap()
+        let instruction_locations = self.shared_program_data.instruction_locations.as_ref()?;
+        let relocated_instructions = instruction_locations
             .iter()
             .map(|(k, v)| (k + relocation_table[0], v.clone()))
             .collect();
