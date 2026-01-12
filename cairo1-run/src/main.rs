@@ -1,9 +1,13 @@
+#[cfg(feature = "std")]
+use cairo1_run::error::EncodeTraceError;
 use cairo1_run::error::Error;
 use cairo1_run::{cairo_run_program, Cairo1RunConfig, FuncArg};
 use cairo_lang_compiler::{
     compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
 };
 use cairo_vm::types::layout::CairoLayoutParams;
+#[cfg(feature = "std")]
+use cairo_vm::vm::trace::trace_entry;
 use cairo_vm::{
     air_public_input::PublicInputError, types::layout_name::LayoutName,
     vm::errors::trace_errors::TraceError, Felt252,
@@ -121,37 +125,50 @@ fn process_args(value: &str) -> Result<FuncArgs, String> {
     Ok(FuncArgs(args))
 }
 
-pub struct FileWriter {
-    buf_writer: io::BufWriter<std::fs::File>,
-    bytes_written: usize,
-}
-
-impl Write for FileWriter {
-    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.buf_writer
-            .write_all(bytes)?;
-
-        self.bytes_written += bytes.len();
-
-        Ok(bytes.len())
+/// Writes the trace binary representation.
+///
+/// Encodes to little endian by default and each trace entry is composed of
+/// 3 usize values that are padded to always reach 64 bit size.
+#[cfg(feature = "std")]
+fn write_encoded_trace(
+    relocated_trace: &[trace_entry::RelocatedTraceEntry],
+    dest: &mut impl Write,
+) -> Result<(), EncodeTraceError> {
+    for (i, entry) in relocated_trace.iter().enumerate() {
+        dest.write(&((entry.ap as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write(&((entry.fp as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write(&((entry.pc as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
     }
 
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
+    Ok(())
 }
 
-impl FileWriter {
-    fn new(buf_writer: io::BufWriter<std::fs::File>) -> Self {
-        Self {
-            buf_writer,
-            bytes_written: 0,
+/// Writes a binary representation of the relocated memory.
+///
+/// The memory pairs (address, value) are encoded and concatenated:
+/// * address -> 8-byte encoded
+/// * value -> 32-byte encoded
+#[cfg(feature = "std")]
+fn write_encoded_memory(
+    relocated_memory: &[Option<Felt252>],
+    dest: &mut impl Write,
+) -> Result<(), EncodeTraceError> {
+    for (i, memory_cell) in relocated_memory.iter().enumerate() {
+        match memory_cell {
+            None => continue,
+            Some(unwrapped_memory_cell) => {
+                dest.write(&(i as u64).to_le_bytes())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+                dest.write(&unwrapped_memory_cell.to_bytes_le())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+            }
         }
     }
 
-    fn flush(&mut self) -> io::Result<()> {
-        self.buf_writer.flush()
-    }
+    Ok(())
 }
 
 fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
@@ -245,18 +262,16 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
             .relocated_trace
             .ok_or(Error::Trace(TraceError::TraceNotRelocated))?;
         let trace_file = std::fs::File::create(trace_path)?;
-        let mut trace_writer =
-            FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
+        let mut trace_writer = io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file);
 
-        cairo_vm::cairo_run::write_encoded_trace(&relocated_trace, &mut trace_writer)?;
+        write_encoded_trace(&relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
     }
     if let Some(memory_path) = args.memory_file {
         let memory_file = std::fs::File::create(memory_path)?;
-        let mut memory_writer =
-            FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
+        let mut memory_writer = io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file);
 
-        cairo_vm::cairo_run::write_encoded_memory(&runner.relocated_memory, &mut memory_writer)?;
+        write_encoded_memory(&runner.relocated_memory, &mut memory_writer)?;
         memory_writer.flush()?;
     }
 

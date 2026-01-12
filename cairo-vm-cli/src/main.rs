@@ -1,7 +1,6 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
 use cairo_vm::air_public_input::PublicInputError;
-use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::serde::deserialize_program::DebugInfo;
@@ -14,6 +13,8 @@ use cairo_vm::vm::runners::cairo_pie::CairoPie;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::vm::runners::cairo_runner::CairoRunner;
 use cairo_vm::vm::runners::cairo_runner::RunResources;
+use cairo_vm::vm::trace::trace_entry;
+use cairo_vm::{cairo_run, Felt252};
 #[cfg(feature = "with_tracer")]
 use cairo_vm_tracer::error::trace_data_errors::TraceDataError;
 #[cfg(feature = "with_tracer")]
@@ -107,37 +108,52 @@ enum Error {
     TraceData(#[from] TraceDataError),
 }
 
-struct FileWriter {
-    buf_writer: io::BufWriter<std::fs::File>,
-    bytes_written: usize,
-}
+#[derive(Debug, Error)]
+#[error("Failed to encode trace at position {0}, serialize error: {1}")]
+pub struct EncodeTraceError(usize, std::io::Error);
 
-impl Write for FileWriter {
-    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.buf_writer
-            .write_all(bytes)?;
-
-        self.bytes_written += bytes.len();
-
-        Ok(bytes.len())
+/// Writes the trace binary representation.
+///
+/// Encodes to little endian by default and each trace entry is composed of
+/// 3 usize values that are padded to always reach 64 bit size.
+fn write_encoded_trace(
+    relocated_trace: &[trace_entry::RelocatedTraceEntry],
+    dest: &mut impl Write,
+) -> Result<(), EncodeTraceError> {
+    for (i, entry) in relocated_trace.iter().enumerate() {
+        dest.write(&((entry.ap as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write(&((entry.fp as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write(&((entry.pc as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
     }
 
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
+    Ok(())
 }
 
-impl FileWriter {
-    fn new(buf_writer: io::BufWriter<std::fs::File>) -> Self {
-        Self {
-            buf_writer,
-            bytes_written: 0,
+/// Writes a binary representation of the relocated memory.
+///
+/// The memory pairs (address, value) are encoded and concatenated:
+/// * address -> 8-byte encoded
+/// * value -> 32-byte encoded
+fn write_encoded_memory(
+    relocated_memory: &[Option<Felt252>],
+    dest: &mut impl Write,
+) -> Result<(), EncodeTraceError> {
+    for (i, memory_cell) in relocated_memory.iter().enumerate() {
+        match memory_cell {
+            None => continue,
+            Some(unwrapped_memory_cell) => {
+                dest.write(&(i as u64).to_le_bytes())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+                dest.write(&unwrapped_memory_cell.to_bytes_le())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+            }
         }
     }
 
-    fn flush(&mut self) -> io::Result<()> {
-        self.buf_writer.flush()
-    }
+    Ok(())
 }
 
 #[cfg(feature = "with_tracer")]
@@ -223,19 +239,17 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             .ok_or(Error::Trace(TraceError::TraceNotRelocated))?;
 
         let trace_file = std::fs::File::create(trace_path)?;
-        let mut trace_writer =
-            FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
+        let mut trace_writer = io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file);
 
-        cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer)?;
+        write_encoded_trace(relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
     }
 
     if let Some(ref memory_path) = args.memory_file {
         let memory_file = std::fs::File::create(memory_path)?;
-        let mut memory_writer =
-            FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
+        let mut memory_writer = io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file);
 
-        cairo_run::write_encoded_memory(&cairo_runner.relocated_memory, &mut memory_writer)?;
+        write_encoded_memory(&cairo_runner.relocated_memory, &mut memory_writer)?;
         memory_writer.flush()?;
     }
 
