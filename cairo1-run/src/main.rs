@@ -129,7 +129,6 @@ fn process_args(value: &str) -> Result<FuncArgs, String> {
 ///
 /// Encodes to little endian and each trace entry is composed of
 /// 3 usize values that are padded to always reach 64 bit size.
-#[cfg(feature = "std")]
 fn write_encoded_trace(
     relocated_trace: &[trace_entry::RelocatedTraceEntry],
     dest: &mut impl Write,
