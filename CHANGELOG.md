@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* refactor: simplify relocated instruction locations lookup [#2293](https://github.com/lambdaclass/cairo-vm/pull/2293)
+
 * fix: Make cairo1-run to conditionally relocate memory and trace [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
 
 #### [3.0.1] - 2025-12-22
