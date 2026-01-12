@@ -10,7 +10,6 @@ use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
 use cairo_vm::vm::errors::trace_errors::TraceError;
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
 use cairo_vm::vm::runners::cairo_pie::CairoPie;
-#[cfg(feature = "with_tracer")]
 use cairo_vm::vm::runners::cairo_runner::CairoRunner;
 use cairo_vm::vm::runners::cairo_runner::RunResources;
 use cairo_vm::vm::trace::trace_entry;
@@ -316,7 +315,27 @@ mod tests {
     #![allow(clippy::too_many_arguments)]
     use super::*;
     use assert_matches::assert_matches;
+    use cairo_vm::{
+        hint_processor::hint_processor_definition::HintProcessor, types::program::Program,
+    };
     use rstest::rstest;
+
+    #[allow(clippy::result_large_err)]
+    fn run_test_program(
+        program_content: &[u8],
+        hint_processor: &mut dyn HintProcessor,
+    ) -> Result<CairoRunner, CairoRunError> {
+        let program = Program::from_bytes(program_content, Some("main")).unwrap();
+        let mut cairo_runner =
+            CairoRunner::new(&program, LayoutName::all_cairo, None, false, true, false).unwrap();
+        let end = cairo_runner
+            .initialize(false)
+            .map_err(CairoRunError::Runner)?;
+
+        assert!(cairo_runner.run_until_pc(end, hint_processor).is_ok());
+
+        Ok(cairo_runner)
+    }
 
     #[rstest]
     #[case([].as_slice())]
@@ -449,6 +468,50 @@ mod tests {
         args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
 
         assert_matches!(run(args.into_iter()), Ok(_));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn write_binary_trace_file() {
+        let program_content = include_bytes!("../../cairo_programs/struct.json");
+        let expected_encoded_trace =
+            include_bytes!("../../cairo_programs/trace_memory/cairo_trace_struct");
+
+        // run test program until the end
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
+
+        assert!(cairo_runner.relocate(false, true).is_ok());
+
+        let trace_entries = cairo_runner.relocated_trace.unwrap();
+        let mut buffer = [0; 24];
+        // write cairo_rs vm trace file
+        write_encoded_trace(&trace_entries, &mut buffer.as_mut_slice()).unwrap();
+
+        // compare that the original cairo vm trace file and cairo_rs vm trace files are equal
+        assert_eq!(buffer, *expected_encoded_trace);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn write_binary_memory_file() {
+        let program_content = include_bytes!("../../cairo_programs/struct.json");
+        let expected_encoded_memory =
+            include_bytes!("../../cairo_programs/trace_memory/cairo_memory_struct");
+
+        // run test program until the end
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
+
+        // relocate memory so we can dump it to file
+        assert!(cairo_runner.relocate(true, true).is_ok());
+
+        let mut buffer = [0; 120];
+        // write cairo_rs vm memory file
+        write_encoded_memory(&cairo_runner.relocated_memory, &mut buffer.as_mut_slice()).unwrap();
+
+        // compare that the original cairo vm memory file and cairo_rs vm memory files are equal
+        assert_eq!(*expected_encoded_memory, buffer);
     }
 
     //Since the functionality here is trivial, I just call the function
