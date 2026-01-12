@@ -13,11 +13,6 @@ use crate::{
     },
 };
 
-use crate::Felt252;
-use bincode::enc::write::Writer;
-
-use thiserror::Error;
-
 use crate::types::exec_scope::ExecutionScopes;
 #[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary};
@@ -294,54 +289,6 @@ pub fn cairo_run_fuzzed_program(
     Ok(cairo_runner)
 }
 
-#[derive(Debug, Error)]
-#[error("Failed to encode trace at position {0}, serialize error: {1}")]
-pub struct EncodeTraceError(usize, bincode::error::EncodeError);
-
-/// Writes the trace binary representation.
-///
-/// Bincode encodes to little endian by default and each trace entry is composed of
-/// 3 usize values that are padded to always reach 64 bit size.
-pub fn write_encoded_trace(
-    relocated_trace: &[crate::vm::trace::trace_entry::RelocatedTraceEntry],
-    dest: &mut impl Writer,
-) -> Result<(), EncodeTraceError> {
-    for (i, entry) in relocated_trace.iter().enumerate() {
-        dest.write(&((entry.ap as u64).to_le_bytes()))
-            .map_err(|e| EncodeTraceError(i, e))?;
-        dest.write(&((entry.fp as u64).to_le_bytes()))
-            .map_err(|e| EncodeTraceError(i, e))?;
-        dest.write(&((entry.pc as u64).to_le_bytes()))
-            .map_err(|e| EncodeTraceError(i, e))?;
-    }
-
-    Ok(())
-}
-
-/// Writes a binary representation of the relocated memory.
-///
-/// The memory pairs (address, value) are encoded and concatenated:
-/// * address -> 8-byte encoded
-/// * value -> 32-byte encoded
-pub fn write_encoded_memory(
-    relocated_memory: &[Option<Felt252>],
-    dest: &mut impl Writer,
-) -> Result<(), EncodeTraceError> {
-    for (i, memory_cell) in relocated_memory.iter().enumerate() {
-        match memory_cell {
-            None => continue,
-            Some(unwrapped_memory_cell) => {
-                dest.write(&(i as u64).to_le_bytes())
-                    .map_err(|e| EncodeTraceError(i, e))?;
-                dest.write(&unwrapped_memory_cell.to_bytes_le())
-                    .map_err(|e| EncodeTraceError(i, e))?;
-            }
-        }
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -355,7 +302,6 @@ mod tests {
         },
         utils::test_utils::*,
     };
-    use bincode::enc::write::SliceWriter;
 
     use rstest::rstest;
     #[cfg(target_arch = "wasm32")]
@@ -443,52 +389,6 @@ mod tests {
         let mut output_buffer = String::new();
         runner.vm.write_output(&mut output_buffer).unwrap();
         assert_eq!(&output_buffer, "0\n");
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn write_binary_trace_file() {
-        let program_content = include_bytes!("../../cairo_programs/struct.json");
-        let expected_encoded_trace =
-            include_bytes!("../../cairo_programs/trace_memory/cairo_trace_struct");
-
-        // run test program until the end
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
-
-        assert!(cairo_runner.relocate(false, true).is_ok());
-
-        let trace_entries = cairo_runner.relocated_trace.unwrap();
-        let mut buffer = [0; 24];
-        let mut buff_writer = SliceWriter::new(&mut buffer);
-        // write cairo_rs vm trace file
-        write_encoded_trace(&trace_entries, &mut buff_writer).unwrap();
-
-        // compare that the original cairo vm trace file and cairo_rs vm trace files are equal
-        assert_eq!(buffer, *expected_encoded_trace);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn write_binary_memory_file() {
-        let program_content = include_bytes!("../../cairo_programs/struct.json");
-        let expected_encoded_memory =
-            include_bytes!("../../cairo_programs/trace_memory/cairo_memory_struct");
-
-        // run test program until the end
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
-
-        // relocate memory so we can dump it to file
-        assert!(cairo_runner.relocate(true, true).is_ok());
-
-        let mut buffer = [0; 120];
-        let mut buff_writer = SliceWriter::new(&mut buffer);
-        // write cairo_rs vm memory file
-        write_encoded_memory(&cairo_runner.relocated_memory, &mut buff_writer).unwrap();
-
-        // compare that the original cairo vm memory file and cairo_rs vm memory files are equal
-        assert_eq!(*expected_encoded_memory, buffer);
     }
 
     #[test]
