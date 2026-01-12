@@ -127,7 +127,7 @@ fn process_args(value: &str) -> Result<FuncArgs, String> {
 
 /// Writes the trace binary representation.
 ///
-/// Encodes to little endian by default and each trace entry is composed of
+/// Encodes to little endian and each trace entry is composed of
 /// 3 usize values that are padded to always reach 64 bit size.
 #[cfg(feature = "std")]
 fn write_encoded_trace(

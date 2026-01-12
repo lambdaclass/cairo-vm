@@ -114,7 +114,7 @@ pub struct EncodeTraceError(usize, std::io::Error);
 
 /// Writes the trace binary representation.
 ///
-/// Encodes to little endian by default and each trace entry is composed of
+/// Encodes to little endian and each trace entry is composed of
 /// 3 usize values that are padded to always reach 64 bit size.
 fn write_encoded_trace(
     relocated_trace: &[trace_entry::RelocatedTraceEntry],
