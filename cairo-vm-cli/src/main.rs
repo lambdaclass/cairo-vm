@@ -114,8 +114,10 @@ pub struct EncodeTraceError(usize, std::io::Error);
 
 /// Writes the trace binary representation.
 ///
-/// Encodes to little endian and each trace entry is composed of
-/// 3 usize values that are padded to always reach 64 bit size.
+/// The trace entries (ap, fp, pc) are little-endian encoded and concatenated:
+/// - ap: 8-byte.
+/// - fp: 8-byte.
+/// - pc: 8-byte.
 fn write_encoded_trace(
     relocated_trace: &[trace_entry::RelocatedTraceEntry],
     dest: &mut impl Write,
@@ -132,11 +134,11 @@ fn write_encoded_trace(
     Ok(())
 }
 
-/// Writes a binary representation of the relocated memory.
+/// Writes the relocated memory binary representation.
 ///
-/// The memory pairs (address, value) are encoded and concatenated:
-/// * address -> 8-byte encoded
-/// * value -> 32-byte encoded
+/// The memory pairs (address, value) are little-endian encoded and concatenated:
+/// - address: 8-byte.
+/// - value: 32-byte.
 fn write_encoded_memory(
     relocated_memory: &[Option<Felt252>],
     dest: &mut impl Write,
