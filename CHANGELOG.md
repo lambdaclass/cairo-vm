@@ -3,6 +3,7 @@
 #### Upcoming Changes
 
 * fix: Make cairo1-run to conditionally relocate memory and trace [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
+* feat(breaking): Introduce `StepHooks` trait which allows hooks to be stateful [#2295](https://github.com/lambdaclass/cairo-vm/pull/2295)
 
 #### [3.0.1] - 2025-12-22
 
