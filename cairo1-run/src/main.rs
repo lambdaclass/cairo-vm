@@ -1,10 +1,11 @@
+use cairo1_run::error::EncodeTraceError;
 use cairo1_run::error::Error;
 use cairo1_run::{cairo_run_program, Cairo1RunConfig, FuncArg};
 use cairo_lang_compiler::{
     compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
 };
-use cairo_vm::cairo_run::{write_encoded_memory, write_encoded_trace};
 use cairo_vm::types::layout::CairoLayoutParams;
+use cairo_vm::vm::trace::trace_entry;
 use cairo_vm::{
     air_public_input::PublicInputError, types::layout_name::LayoutName,
     vm::errors::trace_errors::TraceError, Felt252,
@@ -120,6 +121,52 @@ fn process_args(value: &str) -> Result<FuncArgs, String> {
         }
     }
     Ok(FuncArgs(args))
+}
+
+/// Writes the trace binary representation.
+///
+/// The trace entries (ap, fp, pc) are little-endian encoded and concatenated:
+/// - ap: 8-byte.
+/// - fp: 8-byte.
+/// - pc: 8-byte.
+fn write_encoded_trace(
+    relocated_trace: &[trace_entry::RelocatedTraceEntry],
+    dest: &mut impl Write,
+) -> Result<(), EncodeTraceError> {
+    for (i, entry) in relocated_trace.iter().enumerate() {
+        dest.write_all(&((entry.ap as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write_all(&((entry.fp as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write_all(&((entry.pc as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+    }
+
+    Ok(())
+}
+
+/// Writes the relocated memory binary representation.
+///
+/// The memory pairs (address, value) are little-endian encoded and concatenated:
+/// - address: 8-byte.
+/// - value: 32-byte.
+fn write_encoded_memory(
+    relocated_memory: &[Option<Felt252>],
+    dest: &mut impl Write,
+) -> Result<(), EncodeTraceError> {
+    for (i, memory_cell) in relocated_memory.iter().enumerate() {
+        match memory_cell {
+            None => continue,
+            Some(unwrapped_memory_cell) => {
+                dest.write_all(&(i as u64).to_le_bytes())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+                dest.write_all(&unwrapped_memory_cell.to_bytes_le())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {

@@ -1,7 +1,3 @@
-use crate::Felt252;
-use std::io::Write;
-use thiserror::Error;
-
 use crate::{
     hint_processor::hint_processor_definition::HintProcessor,
     types::{
@@ -293,56 +289,6 @@ pub fn cairo_run_fuzzed_program(
     Ok(cairo_runner)
 }
 
-#[derive(Debug, Error)]
-#[error("Failed to encode trace at position {0}, serialize error: {1}")]
-pub struct EncodeTraceError(usize, std::io::Error);
-
-/// Writes the trace binary representation.
-///
-/// The trace entries (ap, fp, pc) are little-endian encoded and concatenated:
-/// - ap: 8-byte.
-/// - fp: 8-byte.
-/// - pc: 8-byte.
-pub fn write_encoded_trace(
-    relocated_trace: &[crate::vm::trace::trace_entry::RelocatedTraceEntry],
-    dest: &mut impl Write,
-) -> Result<(), EncodeTraceError> {
-    for (i, entry) in relocated_trace.iter().enumerate() {
-        dest.write_all(&((entry.ap as u64).to_le_bytes()))
-            .map_err(|e| EncodeTraceError(i, e))?;
-        dest.write_all(&((entry.fp as u64).to_le_bytes()))
-            .map_err(|e| EncodeTraceError(i, e))?;
-        dest.write_all(&((entry.pc as u64).to_le_bytes()))
-            .map_err(|e| EncodeTraceError(i, e))?;
-    }
-
-    Ok(())
-}
-
-/// Writes the relocated memory binary representation.
-///
-/// The memory pairs (address, value) are little-endian encoded and concatenated:
-/// - address: 8-byte.
-/// - value: 32-byte.
-pub fn write_encoded_memory(
-    relocated_memory: &[Option<Felt252>],
-    dest: &mut impl Write,
-) -> Result<(), EncodeTraceError> {
-    for (i, memory_cell) in relocated_memory.iter().enumerate() {
-        match memory_cell {
-            None => continue,
-            Some(unwrapped_memory_cell) => {
-                dest.write_all(&(i as u64).to_le_bytes())
-                    .map_err(|e| EncodeTraceError(i, e))?;
-                dest.write_all(&unwrapped_memory_cell.to_bytes_le())
-                    .map_err(|e| EncodeTraceError(i, e))?;
-            }
-        }
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -430,50 +376,6 @@ mod tests {
             include_bytes!("../../cairo_programs/manually_compiled/invalid_memory.json");
         let cairo_run_config = CairoRunConfig::default();
         assert!(cairo_run(invalid_memory, &cairo_run_config, &mut hint_processor,).is_err());
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn write_binary_trace_file() {
-        let program_content = include_bytes!("../../cairo_programs/struct.json");
-        let expected_encoded_trace =
-            include_bytes!("../../cairo_programs/trace_memory/cairo_trace_struct");
-
-        // run test program until the end
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
-
-        assert!(cairo_runner.relocate(false, true).is_ok());
-
-        let trace_entries = cairo_runner.relocated_trace.unwrap();
-        let mut buffer = [0; 24];
-        // write cairo_rs vm trace file
-        write_encoded_trace(&trace_entries, &mut buffer.as_mut_slice()).unwrap();
-
-        // compare that the original cairo vm trace file and cairo_rs vm trace files are equal
-        assert_eq!(buffer, *expected_encoded_trace);
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn write_binary_memory_file() {
-        let program_content = include_bytes!("../../cairo_programs/struct.json");
-        let expected_encoded_memory =
-            include_bytes!("../../cairo_programs/trace_memory/cairo_memory_struct");
-
-        // run test program until the end
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
-
-        // relocate memory so we can dump it to file
-        assert!(cairo_runner.relocate(true, true).is_ok());
-
-        let mut buffer = [0; 120];
-        // write cairo_rs vm memory file
-        write_encoded_memory(&cairo_runner.relocated_memory, &mut buffer.as_mut_slice()).unwrap();
-
-        // compare that the original cairo vm memory file and cairo_rs vm memory files are equal
-        assert_eq!(*expected_encoded_memory, buffer);
     }
 
     #[test]
