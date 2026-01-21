@@ -4,6 +4,25 @@
 
 * chore(vm): unify Uint256 usage across u256 hints and split quotient via Uint512 [#2237](https://github.com/lambdaclass/cairo-vm/pull/2237) 
 
+#### [3.1.0] - 2026-1-19
+
+* fix: Make cairo1-run to conditionally relocate memory and trace [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
+* feat(breaking): Introduce `StepHooks` trait which allows hooks to be stateful [#2295](https://github.com/lambdaclass/cairo-vm/pull/2295)
+
+#### [3.0.1] - 2025-12-22
+
+* fix: Fix compute_ids_high_low hint constant path [#2285](https://github.com/lambdaclass/cairo-vm/pull/2285)
+
+* fix: also mark PC as accessed in run_instruction [#2106](https://github.com/lambdaclass/cairo-vm/pull/2106)
+
+* feat: Make Blake2s API public [#2286](https://github.com/lambdaclass/cairo-vm/pull/2286)
+
+* feat: implemented delete_unaccessed function [#2282](https://github.com/lambdaclass/cairo-vm/pull/2282)
+
+* fix: rename y_cube_int to y_square_int in get_point_from_x [#2271](https://github.com/lambdaclass/cairo-vm/pull/2271)
+
+* fix: correct duplicate tuple index in InvalidTrackingGroup error message [#2276](https://github.com/lambdaclass/cairo-vm/pull/2276)
+
 #### [3.0.0] - 2025-11-19
 
 #### [3.0.0-rc.5] - 2025-11-14
