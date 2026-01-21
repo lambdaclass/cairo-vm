@@ -57,13 +57,15 @@ impl EcOpBuiltinRunner {
         let mut doubled_point_b = ProjectivePoint::from_affine(doubled_point.0, doubled_point.1)
             .map_err(|_| RunnerError::PointNotOnCurve(Box::new(doubled_point)))?;
         for i in 0..(height as u64).min(slope.bits()) {
-            if partial_sum_b.x() * doubled_point_b.z() == partial_sum_b.z() * doubled_point_b.x() {
-                return Err(RunnerError::EcOpSameXCoordinate(
-                    Self::format_ec_op_error(partial_sum_b, slope, doubled_point_b)
-                        .into_boxed_str(),
-                ));
-            };
             if slope.bit(i) {
+                if partial_sum_b.x() * doubled_point_b.z()
+                    == partial_sum_b.z() * doubled_point_b.x()
+                {
+                    return Err(RunnerError::EcOpSameXCoordinate(
+                        Self::format_ec_op_error(partial_sum_b, slope, doubled_point_b)
+                            .into_boxed_str(),
+                    ));
+                };
                 partial_sum_b += &doubled_point_b;
             }
             doubled_point_b = doubled_point_b.double();
@@ -558,11 +560,10 @@ mod tests {
             felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9"),
             felt_hex!("0x4afa52a9ef8c023d3385fddb6e1d78d57b0693b9b02d45d0f939b526d474c39"),
         );
-        let doubled_point = (
-            felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9"),
-            felt_hex!("0x4afa52a9ef8c023d3385fddb6e1d78d57b0693b9b02d45d0f939b526d474c39"),
-        );
-        let m = Felt252::from(34);
+        // Force a failing addition by making the first addition attempt be p + p.
+        // This is invalid for the ec_op builtin since it may require dividing by (p.x - p.x).
+        let doubled_point = partial_sum;
+        let m = Felt252::from(1);
         let height = 256;
         let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
         assert_eq!(
@@ -576,6 +577,23 @@ mod tests {
                 .into_boxed_str()
             ))
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn compute_ec_op_does_not_fail_on_same_x_when_bit_is_zero() {
+        let partial_sum = (
+            felt_hex!("0x6f0a1ddaf19c44781c8946db396f494a10ffab183c2d8cf6c4cd321a8d87fd9"),
+            felt_hex!("0x4afa52a9ef8c023d3385fddb6e1d78d57b0693b9b02d45d0f939b526d474c39"),
+        );
+        // Choose Q with the same x-coordinate as P but a different y-coordinate.
+        // For m=2 (binary 10), the first iteration (i=0) does not perform addition,
+        // so the implementation must not fail just because x(P)==x(Q).
+        let doubled_point = (partial_sum.0, -partial_sum.1);
+        let m = Felt252::from(2);
+        let height = 256;
+        let result = EcOpBuiltinRunner::ec_op_impl(partial_sum, doubled_point, &m, height);
+        assert!(result.is_ok());
     }
 
     #[test]
