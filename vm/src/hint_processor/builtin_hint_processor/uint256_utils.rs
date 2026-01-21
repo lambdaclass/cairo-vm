@@ -1,3 +1,4 @@
+use super::secp::bigint_utils::Uint512;
 use crate::Felt252;
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::{
@@ -7,13 +8,7 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::{isqrt, pow2_const, pow2_const_nz},
     serde::deserialize_program::ApTracking,
-    stdlib::{
-        borrow::Cow,
-        boxed::Box,
-        collections::HashMap,
-        ops::{Shl, Shr},
-        prelude::*,
-    },
+    stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*},
     types::{errors::math_errors::MathError, relocatable::Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -38,6 +33,23 @@ impl<'a> Uint256<'a> {
                 HintError::IdentifierHasNoMember(Box::new((name.to_string(), "low".to_string())))
             })?,
             high: vm.get_integer((addr + 1)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "high".to_string())))
+            })?,
+        })
+    }
+
+    pub(crate) fn from_base_addr_with_offsets(
+        addr: Relocatable,
+        name: &str,
+        vm: &'a VirtualMachine,
+        offset_low: usize,
+        offset_high: usize,
+    ) -> Result<Self, HintError> {
+        Ok(Self {
+            low: vm.get_integer((addr + offset_low)?).map_err(|_| {
+                HintError::IdentifierHasNoMember(Box::new((name.to_string(), "low".to_string())))
+            })?,
+            high: vm.get_integer((addr + offset_high)?).map_err(|_| {
                 HintError::IdentifierHasNoMember(Box::new((name.to_string(), "high".to_string())))
             })?,
         })
@@ -312,11 +324,13 @@ pub fn uint256_signed_nn(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let a_high = vm.get_integer((a_addr + 1_usize)?)?;
+    let a_high = vm.get_integer((a_addr + 1)?).map_err(|_| {
+        HintError::IdentifierHasNoMember(Box::new(("a".to_string(), "high".to_string())))
+    })?;
     //Main logic
     //memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0
     let result: Felt252 =
-        if *a_high >= Felt252::ZERO && a_high.as_ref() <= &Felt252::from(i128::MAX) {
+        if *a_high.as_ref() >= Felt252::ZERO && a_high.as_ref() <= &Felt252::from(i128::MAX) {
             Felt252::ONE
         } else {
             Felt252::ZERO
@@ -374,14 +388,9 @@ pub fn uint256_offseted_unsigned_div_rem(
     div_offset_high: usize,
 ) -> Result<(), HintError> {
     let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?;
-    let a_low = a.low.as_ref();
-    let a_high = a.high.as_ref();
-
     let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
-    let div_low = vm.get_integer((div_addr + div_offset_low)?)?;
-    let div_high = vm.get_integer((div_addr + div_offset_high)?)?;
-    let div_low = div_low.as_ref();
-    let div_high = div_high.as_ref();
+    let div =
+        Uint256::from_base_addr_with_offsets(div_addr, "div", vm, div_offset_low, div_offset_high)?;
 
     //Main logic
     //a = (ids.a.high << 128) + ids.a.low
@@ -393,8 +402,8 @@ pub fn uint256_offseted_unsigned_div_rem(
     //ids.remainder.low = remainder & ((1 << 128) - 1)
     //ids.remainder.high = remainder >> 128
 
-    let a = (a_high.to_biguint() << 128_u32) + a_low.to_biguint();
-    let div = (div_high.to_biguint() << 128_u32) + div_low.to_biguint();
+    let a = a.pack();
+    let div = div.pack();
     //a and div will always be positive numbers
     //Then, Rust div_rem equals Python divmod
     let (quotient, remainder) = div_rem(a, div);
@@ -428,68 +437,25 @@ pub fn uint256_mul_div_mod(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    // Extract variables
-    let a_addr = get_relocatable_from_var_name("a", vm, ids_data, ap_tracking)?;
-    let b_addr = get_relocatable_from_var_name("b", vm, ids_data, ap_tracking)?;
-    let div_addr = get_relocatable_from_var_name("div", vm, ids_data, ap_tracking)?;
-    let quotient_low_addr =
-        get_relocatable_from_var_name("quotient_low", vm, ids_data, ap_tracking)?;
-    let quotient_high_addr =
-        get_relocatable_from_var_name("quotient_high", vm, ids_data, ap_tracking)?;
-    let remainder_addr = get_relocatable_from_var_name("remainder", vm, ids_data, ap_tracking)?;
-
-    let a_low = vm.get_integer(a_addr)?;
-    let a_high = vm.get_integer((a_addr + 1_usize)?)?;
-    let b_low = vm.get_integer(b_addr)?;
-    let b_high = vm.get_integer((b_addr + 1_usize)?)?;
-    let div_low = vm.get_integer(div_addr)?;
-    let div_high = vm.get_integer((div_addr + 1_usize)?)?;
-    let a_low = a_low.as_ref();
-    let a_high = a_high.as_ref();
-    let b_low = b_low.as_ref();
-    let b_high = b_high.as_ref();
-    let div_low = div_low.as_ref();
-    let div_high = div_high.as_ref();
-
-    // Main Logic
-    let a = a_high.to_biguint().shl(128_usize) + a_low.to_biguint();
-    let b = b_high.to_biguint().shl(128_usize) + b_low.to_biguint();
-    let div = div_high.to_biguint().shl(128_usize) + div_low.to_biguint();
+    // Read inputs via Uint256 helper
+    let a = Uint256::from_var_name("a", vm, ids_data, ap_tracking)?.pack();
+    let b = Uint256::from_var_name("b", vm, ids_data, ap_tracking)?.pack();
+    let div = Uint256::from_var_name("div", vm, ids_data, ap_tracking)?.pack();
     if div.is_zero() {
         return Err(MathError::DividedByZero.into());
     }
     let (quotient, remainder) = (a * b).div_mod_floor(&div);
 
-    // ids.quotient_low.low
-    vm.insert_value(
-        quotient_low_addr,
-        Felt252::from(&(&quotient & &BigUint::from(u128::MAX))),
-    )?;
-    // ids.quotient_low.high
-    vm.insert_value(
-        (quotient_low_addr + 1)?,
-        Felt252::from(&((&quotient).shr(128_u32) & &BigUint::from(u128::MAX))),
-    )?;
-    // ids.quotient_high.low
-    vm.insert_value(
-        quotient_high_addr,
-        Felt252::from(&((&quotient).shr(256_u32) & &BigUint::from(u128::MAX))),
-    )?;
-    // ids.quotient_high.high
-    vm.insert_value(
-        (quotient_high_addr + 1)?,
-        Felt252::from(&((&quotient).shr(384_u32))),
-    )?;
-    //ids.remainder.low
-    vm.insert_value(
-        remainder_addr,
-        Felt252::from(&(&remainder & &BigUint::from(u128::MAX))),
-    )?;
-    //ids.remainder.high
-    vm.insert_value(
-        (remainder_addr + 1)?,
-        Felt252::from(&remainder.shr(128_u32)),
-    )?;
+    // Write quotient using Uint512 split into two Uint256 values
+    let q512 = Uint512::split(&quotient);
+    let q_low = Uint256::from_values(*q512.limbs[0].as_ref(), *q512.limbs[1].as_ref());
+    let q_high = Uint256::from_values(*q512.limbs[2].as_ref(), *q512.limbs[3].as_ref());
+    q_low.insert_from_var_name("quotient_low", vm, ids_data, ap_tracking)?;
+    q_high.insert_from_var_name("quotient_high", vm, ids_data, ap_tracking)?;
+
+    // Write remainder as Uint256
+    let r_u256 = Uint256::from(&remainder);
+    r_u256.insert_from_var_name("remainder", vm, ids_data, ap_tracking)?;
 
     Ok(())
 }

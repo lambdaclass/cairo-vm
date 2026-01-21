@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore(vm): unify Uint256 usage across u256 hints and split quotient via Uint512 [#2237](https://github.com/lambdaclass/cairo-vm/pull/2237) 
+
 #### [3.1.0] - 2026-1-19
 
 * fix: Make cairo1-run to conditionally relocate memory and trace [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
