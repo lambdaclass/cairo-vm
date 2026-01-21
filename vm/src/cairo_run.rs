@@ -434,19 +434,6 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn write_output_program() {
-        let program_content = include_bytes!("../../cairo_programs/bitwise_output.json");
-        let mut hint_processor = BuiltinHintProcessor::new_empty();
-        let mut runner = run_test_program(program_content, &mut hint_processor)
-            .expect("Couldn't initialize cairo runner");
-
-        let mut output_buffer = String::new();
-        runner.vm.write_output(&mut output_buffer).unwrap();
-        assert_eq!(&output_buffer, "0\n");
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn write_binary_trace_file() {
         let program_content = include_bytes!("../../cairo_programs/struct.json");
         let expected_encoded_trace =
@@ -487,6 +474,19 @@ mod tests {
 
         // compare that the original cairo vm memory file and cairo_rs vm memory files are equal
         assert_eq!(*expected_encoded_memory, buffer);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn write_output_program() {
+        let program_content = include_bytes!("../../cairo_programs/bitwise_output.json");
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut runner = run_test_program(program_content, &mut hint_processor)
+            .expect("Couldn't initialize cairo runner");
+
+        let mut output_buffer = String::new();
+        runner.vm.write_output(&mut output_buffer).unwrap();
+        assert_eq!(&output_buffer, "0\n");
     }
 
     #[test]
