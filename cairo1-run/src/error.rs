@@ -2,6 +2,7 @@ use cairo_lang_sierra::{ids::ConcreteTypeId, program_registry::ProgramRegistryEr
 use cairo_lang_sierra_to_casm::{compiler::CompilationError, metadata::MetadataError};
 use cairo_vm::{
     air_public_input::PublicInputError,
+    cairo_run::EncodeTraceError,
     types::errors::program_errors::ProgramError,
     vm::errors::{
         memory_errors::MemoryError, runner_errors::RunnerError, trace_errors::TraceError,
@@ -10,10 +11,6 @@ use cairo_vm::{
     Felt252,
 };
 use thiserror::Error;
-
-#[derive(Debug, Error)]
-#[error("Failed to encode trace at position {0}, serialize error: {1}")]
-pub struct EncodeTraceError(pub usize, pub std::io::Error);
 
 #[derive(Debug, Error)]
 pub enum Error {
