@@ -123,11 +123,11 @@ fn write_encoded_trace(
     dest: &mut impl Write,
 ) -> Result<(), EncodeTraceError> {
     for (i, entry) in relocated_trace.iter().enumerate() {
-        dest.write(&((entry.ap as u64).to_le_bytes()))
+        dest.write_all(&((entry.ap as u64).to_le_bytes()))
             .map_err(|e| EncodeTraceError(i, e))?;
-        dest.write(&((entry.fp as u64).to_le_bytes()))
+        dest.write_all(&((entry.fp as u64).to_le_bytes()))
             .map_err(|e| EncodeTraceError(i, e))?;
-        dest.write(&((entry.pc as u64).to_le_bytes()))
+        dest.write_all(&((entry.pc as u64).to_le_bytes()))
             .map_err(|e| EncodeTraceError(i, e))?;
     }
 
@@ -147,9 +147,9 @@ fn write_encoded_memory(
         match memory_cell {
             None => continue,
             Some(unwrapped_memory_cell) => {
-                dest.write(&(i as u64).to_le_bytes())
+                dest.write_all(&(i as u64).to_le_bytes())
                     .map_err(|e| EncodeTraceError(i, e))?;
-                dest.write(&unwrapped_memory_cell.to_bytes_le())
+                dest.write_all(&unwrapped_memory_cell.to_bytes_le())
                     .map_err(|e| EncodeTraceError(i, e))?;
             }
         }
