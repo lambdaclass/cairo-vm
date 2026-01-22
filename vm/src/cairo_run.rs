@@ -10,10 +10,13 @@ use crate::{
         },
         runners::{cairo_pie::CairoPie, cairo_runner::CairoRunner},
         security::verify_secure_runner,
+        trace::trace_entry::RelocatedTraceEntry,
     },
+    Felt252,
 };
 
 use crate::types::exec_scope::ExecutionScopes;
+use core::fmt;
 #[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary};
 
@@ -289,6 +292,93 @@ pub fn cairo_run_fuzzed_program(
     Ok(cairo_runner)
 }
 
+/// Error returned by [`BinaryWrite::write_all`].
+#[derive(Debug)]
+pub struct WriteError;
+
+impl fmt::Display for WriteError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Failed to write bytes")
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for WriteError {}
+
+/// A minimal binary write trait that works in both std and no_std environments.
+///
+/// This trait provides a simple interface for writing bytes, similar to `std::io::Write`,
+/// but without requiring the standard library.
+pub trait BinaryWrite {
+    /// Writes all bytes from the buffer to the writer.
+    ///
+    /// This method must write the entire buffer or return an error.
+    fn write_all(&mut self, bytes: &[u8]) -> Result<(), WriteError>;
+}
+
+#[cfg(feature = "std")]
+impl<W: std::io::Write> BinaryWrite for W {
+    fn write_all(&mut self, bytes: &[u8]) -> Result<(), WriteError> {
+        std::io::Write::write_all(self, bytes).map_err(|_| WriteError)
+    }
+}
+
+/// Error returned when encoding trace or memory fails.
+#[derive(Debug)]
+pub struct EncodeTraceError(pub usize, pub WriteError);
+
+impl fmt::Display for EncodeTraceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Failed to encode trace at position {}", self.0)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for EncodeTraceError {}
+
+/// Writes the trace binary representation.
+///
+/// The trace entries (ap, fp, pc) are little-endian encoded and concatenated:
+/// - ap: 8-byte
+/// - fp: 8-byte
+/// - pc: 8-byte
+pub fn write_encoded_trace(
+    relocated_trace: &[RelocatedTraceEntry],
+    dest: &mut impl BinaryWrite,
+) -> Result<(), EncodeTraceError> {
+    for (i, entry) in relocated_trace.iter().enumerate() {
+        dest.write_all(&(entry.ap as u64).to_le_bytes())
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write_all(&(entry.fp as u64).to_le_bytes())
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write_all(&(entry.pc as u64).to_le_bytes())
+            .map_err(|e| EncodeTraceError(i, e))?;
+    }
+
+    Ok(())
+}
+
+/// Writes the relocated memory binary representation.
+///
+/// The memory pairs (address, value) are little-endian encoded and concatenated:
+/// - address: 8-byte
+/// - value: 32-byte
+pub fn write_encoded_memory(
+    relocated_memory: &[Option<Felt252>],
+    dest: &mut impl BinaryWrite,
+) -> Result<(), EncodeTraceError> {
+    for (i, memory_cell) in relocated_memory.iter().enumerate() {
+        if let Some(value) = memory_cell {
+            dest.write_all(&(i as u64).to_le_bytes())
+                .map_err(|e| EncodeTraceError(i, e))?;
+            dest.write_all(&value.to_bytes_le())
+                .map_err(|e| EncodeTraceError(i, e))?;
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -461,5 +551,67 @@ mod tests {
             err,
             CairoRunError::Runner(RunnerError::PieNStepsVsRunResourcesNStepsMismatch)
         )));
+    }
+
+    /// A simple slice writer for testing BinaryWrite in no_std-like conditions.
+    struct SliceWriter<'a> {
+        buf: &'a mut [u8],
+        pos: usize,
+    }
+
+    impl<'a> SliceWriter<'a> {
+        fn new(buf: &'a mut [u8]) -> Self {
+            Self { buf, pos: 0 }
+        }
+    }
+
+    impl BinaryWrite for SliceWriter<'_> {
+        fn write_all(&mut self, bytes: &[u8]) -> Result<(), WriteError> {
+            if self.pos + bytes.len() > self.buf.len() {
+                return Err(WriteError);
+            }
+            self.buf[self.pos..self.pos + bytes.len()].copy_from_slice(bytes);
+            self.pos += bytes.len();
+            Ok(())
+        }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn write_binary_trace_file() {
+        let program_content = include_bytes!("../../cairo_programs/struct.json");
+        let expected_encoded_trace =
+            include_bytes!("../../cairo_programs/trace_memory/cairo_trace_struct");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
+
+        assert!(cairo_runner.relocate(false, true).is_ok());
+
+        let trace_entries = cairo_runner.relocated_trace.unwrap();
+        let mut buffer = [0u8; 24];
+        let mut writer = SliceWriter::new(&mut buffer);
+        write_encoded_trace(&trace_entries, &mut writer).unwrap();
+
+        assert_eq!(buffer, *expected_encoded_trace);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn write_binary_memory_file() {
+        let program_content = include_bytes!("../../cairo_programs/struct.json");
+        let expected_encoded_memory =
+            include_bytes!("../../cairo_programs/trace_memory/cairo_memory_struct");
+
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
+
+        assert!(cairo_runner.relocate(true, true).is_ok());
+
+        let mut buffer = [0u8; 120];
+        let mut writer = SliceWriter::new(&mut buffer);
+        write_encoded_memory(&cairo_runner.relocated_memory, &mut writer).unwrap();
+
+        assert_eq!(*expected_encoded_memory, buffer);
     }
 }
