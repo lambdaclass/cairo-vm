@@ -341,11 +341,12 @@ impl<'de> de::Visitor<'de> for MaybeRelocatableVisitor {
     where
         A: SeqAccess<'de>,
     {
-        let mut data: Vec<MaybeRelocatable> = vec![];
+        let mut data: Vec<MaybeRelocatable> =
+            Vec::with_capacity(seq.size_hint().unwrap_or_default());
 
         while let Some(value) = seq.next_element::<String>()? {
             // Add padding if necessary
-            let value = deserialize_utils::maybe_add_padding(value.to_string());
+            let value = deserialize_utils::maybe_add_padding(value);
             data.push(MaybeRelocatable::Int(
                 Felt252::from_hex(&value).map_err(de::Error::custom)?,
             ));
@@ -367,7 +368,8 @@ impl<'de> de::Visitor<'de> for ReferenceIdsVisitor {
     where
         A: MapAccess<'de>,
     {
-        let mut data: HashMap<String, usize> = HashMap::new();
+        let mut data: HashMap<String, usize> =
+            HashMap::with_capacity(map.size_hint().unwrap_or_default());
 
         while let Some((key, value)) = map.next_entry::<String, usize>()? {
             data.insert(key, value);
