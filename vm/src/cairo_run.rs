@@ -16,9 +16,9 @@ use crate::{
 };
 
 use crate::types::exec_scope::ExecutionScopes;
-use core::fmt;
 #[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary};
+use core::fmt;
 
 #[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
