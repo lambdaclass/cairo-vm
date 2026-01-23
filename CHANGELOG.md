@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore: Remove old compare-benchmarks Makefile command [#2307](https://github.com/lambdaclass/cairo-vm/pull/2307)
+
 * feat: Add public `ORDERED_BUILTIN_LIST` constant [#2298](https://github.com/lambdaclass/cairo-vm/pull/2298)
 
 * chore(breaking): Remove bincode crate [#2294](https://github.com/lambdaclass/cairo-vm/pull/2294)
