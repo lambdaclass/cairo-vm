@@ -31,6 +31,8 @@ Our virtual machine has a very simple flow:
 
 Barring some simplifications we made, this is all the Cairo VM does. The two main things that stand out as radically different are the memory model and the use of `Field Elements` to perform arithmetic. Below we go into more detail on each step, and in the process explain the ommisions we made.
 
+> For a sequence diagram of the program execution, see [Program Execution Sequence](./program_execution_sequence.md).
+
 ## Memory
 
 The Cairo virtual machine uses a Von Neumann architecture with a Non-deterministic read-only memory. What this means, roughly, is that memory is immutable after you've written to it (i.e. you can only write to it once); this is to make the STARK proving easier, but we won't go into that here.
