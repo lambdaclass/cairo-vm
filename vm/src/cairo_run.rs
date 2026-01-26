@@ -614,4 +614,22 @@ mod tests {
 
         assert_eq!(*expected_encoded_memory, buffer);
     }
+
+    #[test]
+    fn write_encoded_trace_error_on_small_buffer() {
+        let trace = vec![RelocatedTraceEntry { ap: 1, fp: 2, pc: 3 }];
+        let mut buffer = [0u8; 10]; // Too small (needs 24 bytes)
+        let mut writer = SliceWriter::new(&mut buffer);
+        let result = write_encoded_trace(&trace, &mut writer);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn write_encoded_memory_error_on_small_buffer() {
+        let memory = vec![Some(Felt252::from(1u64))];
+        let mut buffer = [0u8; 10]; // Too small (needs 40 bytes: 8 + 32)
+        let mut writer = SliceWriter::new(&mut buffer);
+        let result = write_encoded_memory(&memory, &mut writer);
+        assert!(result.is_err());
+    }
 }
