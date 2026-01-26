@@ -316,7 +316,7 @@ pub mod test_utils {
             };
             Program {
                 shared_program_data: Arc::new(shared_program_data),
-                constants: crate::stdlib::collections::HashMap::new(),
+                constants: crate::stdlib::collections::HashMap::new().into(),
                 builtins: vec![$( $builtin_name ),*],
             }
         }};
@@ -400,7 +400,7 @@ pub mod test_utils {
                     identifiers: val.identifiers,
                     reference_manager: Program::get_reference_list(&val.reference_manager),
                 }),
-                constants: val.constants,
+                constants: val.constants.into(),
                 builtins: val.builtins,
             }
         }
@@ -476,7 +476,7 @@ pub mod test_utils {
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr, $constants:expr) => {{
             let mut hint_data = HintProcessorData::new_default($hint_code.to_string(), $ids_data);
             let constants: &HashMap<String, Felt252> = $constants;
-            hint_data.constants = crate::stdlib::rc::Rc::new(constants.clone());
+            hint_data.constants = constants.clone().into();
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data))
         }};
@@ -978,7 +978,7 @@ mod test {
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
-            constants: HashMap::new(),
+            constants: HashMap::new().into(),
             builtins: Vec::new(),
         };
         assert_eq!(program, program!())
@@ -1002,7 +1002,7 @@ mod test {
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
-            constants: HashMap::new(),
+            constants: HashMap::new().into(),
             builtins: vec![BuiltinName::range_check],
         };
 
@@ -1027,7 +1027,7 @@ mod test {
         };
         let program = Program {
             shared_program_data: Arc::new(shared_data),
-            constants: HashMap::new(),
+            constants: HashMap::new().into(),
             builtins: vec![BuiltinName::range_check],
         };
 

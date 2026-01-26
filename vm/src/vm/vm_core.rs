@@ -110,7 +110,7 @@ pub struct VirtualMachine {
     pub(crate) disable_trace_padding: bool,
     instruction_cache: Vec<Option<Instruction>>,
     #[cfg(feature = "test_utils")]
-    pub(crate) hooks: crate::vm::hooks::Hooks,
+    pub(crate) hooks: Option<Box<dyn crate::vm::hooks::StepHooks>>,
     pub(crate) relocation_table: Option<Vec<usize>>,
 }
 
@@ -141,7 +141,7 @@ impl VirtualMachine {
             disable_trace_padding,
             instruction_cache: Vec::new(),
             #[cfg(feature = "test_utils")]
-            hooks: Default::default(),
+            hooks: None,
             relocation_table: None,
         }
     }
@@ -451,6 +451,7 @@ impl VirtualMachine {
         self.segments
             .memory
             .mark_as_accessed(operands_addresses.op1_addr);
+        self.segments.memory.mark_as_accessed(self.run_context.pc);
 
         if instruction.opcode_extension == OpcodeExtension::Blake
             || instruction.opcode_extension == OpcodeExtension::BlakeFinalize
@@ -975,7 +976,7 @@ impl VirtualMachine {
     }
 
     ///Gets the integer value corresponding to the Relocatable address
-    pub fn get_integer(&self, key: Relocatable) -> Result<Cow<Felt252>, MemoryError> {
+    pub fn get_integer(&'_ self, key: Relocatable) -> Result<Cow<'_, Felt252>, MemoryError> {
         self.segments.memory.get_integer(key)
     }
 
@@ -1021,6 +1022,17 @@ impl VirtualMachine {
         self.segments.memory.insert_value(key, val)
     }
 
+    /// Removes (unsets) a value from a memory cell that was not accessed by the VM.
+    ///
+    /// This function can be used to implement lazy opening of merkelized contracts. The full
+    /// program is initially loaded into memory via a hint. After execution, any entry points to
+    /// contract segments that were not accessed are replaced with an invalid opcode.
+    ///
+    /// [Use case](https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/starknet/core/os/contract_class/compiled_class.cairo#L244-L253)
+    pub fn delete_unaccessed(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
+        self.segments.memory.delete_unaccessed(addr)
+    }
+
     ///Writes data into the memory from address ptr and returns the first address after the data.
     pub fn load_data(
         &mut self,
@@ -1062,7 +1074,11 @@ impl VirtualMachine {
     }
 
     ///Gets n elements from memory starting from addr (n being size)
-    pub fn get_range(&self, addr: Relocatable, size: usize) -> Vec<Option<Cow<MaybeRelocatable>>> {
+    pub fn get_range(
+        &'_ self,
+        addr: Relocatable,
+        size: usize,
+    ) -> Vec<Option<Cow<'_, MaybeRelocatable>>> {
         self.segments.memory.get_range(addr, size)
     }
 
@@ -1077,10 +1093,10 @@ impl VirtualMachine {
 
     ///Gets n integer values from memory starting from addr (n being size),
     pub fn get_integer_range(
-        &self,
+        &'_ self,
         addr: Relocatable,
         size: usize,
-    ) -> Result<Vec<Cow<Felt252>>, MemoryError> {
+    ) -> Result<Vec<Cow<'_, Felt252>>, MemoryError> {
         self.segments.memory.get_integer_range(addr, size)
     }
 
@@ -1335,7 +1351,7 @@ pub struct VirtualMachineBuilder {
     skip_instruction_execution: bool,
     run_finished: bool,
     #[cfg(feature = "test_utils")]
-    pub(crate) hooks: crate::vm::hooks::Hooks,
+    pub(crate) hooks: Option<Box<dyn crate::vm::hooks::StepHooks>>,
 }
 
 impl Default for VirtualMachineBuilder {
@@ -1355,7 +1371,7 @@ impl Default for VirtualMachineBuilder {
             segments: MemorySegmentManager::new(),
             run_finished: false,
             #[cfg(feature = "test_utils")]
-            hooks: Default::default(),
+            hooks: None,
         }
     }
 }
@@ -1400,8 +1416,8 @@ impl VirtualMachineBuilder {
     }
 
     #[cfg(feature = "test_utils")]
-    pub fn hooks(mut self, hooks: crate::vm::hooks::Hooks) -> VirtualMachineBuilder {
-        self.hooks = hooks;
+    pub fn hooks(mut self, hooks: Box<dyn crate::vm::hooks::StepHooks>) -> VirtualMachineBuilder {
+        self.hooks = Some(hooks);
         self
     }
 
@@ -3684,11 +3700,16 @@ mod tests {
             ],
         );
         //Check that the following addresses have been accessed:
-        // Addresses have been copied from python execution:
+        // Addresses have been copied from python execution + addresses of accessed code:
         let mem = &vm.segments.memory.data;
+        assert!(mem[0][0].is_accessed());
         assert!(mem[0][1].is_accessed());
+        assert!(mem[0][2].is_accessed());
+        assert!(mem[0][3].is_accessed());
         assert!(mem[0][4].is_accessed());
+        assert!(mem[0][5].is_accessed());
         assert!(mem[0][6].is_accessed());
+        assert!(mem[0][7].is_accessed());
         assert!(mem[1][0].is_accessed());
         assert!(mem[1][1].is_accessed());
         assert!(mem[1][2].is_accessed());
@@ -3699,7 +3720,7 @@ mod tests {
             vm.segments
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(0),
-            Some(3)
+            Some(8)
         );
         assert_eq!(
             vm.segments
@@ -4811,6 +4832,84 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_delete_unaccessed() {
+        let mut vm = vm!();
+
+        let segment0 = vm.segments.add();
+        let segment1 = vm.segments.add();
+        let segment2 = vm.segments.add();
+        let segment3 = vm.segments.add();
+        let tmp_segment = vm.add_temporary_segment();
+        assert_eq!(segment0.segment_index, 0);
+        assert_eq!(segment1.segment_index, 1);
+        assert_eq!(segment2.segment_index, 2);
+        assert_eq!(segment3.segment_index, 3);
+        assert_eq!(tmp_segment.segment_index, -1);
+        vm.segments.memory = memory![
+            ((0, 1), 1),
+            ((1, 0), 3),
+            ((1, 1), 4),
+            ((2, 0), 7),
+            ((3, 0), 7),
+            ((-1, 0), 5),
+            ((-1, 1), 5),
+            ((-1, 2), 5)
+        ];
+        vm.run_finished = true;
+
+        vm.mark_address_range_as_accessed((2, 0).into(), 1).unwrap();
+
+        let cell0 = Relocatable::from((0, 0));
+        let cell1 = Relocatable::from((1, 1));
+        let cell2 = Relocatable::from((2, 0));
+        let cell3 = Relocatable::from((3, 7));
+        let cell7 = Relocatable::from((7, 17));
+        let cell_tmp = Relocatable::from((-1, 1));
+        vm.delete_unaccessed(cell0).unwrap();
+        vm.delete_unaccessed(cell1).unwrap();
+        vm.delete_unaccessed(cell_tmp).unwrap();
+
+        // Check that the cells were set to NONE.
+        assert!(vm
+            .segments
+            .memory
+            .get_cell_for_testing(cell0)
+            .unwrap()
+            .is_none());
+        assert!(vm
+            .segments
+            .memory
+            .get_cell_for_testing(cell1)
+            .unwrap()
+            .is_none());
+        assert!(vm
+            .segments
+            .memory
+            .get_cell_for_testing(cell_tmp)
+            .unwrap()
+            .is_none());
+        // Segment 3 cell was out of offset range, so it should not be modified or allocated.
+        assert!(vm.segments.memory.get_cell_for_testing(cell3).is_none());
+        // Segment 2 cell was accessed, so attempting to unset the memory should result in error.
+        assert_matches!(
+            vm.delete_unaccessed(cell2).unwrap_err(),
+            MemoryError::UnsetAccessedCell(relocatable) if relocatable == cell2
+        );
+        // Segment 3 is unallocated, so attempting to unset the memory should result in error.
+        assert_matches!(
+            vm.delete_unaccessed(cell3).unwrap_err(),
+            MemoryError::UnsetUnallocatedCell(relocatable) if relocatable == cell3
+        );
+        // Segment 7 was not allocated, so attempting to unset the memory should result in error.
+        assert_matches!(
+            vm.delete_unaccessed(cell7).unwrap_err(),
+            MemoryError::UnallocatedSegment(boxed)
+            if *boxed == (cell7.segment_index.try_into().unwrap(), vm.segments.memory.data.len())
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mark_as_accessed() {
         let mut vm = vm!();
         vm.run_finished = true;
@@ -5246,11 +5345,12 @@ mod tests {
             Err(VirtualMachineError::Unexpected)
         }
         #[cfg(feature = "test_utils")]
-        let virtual_machine_builder = virtual_machine_builder.hooks(crate::vm::hooks::Hooks::new(
-            Some(std::sync::Arc::new(before_first_step_hook)),
-            None,
-            None,
-        ));
+        let virtual_machine_builder =
+            virtual_machine_builder.hooks(Box::new(crate::vm::hooks::Hooks::new(
+                Some(std::sync::Arc::new(before_first_step_hook)),
+                None,
+                None,
+            )));
 
         #[allow(unused_mut)]
         let mut virtual_machine_from_builder = virtual_machine_builder.build();
@@ -5450,11 +5550,16 @@ mod tests {
             ],
         );
         //Check that the following addresses have been accessed:
-        // Addresses have been copied from python execution:
+        // Addresses have been copied from python execution + addresses of accessed code:
         let mem = &vm.segments.memory.data;
+        assert!(mem[4][0].is_accessed());
         assert!(mem[4][1].is_accessed());
+        assert!(mem[4][2].is_accessed());
+        assert!(mem[4][3].is_accessed());
         assert!(mem[4][4].is_accessed());
+        assert!(mem[4][5].is_accessed());
         assert!(mem[4][6].is_accessed());
+        assert!(mem[4][7].is_accessed());
         assert!(mem[1][0].is_accessed());
         assert!(mem[1][1].is_accessed());
         assert!(mem[1][2].is_accessed());
@@ -5465,7 +5570,7 @@ mod tests {
             vm.segments
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(4),
-            Some(3)
+            Some(8)
         );
         assert_eq!(
             vm.segments

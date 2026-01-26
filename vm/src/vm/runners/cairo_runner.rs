@@ -9,7 +9,6 @@ use crate::{
         collections::{BTreeMap, HashMap, HashSet},
         ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
         prelude::*,
-        rc::Rc,
     },
     types::{builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName},
     vm::{
@@ -60,6 +59,20 @@ use super::{
     cairo_pie::{self, CairoPie, CairoPieMetadata, CairoPieVersion},
 };
 use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
+
+pub const ORDERED_BUILTIN_LIST: &[BuiltinName] = &[
+    BuiltinName::output,
+    BuiltinName::pedersen,
+    BuiltinName::range_check,
+    BuiltinName::ecdsa,
+    BuiltinName::bitwise,
+    BuiltinName::ec_op,
+    BuiltinName::keccak,
+    BuiltinName::poseidon,
+    BuiltinName::range_check96,
+    BuiltinName::add_mod,
+    BuiltinName::mul_mod,
+];
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
@@ -281,20 +294,7 @@ impl CairoRunner {
     ///
     /// NOTE: 'included' does not refer to the builtin being included in the builtin runners but rather to the flag `included` in a builtin.
     pub fn initialize_builtins(&mut self, allow_missing_builtins: bool) -> Result<(), RunnerError> {
-        let builtin_ordered_list = vec![
-            BuiltinName::output,
-            BuiltinName::pedersen,
-            BuiltinName::range_check,
-            BuiltinName::ecdsa,
-            BuiltinName::bitwise,
-            BuiltinName::ec_op,
-            BuiltinName::keccak,
-            BuiltinName::poseidon,
-            BuiltinName::range_check96,
-            BuiltinName::add_mod,
-            BuiltinName::mul_mod,
-        ];
-        if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
+        if !is_subsequence(&self.program.builtins, ORDERED_BUILTIN_LIST) {
             return Err(RunnerError::DisorderedBuiltins);
         };
         let mut program_builtins: HashSet<&BuiltinName> = self.program.builtins.iter().collect();
@@ -648,8 +648,6 @@ impl CairoRunner {
         references: &[HintReference],
         hint_executor: &mut dyn HintProcessor,
     ) -> Result<Vec<Box<dyn Any>>, VirtualMachineError> {
-        let constants = Rc::new(self.program.constants.clone());
-
         self.program
             .shared_program_data
             .hints_collection
@@ -662,7 +660,7 @@ impl CairoRunner {
                         &hint.flow_tracking_data.reference_ids,
                         references,
                         &hint.accessible_scopes,
-                        constants.clone(),
+                        self.program.constants.clone(),
                     )
                     .map_err(|_| VirtualMachineError::CompileHintFail(hint.code.clone().into()))
             })
@@ -1458,7 +1456,7 @@ impl CairoRunner {
         })
     }
 
-    pub fn get_air_public_input(&self) -> Result<PublicInput, PublicInputError> {
+    pub fn get_air_public_input(&'_ self) -> Result<PublicInput<'_>, PublicInputError> {
         PublicInput::new(
             &self.relocated_memory,
             self.layout.name.to_str(),
@@ -1543,12 +1541,6 @@ impl CairoRunner {
             })
             .collect()
     }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SegmentInfo {
-    pub index: isize,
-    pub size: usize,
 }
 
 //* ----------------------

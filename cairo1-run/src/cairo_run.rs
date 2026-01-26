@@ -38,6 +38,7 @@ use cairo_vm::{
     hint_processor::cairo_1_hint_processor::hint_processor::Cairo1HintProcessor,
     math_utils::signed_felt,
     serde::deserialize_program::{ApTracking, FlowTrackingData, HintParams, ReferenceManager},
+    stdlib::{collections::HashMap, iter::Peekable},
     types::{
         builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName,
         program::Program, relocatable::MaybeRelocatable,
@@ -52,7 +53,11 @@ use cairo_vm::{
 use itertools::{chain, Itertools};
 use num_bigint::{BigInt, Sign};
 use num_traits::{cast::ToPrimitive, Zero};
-use std::{collections::HashMap, iter::Peekable};
+
+// Necessary memory gaps for the values created on the entry code of each implicit builtin
+const SEGMENT_ARENA_GAPS: usize = 4;
+const GAS_BUILTIN_GAPS: usize = 1;
+const SYSTEM_BUILTIN_GAPS: usize = 1;
 
 /// Representation of a cairo argument
 /// Can consist of a single Felt or an array of Felts
@@ -341,7 +346,10 @@ pub fn cairo_run_program(
         }
     }
 
-    runner.relocate(true, true)?;
+    runner.relocate(
+        cairo_run_config.relocate_mem,
+        cairo_run_config.trace_enabled,
+    )?;
 
     Ok((runner, return_values, serialized_output))
 }
@@ -469,20 +477,13 @@ fn load_arguments(
     cairo_run_config: &Cairo1RunConfig,
     main_func: &Function,
 ) -> Result<(), Error> {
-    let got_gas_builtin = main_func
-        .signature
-        .param_types
-        .iter()
-        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "GasBuiltin"));
+    let got_gas_builtin = got_implicit_builtin(&main_func.signature.param_types, "GasBuiltin");
     if cairo_run_config.args.is_empty() && !got_gas_builtin {
         // Nothing to be done
         return Ok(());
     }
-    let got_segment_arena = main_func
-        .signature
-        .param_types
-        .iter()
-        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "SegmentArena"));
+    let got_segment_arena = got_implicit_builtin(&main_func.signature.param_types, "SegmentArena");
+    let got_system_builtin = got_implicit_builtin(&main_func.signature.param_types, "System");
     // This AP correction represents the memory slots taken up by the values created by `create_entry_code`:
     // These include:
     // * The builtin bases (not including output)
@@ -497,10 +498,13 @@ fn load_arguments(
         ap_offset += runner.get_program().builtins_len() - 1;
     }
     if got_segment_arena {
-        ap_offset += 4;
+        ap_offset += SEGMENT_ARENA_GAPS;
     }
     if got_gas_builtin {
-        ap_offset += 1;
+        ap_offset += GAS_BUILTIN_GAPS;
+    }
+    if got_system_builtin {
+        ap_offset += SYSTEM_BUILTIN_GAPS;
     }
     for arg in cairo_run_config.args {
         match arg {
@@ -547,16 +551,9 @@ fn create_entry_code(
 ) -> Result<(CasmContext, Vec<BuiltinName>), Error> {
     let copy_to_output_builtin = config.copy_to_output();
     let signature = &func.signature;
-    let got_segment_arena = signature.param_types.iter().any(|ty| {
-        get_info(sierra_program_registry, ty)
-            .map(|x| x.long_id.generic_id == SegmentArenaType::ID)
-            .unwrap_or_default()
-    });
-    let got_gas_builtin = signature.param_types.iter().any(|ty| {
-        get_info(sierra_program_registry, ty)
-            .map(|x| x.long_id.generic_id == GasBuiltinType::ID)
-            .unwrap_or_default()
-    });
+    let got_segment_arena = got_implicit_builtin(&signature.param_types, "SegmentArena");
+    let got_gas_builtin = got_implicit_builtin(&signature.param_types, "GasBuiltin");
+    let got_system_builtin = got_implicit_builtin(&signature.param_types, "System");
     // The builtins in the formatting expected by the runner.
     let (builtins, builtin_offset) =
         get_function_builtins(&signature.param_types, copy_to_output_builtin);
@@ -616,7 +613,7 @@ fn create_entry_code(
         } else if generic_ty == &GasBuiltinType::ID {
             // Load initial gas
             casm_build_extend! {ctx,
-                const initial_gas = 9999999999999_usize;
+                const initial_gas = 9999999999999_u64;
                 tempvar gas = initial_gas;
             };
         } else {
@@ -738,10 +735,12 @@ fn create_entry_code(
             // We lost the output_ptr var after re-scoping, so we need to create it again
             // The last instruction will write the last output ptr so we can find it in [ap - 1]
             let output_ptr = ctx.add_var(CellExpression::Deref(deref!([ap - 1])));
-            // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr + info_ptr + 0 + (segment_arena_ptr + 3) + (gas_builtin)
+            // len(builtins - output) + len(builtins) + if segment_arena: segment_arena_ptr +
+            // info_ptr + 0 + (segment_arena_ptr + 3) + (gas_builtin) + (system_builtin)
             let offset = (2 * builtins.len() - 1
                 + 4 * got_segment_arena as usize
-                + got_gas_builtin as usize) as i16;
+                + got_gas_builtin as usize
+                + got_system_builtin as usize) as i16;
             let array_start_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset])));
             let array_end_ptr = ctx.add_var(CellExpression::Deref(deref!([fp + offset + 1])));
             casm_build_extend! {ctx,
@@ -1007,6 +1006,11 @@ fn check_only_array_felt_return_type(
         }
         _ => false,
     }
+}
+fn got_implicit_builtin(param_types: &[ConcreteTypeId], builtin_name: &str) -> bool {
+    param_types
+        .iter()
+        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == builtin_name))
 }
 
 fn is_panic_result(return_type_id: Option<&ConcreteTypeId>) -> bool {

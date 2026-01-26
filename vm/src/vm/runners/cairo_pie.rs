@@ -441,6 +441,7 @@ impl CairoPie {
 pub(super) mod serde_impl {
     use crate::stdlib::collections::{BTreeMap, HashMap};
     use crate::types::builtin_name::BuiltinName;
+    use crate::vm::runners::cairo_runner::ORDERED_BUILTIN_LIST;
     use num_traits::Num;
 
     use super::CAIRO_PIE_VERSION;
@@ -851,21 +852,8 @@ pub(super) mod serde_impl {
         S: Serializer,
     {
         let mut map_serializer = serializer.serialize_map(Some(values.len()))?;
-        const BUILTIN_ORDERED_LIST: &[BuiltinName] = &[
-            BuiltinName::output,
-            BuiltinName::pedersen,
-            BuiltinName::range_check,
-            BuiltinName::ecdsa,
-            BuiltinName::bitwise,
-            BuiltinName::ec_op,
-            BuiltinName::keccak,
-            BuiltinName::poseidon,
-            BuiltinName::range_check96,
-            BuiltinName::add_mod,
-            BuiltinName::mul_mod,
-        ];
 
-        for name in BUILTIN_ORDERED_LIST {
+        for name in ORDERED_BUILTIN_LIST {
             if let Some(info) = values.get(name) {
                 map_serializer.serialize_entry(name, info)?
             }
