@@ -1,8 +1,6 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
-use bincode::enc::write::Writer;
 use cairo_vm::air_public_input::PublicInputError;
-use cairo_vm::cairo_run::{self, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::serde::deserialize_program::DebugInfo;
@@ -15,6 +13,8 @@ use cairo_vm::vm::runners::cairo_pie::CairoPie;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::vm::runners::cairo_runner::CairoRunner;
 use cairo_vm::vm::runners::cairo_runner::RunResources;
+use cairo_vm::vm::trace::trace_entry;
+use cairo_vm::{cairo_run, Felt252};
 #[cfg(feature = "with_tracer")]
 use cairo_vm_tracer::error::trace_data_errors::TraceDataError;
 #[cfg(feature = "with_tracer")]
@@ -83,6 +83,8 @@ struct Args {
         conflicts_with_all = ["proof_mode", "air_private_input", "air_public_input"]
     )]
     run_from_cairo_pie: bool,
+    #[arg(long)]
+    fill_holes: Option<bool>,
 }
 
 #[derive(Debug, Error)]
@@ -106,37 +108,54 @@ enum Error {
     TraceData(#[from] TraceDataError),
 }
 
-struct FileWriter {
-    buf_writer: io::BufWriter<std::fs::File>,
-    bytes_written: usize,
-}
+#[derive(Debug, Error)]
+#[error("Failed to encode trace at position {0}, serialize error: {1}")]
+pub struct EncodeTraceError(usize, std::io::Error);
 
-impl Writer for FileWriter {
-    fn write(&mut self, bytes: &[u8]) -> Result<(), bincode::error::EncodeError> {
-        self.buf_writer
-            .write_all(bytes)
-            .map_err(|e| bincode::error::EncodeError::Io {
-                inner: e,
-                index: self.bytes_written,
-            })?;
-
-        self.bytes_written += bytes.len();
-
-        Ok(())
+/// Writes the trace binary representation.
+///
+/// The trace entries (ap, fp, pc) are little-endian encoded and concatenated:
+/// - ap: 8-byte.
+/// - fp: 8-byte.
+/// - pc: 8-byte.
+fn write_encoded_trace(
+    relocated_trace: &[trace_entry::RelocatedTraceEntry],
+    dest: &mut impl Write,
+) -> Result<(), EncodeTraceError> {
+    for (i, entry) in relocated_trace.iter().enumerate() {
+        dest.write_all(&((entry.ap as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write_all(&((entry.fp as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write_all(&((entry.pc as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
     }
+
+    Ok(())
 }
 
-impl FileWriter {
-    fn new(buf_writer: io::BufWriter<std::fs::File>) -> Self {
-        Self {
-            buf_writer,
-            bytes_written: 0,
+/// Writes the relocated memory binary representation.
+///
+/// The memory pairs (address, value) are little-endian encoded and concatenated:
+/// - address: 8-byte.
+/// - value: 32-byte.
+fn write_encoded_memory(
+    relocated_memory: &[Option<Felt252>],
+    dest: &mut impl Write,
+) -> Result<(), EncodeTraceError> {
+    for (i, memory_cell) in relocated_memory.iter().enumerate() {
+        match memory_cell {
+            None => continue,
+            Some(unwrapped_memory_cell) => {
+                dest.write_all(&(i as u64).to_le_bytes())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+                dest.write_all(&unwrapped_memory_cell.to_bytes_le())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+            }
         }
     }
 
-    fn flush(&mut self) -> io::Result<()> {
-        self.buf_writer.flush()
-    }
+    Ok(())
 }
 
 #[cfg(feature = "with_tracer")]
@@ -165,6 +184,7 @@ fn start_tracer(cairo_runner: &CairoRunner) -> Result<(), TraceDataError> {
     Ok(())
 }
 
+#[allow(clippy::result_large_err)]
 fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     let args = Args::try_parse_from(args)?;
 
@@ -179,12 +199,14 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         entrypoint: &args.entrypoint,
         trace_enabled,
         relocate_mem: args.memory_file.is_some() || args.air_public_input.is_some(),
+        relocate_trace: trace_enabled,
         layout: args.layout,
         proof_mode: args.proof_mode,
+        fill_holes: args.fill_holes.unwrap_or(args.proof_mode),
         secure_run: args.secure_run,
         allow_missing_builtins: args.allow_missing_builtins,
         dynamic_layout_params: cairo_layout_params,
-        ..Default::default()
+        disable_trace_padding: false,
     };
 
     let mut cairo_runner = match if args.run_from_cairo_pie {
@@ -219,19 +241,17 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             .ok_or(Error::Trace(TraceError::TraceNotRelocated))?;
 
         let trace_file = std::fs::File::create(trace_path)?;
-        let mut trace_writer =
-            FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
+        let mut trace_writer = io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file);
 
-        cairo_run::write_encoded_trace(relocated_trace, &mut trace_writer)?;
+        write_encoded_trace(relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
     }
 
     if let Some(ref memory_path) = args.memory_file {
         let memory_file = std::fs::File::create(memory_path)?;
-        let mut memory_writer =
-            FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
+        let mut memory_writer = io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file);
 
-        cairo_run::write_encoded_memory(&cairo_runner.relocated_memory, &mut memory_writer)?;
+        write_encoded_memory(&cairo_runner.relocated_memory, &mut memory_writer)?;
         memory_writer.flush()?;
     }
 
@@ -281,6 +301,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     Ok(())
 }
 
+#[allow(clippy::result_large_err)]
 fn main() -> Result<(), Error> {
     #[cfg(test)]
     return Ok(());
@@ -297,7 +318,28 @@ mod tests {
     #![allow(clippy::too_many_arguments)]
     use super::*;
     use assert_matches::assert_matches;
+    use cairo_vm::{
+        hint_processor::hint_processor_definition::HintProcessor, types::program::Program,
+        vm::runners::cairo_runner::CairoRunner,
+    };
     use rstest::rstest;
+
+    #[allow(clippy::result_large_err)]
+    fn run_test_program(
+        program_content: &[u8],
+        hint_processor: &mut dyn HintProcessor,
+    ) -> Result<CairoRunner, CairoRunError> {
+        let program = Program::from_bytes(program_content, Some("main")).unwrap();
+        let mut cairo_runner =
+            CairoRunner::new(&program, LayoutName::all_cairo, None, false, true, false).unwrap();
+        let end = cairo_runner
+            .initialize(false)
+            .map_err(CairoRunError::Runner)?;
+
+        assert!(cairo_runner.run_until_pc(end, hint_processor).is_ok());
+
+        Ok(cairo_runner)
+    }
 
     #[rstest]
     #[case([].as_slice())]
@@ -430,6 +472,50 @@ mod tests {
         args.push("../cairo_programs/proof_programs/fibonacci.json".to_string());
 
         assert_matches!(run(args.into_iter()), Ok(_));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn write_binary_trace_file() {
+        let program_content = include_bytes!("../../cairo_programs/struct.json");
+        let expected_encoded_trace =
+            include_bytes!("../../cairo_programs/trace_memory/cairo_trace_struct");
+
+        // run test program until the end
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
+
+        assert!(cairo_runner.relocate(false, true).is_ok());
+
+        let trace_entries = cairo_runner.relocated_trace.unwrap();
+        let mut buffer = [0; 24];
+        // write cairo_rs vm trace file
+        write_encoded_trace(&trace_entries, &mut buffer.as_mut_slice()).unwrap();
+
+        // compare that the original cairo vm trace file and cairo_rs vm trace files are equal
+        assert_eq!(buffer, *expected_encoded_trace);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn write_binary_memory_file() {
+        let program_content = include_bytes!("../../cairo_programs/struct.json");
+        let expected_encoded_memory =
+            include_bytes!("../../cairo_programs/trace_memory/cairo_memory_struct");
+
+        // run test program until the end
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let mut cairo_runner = run_test_program(program_content, &mut hint_processor).unwrap();
+
+        // relocate memory so we can dump it to file
+        assert!(cairo_runner.relocate(true, true).is_ok());
+
+        let mut buffer = [0; 120];
+        // write cairo_rs vm memory file
+        write_encoded_memory(&cairo_runner.relocated_memory, &mut buffer.as_mut_slice()).unwrap();
+
+        // compare that the original cairo vm memory file and cairo_rs vm memory files are equal
+        assert_eq!(*expected_encoded_memory, buffer);
     }
 
     //Since the functionality here is trivial, I just call the function

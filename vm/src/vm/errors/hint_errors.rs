@@ -78,7 +78,7 @@ pub enum HintError {
     KeyNotFound,
     #[error("AP tracking data is None; could not apply correction to address")]
     NoneApTrackingData,
-    #[error("Tracking groups should be the same, got {} and {}", (*.0).0, (*.0).0)]
+    #[error("Tracking groups should be the same, got {} and {}", (*.0).0, (*.0).1)]
     InvalidTrackingGroup(Box<(usize, usize)>),
     #[error("Expected relocatable for ap, got {0}")]
     InvalidApValue(Box<MaybeRelocatable>),
@@ -196,6 +196,8 @@ pub enum HintError {
     EmptyNibbles,
     #[error("circuit evalution: {0}")]
     CircuitEvaluationFailed(Box<str>),
+    #[error("high limb magnitude should be smaller than 2 ** 127: {0}")]
+    BlsSplitError(Box<BigInt>),
 }
 
 #[cfg(test)]

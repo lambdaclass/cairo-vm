@@ -53,6 +53,7 @@ fn main() {
             relocate_mem: false,
             layout: LayoutName::all_cairo,
             proof_mode: true,
+            fill_holes: true,
             secure_run: Some(false),
             ..Default::default()
         };
