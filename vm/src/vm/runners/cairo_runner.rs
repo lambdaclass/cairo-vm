@@ -60,6 +60,20 @@ use super::{
 };
 use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
 
+pub const ORDERED_BUILTIN_LIST: &[BuiltinName] = &[
+    BuiltinName::output,
+    BuiltinName::pedersen,
+    BuiltinName::range_check,
+    BuiltinName::ecdsa,
+    BuiltinName::bitwise,
+    BuiltinName::ec_op,
+    BuiltinName::keccak,
+    BuiltinName::poseidon,
+    BuiltinName::range_check96,
+    BuiltinName::add_mod,
+    BuiltinName::mul_mod,
+];
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CairoArg {
     Single(MaybeRelocatable),
@@ -280,20 +294,7 @@ impl CairoRunner {
     ///
     /// NOTE: 'included' does not refer to the builtin being included in the builtin runners but rather to the flag `included` in a builtin.
     pub fn initialize_builtins(&mut self, allow_missing_builtins: bool) -> Result<(), RunnerError> {
-        let builtin_ordered_list = vec![
-            BuiltinName::output,
-            BuiltinName::pedersen,
-            BuiltinName::range_check,
-            BuiltinName::ecdsa,
-            BuiltinName::bitwise,
-            BuiltinName::ec_op,
-            BuiltinName::keccak,
-            BuiltinName::poseidon,
-            BuiltinName::range_check96,
-            BuiltinName::add_mod,
-            BuiltinName::mul_mod,
-        ];
-        if !is_subsequence(&self.program.builtins, &builtin_ordered_list) {
+        if !is_subsequence(&self.program.builtins, ORDERED_BUILTIN_LIST) {
             return Err(RunnerError::DisorderedBuiltins);
         };
         let mut program_builtins: HashSet<&BuiltinName> = self.program.builtins.iter().collect();
