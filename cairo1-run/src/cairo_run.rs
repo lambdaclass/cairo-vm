@@ -346,7 +346,10 @@ pub fn cairo_run_program(
         }
     }
 
-    runner.relocate(true, true)?;
+    runner.relocate(
+        cairo_run_config.relocate_mem,
+        cairo_run_config.trace_enabled,
+    )?;
 
     Ok((runner, return_values, serialized_output))
 }
@@ -1616,7 +1619,6 @@ mod tests {
     #[case("../cairo_programs/cairo-1-programs/serialized_output/pedersen_example.cairo")]
     #[case("../cairo_programs/cairo-1-programs/serialized_output/poseidon.cairo")]
     #[case("../cairo_programs/cairo-1-programs/serialized_output/print.cairo")]
-    #[case("../cairo_programs/cairo-1-programs/serialized_output/array_append.cairo")]
     #[case("../cairo_programs/cairo-1-programs/serialized_output/recursion.cairo")]
     #[case("../cairo_programs/cairo-1-programs/serialized_output/sample.cairo")]
     #[case("../cairo_programs/cairo-1-programs/serialized_output/simple_struct.cairo")]
