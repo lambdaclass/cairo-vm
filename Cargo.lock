@@ -316,16 +316,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bincode"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36eaf5d7b090263e8150820482d5d93cd964a81e4019913c972f4edcc6edb740"
-dependencies = [
- "serde",
- "unty",
-]
-
-[[package]]
 name = "bit-set"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -576,7 +566,7 @@ version = "2.12.0-dev.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "750ba5e07fc5007ea1e060980336d3f23333d42d30757a8565d42b65fc7dc443"
 dependencies = [
- "bincode 1.3.3",
+ "bincode",
  "cairo-lang-debug",
  "cairo-lang-defs",
  "cairo-lang-diagnostics",
@@ -890,14 +880,13 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "anyhow",
  "arbitrary",
  "ark-ff",
  "ark-std",
  "assert_matches",
- "bincode 2.0.1",
  "bitvec",
  "cairo-lang-casm",
  "cairo-lang-starknet-classes",
@@ -933,10 +922,9 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-cli"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "assert_matches",
- "bincode 2.0.1",
  "cairo-vm",
  "cairo-vm-tracer",
  "clap",
@@ -947,7 +935,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm-tracer"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "axum",
  "cairo-vm",
@@ -965,10 +953,9 @@ dependencies = [
 
 [[package]]
 name = "cairo1-run"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "assert_matches",
- "bincode 2.0.1",
  "cairo-lang-casm",
  "cairo-lang-compiler",
  "cairo-lang-sierra",
@@ -1616,7 +1603,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hint_accountant"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "cairo-vm",
  "serde",
@@ -1706,7 +1693,7 @@ dependencies = [
 
 [[package]]
 name = "hyper_threading"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "cairo-vm",
  "rayon",
@@ -3420,12 +3407,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
-name = "unty"
-version = "0.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d49784317cd0d1ee7ec5c716dd598ec5b4483ea832a2dced265471cc0f690ae"
-
-[[package]]
 name = "utf8parse"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3592,7 +3573,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-demo"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "cairo-vm",
  "console_error_panic_hook",
@@ -3601,7 +3582,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-demo-cairo1"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "cairo-lang-sierra",
  "cairo-vm",
