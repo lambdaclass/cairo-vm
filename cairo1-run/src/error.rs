@@ -1,5 +1,7 @@
 use cairo_lang_sierra::{ids::ConcreteTypeId, program_registry::ProgramRegistryError};
 use cairo_lang_sierra_to_casm::{compiler::CompilationError, metadata::MetadataError};
+#[cfg(feature = "std")]
+use cairo_vm::cairo_run::EncodeTraceError;
 use cairo_vm::{
     air_public_input::PublicInputError,
     types::errors::program_errors::ProgramError,
@@ -12,15 +14,12 @@ use cairo_vm::{
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-#[error("Failed to encode trace at position {0}, serialize error: {1}")]
-pub struct EncodeTraceError(pub usize, pub std::io::Error);
-
-#[derive(Debug, Error)]
 pub enum Error {
     #[error("Invalid arguments")]
     Cli(#[from] clap::Error),
     #[error("Failed to interact with the file system")]
     IO(#[from] std::io::Error),
+    #[cfg(feature = "std")]
     #[error(transparent)]
     EncodeTrace(#[from] EncodeTraceError),
     #[error(transparent)]
