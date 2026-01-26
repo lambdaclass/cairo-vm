@@ -4,7 +4,15 @@
 
 * fix: assign validation rules in place to preserve segment-index alignment [#2268](https://github.com/lambdaclass/cairo-vm/pull/2268)
 
+* feat: Add public `ORDERED_BUILTIN_LIST` constant [#2298](https://github.com/lambdaclass/cairo-vm/pull/2298)
+
+* chore(breaking): Remove bincode crate [#2294](https://github.com/lambdaclass/cairo-vm/pull/2294)
+
+#### [3.1.0] - 2026-1-19
+
 * fix: Make cairo1-run to conditionally relocate memory and trace [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
+
+* feat(breaking): Introduce `StepHooks` trait which allows hooks to be stateful [#2295](https://github.com/lambdaclass/cairo-vm/pull/2295)
 
 #### [3.0.1] - 2025-12-22
 
