@@ -1031,6 +1031,7 @@ fn fibonacci_proof_mode_disable_trace_padding() {
     let program_data = include_bytes!("../../../cairo_programs/proof_programs/fibonacci.json");
     let config = CairoRunConfig {
         proof_mode: true,
+        fill_holes: true,
         disable_trace_padding: true,
         ..Default::default()
     };
@@ -1125,6 +1126,7 @@ fn run_program_allow_missing_builtins_proof() {
         include_bytes!("../../../cairo_programs/proof_programs/pedersen_extra_builtins.json");
     let config = CairoRunConfig {
         proof_mode: true,
+        fill_holes: true,
         allow_missing_builtins: Some(true),
         layout: LayoutName::small, // The program logic only uses builtins in the small layout but contains builtins outside of it
         ..Default::default()
@@ -1209,6 +1211,7 @@ fn run_program_with_custom_mod_builtin_params(
     let cairo_run_config = CairoRunConfig {
         layout: LayoutName::all_cairo,
         proof_mode,
+        fill_holes: proof_mode,
         ..Default::default()
     };
     let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -1241,6 +1244,7 @@ fn run_program_with_custom_mod_builtin_params(
             cairo_run_config.disable_trace_padding,
             false,
             &mut hint_processor,
+            cairo_run_config.fill_holes,
         )
         .unwrap();
 
@@ -1341,6 +1345,24 @@ fn cairo_run_secp_cairo0_ec_mul_by_uint256() {
     let program_data = include_bytes!(
         "../../../cairo_programs/cairo-0-secp-hints-feature/secp_cairo0_ec_mul_by_uint256.json"
     );
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
+fn cairo_run_secp_cairo0_negative_points() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-0-secp-hints-feature/negative_points.json");
+    run_program_simple(program_data.as_slice());
+}
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+#[cfg(feature = "cairo-0-secp-hints")]
+fn cairo_run_secp_cairo0_assert_165_bits() {
+    let program_data =
+        include_bytes!("../../../cairo_programs/cairo-0-secp-hints-feature/assert_165_bit.json");
     run_program_simple(program_data.as_slice());
 }
 

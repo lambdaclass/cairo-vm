@@ -15,16 +15,19 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.85.0
+      uses: dtolnay/rust-toolchain@1.89.0
       with:
           components: rustfmt, clippy
     - uses: actions/checkout@v4
-    - name: Python3 Build
-      uses: actions/setup-python@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.9'
-    - name: Install test dependencies
-      run: pip install -r requirements.txt
+        enable-cache: true
+    - name: Install python deps
+      run: |
+          make python-deps
+          . cairo-vm-env/bin/activate
+          echo PATH=$PATH >> $GITHUB_ENV
     - name: Run benchmark
       run: make benchmark-action
     - name: Store benchmark result

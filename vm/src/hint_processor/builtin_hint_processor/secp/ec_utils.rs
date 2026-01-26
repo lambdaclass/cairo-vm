@@ -119,12 +119,14 @@ Implements hint:
     value = slope = ec_double_slope(point=(x, y), alpha=0, p=SECP_P)
 %}
 */
+#[allow(clippy::too_many_arguments)]
 pub fn compute_doubling_slope(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
     point_alias: &str,
+    pack_prime: &BigUint,
     secp_p: &BigInt,
     alpha: &BigInt,
 ) -> Result<(), HintError> {
@@ -132,7 +134,14 @@ pub fn compute_doubling_slope(
     //ids.point
     let point = EcPoint::from_var_name(point_alias, vm, ids_data, ap_tracking)?;
 
-    let value = ec_double_slope(&(point.x.pack86(), point.y.pack86()), alpha, secp_p)?;
+    let value = ec_double_slope(
+        &(
+            point.x.pack86_for_prime(pack_prime),
+            point.y.pack86_for_prime(pack_prime),
+        ),
+        alpha,
+        secp_p,
+    )?;
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("slope", value);
     Ok(())
@@ -379,6 +388,7 @@ pub fn fast_ec_add_assign_new_x(
     //Assign variables to vm scope
     exec_scopes.insert_value("slope", slope);
     exec_scopes.insert_value("x0", x0);
+    exec_scopes.insert_value("x1", x1);
     exec_scopes.insert_value("y0", y0);
     exec_scopes.insert_value("value", value.clone());
     exec_scopes.insert_value("new_x", value);
@@ -1549,5 +1559,53 @@ mod tests {
                 )
             ]
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn fast_ec_add_assigns_x1_to_scope() {
+        let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import pack\n\nslope = pack(ids.slope, PRIME)\nx0 = pack(ids.point0.x, PRIME)\nx1 = pack(ids.point1.x, PRIME)\ny0 = pack(ids.point0.y, PRIME)\n\nvalue = new_x = (pow(slope, 2, SECP_P) - x0 - x1) % SECP_P";
+        let mut vm = vm_with_range_check!();
+
+        //Insert ids.point0, ids.point1 and ids.slope into memory
+        vm.segments = segments![
+            //ids.point0
+            ((1, 0), 89712),
+            ((1, 1), 56),
+            ((1, 2), 1233409),
+            ((1, 3), 980126),
+            ((1, 4), 10),
+            ((1, 5), 8793),
+            //ids.point1
+            ((1, 6), 1235216451),
+            ((1, 7), 5967),
+            ((1, 8), 2171381),
+            ((1, 9), 445566),
+            ((1, 10), 778899),
+            ((1, 11), 334455),
+            //ids.slope
+            ((1, 12), 67470097831679799377177424_i128),
+            ((1, 13), 43370026683122492246392730_i128),
+            ((1, 14), 16032182557092050689870202_i128)
+        ];
+
+        //Initialize run_context
+        run_context!(vm, 0, 20, 15);
+
+        let ids_data = HashMap::from([
+            ("point0".to_string(), HintReference::new_simple(-15)),
+            ("point1".to_string(), HintReference::new_simple(-9)),
+            ("slope".to_string(), HintReference::new_simple(-3)),
+        ]);
+        let mut exec_scopes = ExecutionScopes::new();
+        exec_scopes.insert_value("SECP_P", SECP_P.clone());
+
+        //Execute the hint
+        assert_matches!(run_hint!(vm, ids_data, hint_code, &mut exec_scopes), Ok(()));
+
+        //Check that x0, x1, y0 are saved to scope (the main point is x1 which was missing before)
+        assert!(exec_scopes.get::<BigInt>("x0").is_ok());
+        assert!(exec_scopes.get::<BigInt>("x1").is_ok());
+        assert!(exec_scopes.get::<BigInt>("y0").is_ok());
     }
 }

@@ -8,7 +8,7 @@ exit_code=0
 for layout in "plain" "small" "dex" "recursive" "starknet" "starknet_with_keccak" "recursive_large_output" "recursive_with_poseidon" "all_solidity" "starknet_with_keccak"; do
     # Run cairo_vm
     echo "Running cairo-vm with layout $layout"
-    cargo run -p cairo-vm-cli --release -- --layout $layout --proof_mode $factorial_compiled --trace_file factorial_rs.trace --memory_file factorial_rs.memory --air_public_input factorial_rs.air_public_input --air_private_input factorial_rs.air_private_input
+    cargo run -p cairo-vm-cli --release -- --layout $layout --proof_mode $factorial_compiled --fill-holes false --trace_file factorial_rs.trace --memory_file factorial_rs.memory --air_public_input factorial_rs.air_public_input --air_private_input factorial_rs.air_private_input
     # Run cairo_lang
     echo "Running cairo_lang with layout $layout"
     cairo-run --layout $layout --proof_mode  --program $factorial_compiled --trace_file factorial_py.trace --memory_file factorial_py.memory --air_public_input factorial_py.air_public_input --air_private_input factorial_py.air_private_input

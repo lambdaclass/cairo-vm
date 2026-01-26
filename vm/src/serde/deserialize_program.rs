@@ -103,6 +103,8 @@ pub struct Identifier {
     pub members: Option<HashMap<String, Member>>,
     pub cairo_type: Option<String>,
     pub size: Option<usize>,
+    // In case of an alias - resolves to the original identifier
+    pub destination: Option<String>,
 }
 
 #[cfg_attr(feature = "test_utils", derive(Arbitrary))]
@@ -491,7 +493,7 @@ pub fn parse_program_json(
     };
     Ok(Program {
         shared_program_data: Arc::new(shared_program_data),
-        constants,
+        constants: Arc::new(constants),
         builtins: program_json.builtins,
     })
 }
@@ -1014,6 +1016,7 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
+                destination: None,
             },
         );
         identifiers.insert(
@@ -1028,6 +1031,7 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
+                destination: None,
             },
         );
         identifiers.insert(
@@ -1040,6 +1044,7 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
+                destination: Some(String::from("starkware.cairo.common.math.unsigned_div_rem")),
             },
         );
         identifiers.insert(
@@ -1054,6 +1059,7 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
+                destination: None,
             },
         );
         identifiers.insert(
@@ -1066,6 +1072,7 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
+                destination: None,
             },
         );
         identifiers.insert(
@@ -1078,6 +1085,7 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
+                destination: None,
             },
         );
         identifiers.insert(
@@ -1090,6 +1098,7 @@ mod tests {
                 members: None,
                 cairo_type: None,
                 size: None,
+                destination: None,
             },
         );
 

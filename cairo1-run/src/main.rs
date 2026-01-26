@@ -1,10 +1,11 @@
-use bincode::enc::write::Writer;
+use cairo1_run::error::EncodeTraceError;
 use cairo1_run::error::Error;
 use cairo1_run::{cairo_run_program, Cairo1RunConfig, FuncArg};
 use cairo_lang_compiler::{
     compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
 };
 use cairo_vm::types::layout::CairoLayoutParams;
+use cairo_vm::vm::trace::trace_entry;
 use cairo_vm::{
     air_public_input::PublicInputError, types::layout_name::LayoutName,
     vm::errors::trace_errors::TraceError, Felt252,
@@ -122,37 +123,50 @@ fn process_args(value: &str) -> Result<FuncArgs, String> {
     Ok(FuncArgs(args))
 }
 
-pub struct FileWriter {
-    buf_writer: io::BufWriter<std::fs::File>,
-    bytes_written: usize,
-}
-
-impl Writer for FileWriter {
-    fn write(&mut self, bytes: &[u8]) -> Result<(), bincode::error::EncodeError> {
-        self.buf_writer
-            .write_all(bytes)
-            .map_err(|e| bincode::error::EncodeError::Io {
-                inner: e,
-                index: self.bytes_written,
-            })?;
-
-        self.bytes_written += bytes.len();
-
-        Ok(())
+/// Writes the trace binary representation.
+///
+/// The trace entries (ap, fp, pc) are little-endian encoded and concatenated:
+/// - ap: 8-byte.
+/// - fp: 8-byte.
+/// - pc: 8-byte.
+fn write_encoded_trace(
+    relocated_trace: &[trace_entry::RelocatedTraceEntry],
+    dest: &mut impl Write,
+) -> Result<(), EncodeTraceError> {
+    for (i, entry) in relocated_trace.iter().enumerate() {
+        dest.write_all(&((entry.ap as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write_all(&((entry.fp as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
+        dest.write_all(&((entry.pc as u64).to_le_bytes()))
+            .map_err(|e| EncodeTraceError(i, e))?;
     }
+
+    Ok(())
 }
 
-impl FileWriter {
-    fn new(buf_writer: io::BufWriter<std::fs::File>) -> Self {
-        Self {
-            buf_writer,
-            bytes_written: 0,
+/// Writes the relocated memory binary representation.
+///
+/// The memory pairs (address, value) are little-endian encoded and concatenated:
+/// - address: 8-byte.
+/// - value: 32-byte.
+fn write_encoded_memory(
+    relocated_memory: &[Option<Felt252>],
+    dest: &mut impl Write,
+) -> Result<(), EncodeTraceError> {
+    for (i, memory_cell) in relocated_memory.iter().enumerate() {
+        match memory_cell {
+            None => continue,
+            Some(unwrapped_memory_cell) => {
+                dest.write_all(&(i as u64).to_le_bytes())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+                dest.write_all(&unwrapped_memory_cell.to_bytes_le())
+                    .map_err(|e| EncodeTraceError(i, e))?;
+            }
         }
     }
 
-    fn flush(&mut self) -> io::Result<()> {
-        self.buf_writer.flush()
-    }
+    Ok(())
 }
 
 fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
@@ -246,18 +260,16 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
             .relocated_trace
             .ok_or(Error::Trace(TraceError::TraceNotRelocated))?;
         let trace_file = std::fs::File::create(trace_path)?;
-        let mut trace_writer =
-            FileWriter::new(io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file));
+        let mut trace_writer = io::BufWriter::with_capacity(3 * 1024 * 1024, trace_file);
 
-        cairo_vm::cairo_run::write_encoded_trace(&relocated_trace, &mut trace_writer)?;
+        write_encoded_trace(&relocated_trace, &mut trace_writer)?;
         trace_writer.flush()?;
     }
     if let Some(memory_path) = args.memory_file {
         let memory_file = std::fs::File::create(memory_path)?;
-        let mut memory_writer =
-            FileWriter::new(io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file));
+        let mut memory_writer = io::BufWriter::with_capacity(5 * 1024 * 1024, memory_file);
 
-        cairo_vm::cairo_run::write_encoded_memory(&runner.relocated_memory, &mut memory_writer)?;
+        write_encoded_memory(&runner.relocated_memory, &mut memory_writer)?;
         memory_writer.flush()?;
     }
 
@@ -453,6 +465,27 @@ mod tests {
         "[939340725154356279478212603733403581890242362232206720294887278547043341575]",
         None,
         None
+    )]
+    #[case(
+        "with_input/implicit_system_builtin.cairo",
+        "[1 2]",
+        "[1 2]",
+        Some("[1 2]"),
+        Some("[1 2]")
+    )]
+    #[case(
+        "with_input/implicit_gas_builtin.cairo",
+        "[1 2]",
+        "[1 2]",
+        Some("[1 2]"),
+        Some("[1 2]")
+    )]
+    #[case(
+        "with_input/system_segment_gas.cairo",
+        "[1 2]",
+        "[1 2]",
+        Some("[1 2]"),
+        Some("[1 2]")
     )]
     fn test_run_program(
         #[case] program: &str,
