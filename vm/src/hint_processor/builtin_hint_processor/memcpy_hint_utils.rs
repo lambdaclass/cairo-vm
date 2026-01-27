@@ -1,8 +1,8 @@
-use crate::stdlib::{any::Any, collections::HashMap, prelude::*};
+use crate::stdlib::{collections::HashMap, prelude::*};
 
 use crate::{
     hint_processor::{
-        builtin_hint_processor::hint_utils::{get_integer_from_var_name, insert_value_into_ap},
+        builtin_hint_processor::hint_utils::{enter_scope_with_n_from_var_name, insert_value_into_ap},
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
@@ -36,7 +36,5 @@ pub fn memcpy_enter_scope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let len: Box<dyn Any> = Box::new(get_integer_from_var_name("len", vm, ids_data, ap_tracking)?);
-    exec_scopes.enter_scope(HashMap::from([(String::from("n"), len)]));
-    Ok(())
+    enter_scope_with_n_from_var_name("len", vm, exec_scopes, ids_data, ap_tracking)
 }

@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* refactor: deduplicate memcpy/memset scope initialization in builtin hint processor [#2313](https://github.com/lambdaclass/cairo-vm/pull/2313)
+
 * chore: Update iai-callgrind from 0.3.1 to 0.14.0 [#2311](https://github.com/lambdaclass/cairo-vm/pull/2311)
 
 * refactor: simplify relocated instruction locations lookup [#2293](https://github.com/lambdaclass/cairo-vm/pull/2293)
