@@ -2,7 +2,19 @@
 
 #### Upcoming Changes
 
+* chore: Update iai-callgrind from 0.3.1 to 0.14.0 [#2311](https://github.com/lambdaclass/cairo-vm/pull/2311)
+
+* refactor: simplify relocated instruction locations lookup [#2293](https://github.com/lambdaclass/cairo-vm/pull/2293)
+
+* feat: Add public `ORDERED_BUILTIN_LIST` constant [#2298](https://github.com/lambdaclass/cairo-vm/pull/2298)
+
+* chore(breaking): Remove bincode crate [#2294](https://github.com/lambdaclass/cairo-vm/pull/2294)
+
+#### [3.1.0] - 2026-1-19
+
 * fix: Make cairo1-run to conditionally relocate memory and trace [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
+
+* feat(breaking): Introduce `StepHooks` trait which allows hooks to be stateful [#2295](https://github.com/lambdaclass/cairo-vm/pull/2295)
 
 #### [3.0.1] - 2025-12-22
 

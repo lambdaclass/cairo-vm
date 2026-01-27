@@ -110,7 +110,7 @@ pub struct VirtualMachine {
     pub(crate) disable_trace_padding: bool,
     instruction_cache: Vec<Option<Instruction>>,
     #[cfg(feature = "test_utils")]
-    pub(crate) hooks: crate::vm::hooks::Hooks,
+    pub(crate) hooks: Option<Box<dyn crate::vm::hooks::StepHooks>>,
     pub(crate) relocation_table: Option<Vec<usize>>,
 }
 
@@ -141,7 +141,7 @@ impl VirtualMachine {
             disable_trace_padding,
             instruction_cache: Vec::new(),
             #[cfg(feature = "test_utils")]
-            hooks: Default::default(),
+            hooks: None,
             relocation_table: None,
         }
     }
@@ -1358,7 +1358,7 @@ pub struct VirtualMachineBuilder {
     skip_instruction_execution: bool,
     run_finished: bool,
     #[cfg(feature = "test_utils")]
-    pub(crate) hooks: crate::vm::hooks::Hooks,
+    pub(crate) hooks: Option<Box<dyn crate::vm::hooks::StepHooks>>,
 }
 
 impl Default for VirtualMachineBuilder {
@@ -1378,7 +1378,7 @@ impl Default for VirtualMachineBuilder {
             segments: MemorySegmentManager::new(),
             run_finished: false,
             #[cfg(feature = "test_utils")]
-            hooks: Default::default(),
+            hooks: None,
         }
     }
 }
@@ -1423,8 +1423,8 @@ impl VirtualMachineBuilder {
     }
 
     #[cfg(feature = "test_utils")]
-    pub fn hooks(mut self, hooks: crate::vm::hooks::Hooks) -> VirtualMachineBuilder {
-        self.hooks = hooks;
+    pub fn hooks(mut self, hooks: Box<dyn crate::vm::hooks::StepHooks>) -> VirtualMachineBuilder {
+        self.hooks = Some(hooks);
         self
     }
 
@@ -5352,11 +5352,12 @@ mod tests {
             Err(VirtualMachineError::Unexpected)
         }
         #[cfg(feature = "test_utils")]
-        let virtual_machine_builder = virtual_machine_builder.hooks(crate::vm::hooks::Hooks::new(
-            Some(std::sync::Arc::new(before_first_step_hook)),
-            None,
-            None,
-        ));
+        let virtual_machine_builder =
+            virtual_machine_builder.hooks(Box::new(crate::vm::hooks::Hooks::new(
+                Some(std::sync::Arc::new(before_first_step_hook)),
+                None,
+                None,
+            )));
 
         #[allow(unused_mut)]
         let mut virtual_machine_from_builder = virtual_machine_builder.build();

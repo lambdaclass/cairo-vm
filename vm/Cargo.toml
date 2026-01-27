@@ -12,7 +12,6 @@ keywords.workspace = true
 default = ["std"]
 std = [
     "serde_json/std",
-    "bincode/std",
     "anyhow/std",
     "starknet-types-core/std",
     "starknet-crypto/std",
@@ -45,7 +44,6 @@ num-traits = { workspace = true }
 num-integer = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-bincode = { workspace = true }
 starknet-crypto = { workspace = true }
 sha3 = { workspace = true }
 indoc = { workspace = true }
@@ -89,7 +87,7 @@ wasm-bindgen-test = "0.3.50"
 getrandom = { version = "0.2", features = ["js"]}
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-iai-callgrind = "0.3.1"
+iai-callgrind = "0.14.0"
 criterion = { version = "0.5.1", features = ["html_reports"] }
 proptest = "1.0.0"
 mimalloc.workspace = true
