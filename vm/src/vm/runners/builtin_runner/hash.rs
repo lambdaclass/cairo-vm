@@ -61,11 +61,7 @@ impl HashBuiltinRunner {
         memory: &Memory,
     ) -> Result<Option<MaybeRelocatable>, RunnerError> {
         if address.offset.mod_floor(&(CELLS_PER_HASH as usize)) != 2
-            || *self
-                .verified_addresses
-                .borrow()
-                .get(address.offset)
-                .unwrap_or(&false)
+            || *self.verified_addresses.borrow().get(address.offset).unwrap_or(&false)
         {
             return Ok(None);
         };
@@ -78,14 +74,11 @@ impl HashBuiltinRunner {
             segment_index: address.segment_index,
             offset: address.offset - 2,
         }));
-        if let (Some(MaybeRelocatable::Int(num_a)), Some(MaybeRelocatable::Int(num_b))) = (
-            num_a.as_ref().map(|x| x.as_ref()),
-            num_b.as_ref().map(|x| x.as_ref()),
-        ) {
+        if let (Some(MaybeRelocatable::Int(num_a)), Some(MaybeRelocatable::Int(num_b))) =
+            (num_a.as_ref().map(|x| x.as_ref()), num_b.as_ref().map(|x| x.as_ref()))
+        {
             if self.verified_addresses.borrow().len() <= address.offset {
-                self.verified_addresses
-                    .borrow_mut()
-                    .resize(address.offset + 1, false);
+                self.verified_addresses.borrow_mut().resize(address.offset + 1, false);
             }
             self.verified_addresses.borrow_mut()[address.offset] = true;
             //Compute pedersen Hash
@@ -96,9 +89,7 @@ impl HashBuiltinRunner {
     }
 
     pub fn get_used_cells(&self, segments: &MemorySegmentManager) -> Result<usize, MemoryError> {
-        segments
-            .get_segment_used_size(self.base())
-            .ok_or(MemoryError::MissingSegmentUsedSizes)
+        segments.get_segment_used_size(self.base()).ok_or(MemoryError::MissingSegmentUsedSizes)
     }
 
     pub fn get_used_instances(
@@ -146,10 +137,7 @@ impl HashBuiltinRunner {
         let mut private_inputs = vec![];
         if let Some(segment) = memory.data.get(self.base) {
             let segment_len = segment.len();
-            for (index, off) in (0..segment_len)
-                .step_by(CELLS_PER_HASH as usize)
-                .enumerate()
-            {
+            for (index, off) in (0..segment_len).step_by(CELLS_PER_HASH as usize).enumerate() {
                 // Add the input cells of each hash instance to the private inputs
                 if let (Ok(x), Ok(y)) = (
                     memory.get_integer((self.base as isize, off).into()),
@@ -199,21 +187,14 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.segments = segments![
-            ((0, 0), (0, 0)),
-            ((0, 1), (0, 1)),
-            ((2, 0), (0, 0)),
-            ((2, 1), (0, 0))
-        ];
+        vm.segments =
+            segments![((0, 0), (0, 0)), ((0, 1), (0, 1)), ((2, 0), (0, 0)), ((2, 1), (0, 0))];
 
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let pointer = Relocatable::from((2, 2));
 
-        assert_eq!(
-            builtin.final_stack(&vm.segments, pointer).unwrap(),
-            Relocatable::from((2, 1))
-        );
+        assert_eq!(builtin.final_stack(&vm.segments, pointer).unwrap(), Relocatable::from((2, 1)));
     }
 
     #[test]
@@ -223,12 +204,8 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.segments = segments![
-            ((0, 0), (0, 0)),
-            ((0, 1), (0, 1)),
-            ((2, 0), (0, 0)),
-            ((2, 1), (0, 0))
-        ];
+        vm.segments =
+            segments![((0, 0), (0, 0)), ((0, 1), (0, 1)), ((2, 0), (0, 0)), ((2, 1), (0, 0))];
 
         vm.segments.segment_used_sizes = Some(vec![999]);
 
@@ -251,21 +228,14 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.segments = segments![
-            ((0, 0), (0, 0)),
-            ((0, 1), (0, 1)),
-            ((2, 0), (0, 0)),
-            ((2, 1), (0, 0))
-        ];
+        vm.segments =
+            segments![((0, 0), (0, 0)), ((0, 1), (0, 1)), ((2, 0), (0, 0)), ((2, 1), (0, 0))];
 
         vm.segments.segment_used_sizes = Some(vec![0]);
 
         let pointer = Relocatable::from((2, 2));
 
-        assert_eq!(
-            builtin.final_stack(&vm.segments, pointer).unwrap(),
-            Relocatable::from((2, 2))
-        );
+        assert_eq!(builtin.final_stack(&vm.segments, pointer).unwrap(), Relocatable::from((2, 2)));
     }
 
     #[test]
@@ -275,12 +245,7 @@ mod tests {
 
         let mut vm = vm!();
 
-        vm.segments = segments![
-            ((0, 0), (0, 0)),
-            ((0, 1), (0, 1)),
-            ((2, 0), (0, 0)),
-            ((2, 1), 2)
-        ];
+        vm.segments = segments![((0, 0), (0, 0)), ((0, 1), (0, 1)), ((2, 0), (0, 0)), ((2, 1), 2)];
 
         vm.segments.segment_used_sizes = Some(vec![0]);
 
@@ -329,14 +294,9 @@ mod tests {
 
         let address = cairo_runner.initialize(false).unwrap();
 
-        cairo_runner
-            .run_until_pc(address, &mut hint_processor)
-            .unwrap();
+        cairo_runner.run_until_pc(address, &mut hint_processor).unwrap();
 
-        assert_eq!(
-            builtin.get_used_cells_and_allocated_size(&cairo_runner.vm),
-            Ok((0, 3))
-        );
+        assert_eq!(builtin.get_used_cells_and_allocated_size(&cairo_runner.vm), Ok((0, 3)));
     }
 
     #[test]
@@ -374,9 +334,7 @@ mod tests {
 
         let address = cairo_runner.initialize(false).unwrap();
 
-        cairo_runner
-            .run_until_pc(address, &mut hint_processor)
-            .unwrap();
+        cairo_runner.run_until_pc(address, &mut hint_processor).unwrap();
 
         assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(3));
     }
@@ -434,10 +392,7 @@ mod tests {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let vm = vm!();
 
-        assert_eq!(
-            builtin.get_used_cells(&vm.segments),
-            Err(MemoryError::MissingSegmentUsedSizes)
-        );
+        assert_eq!(builtin.get_used_cells(&vm.segments), Err(MemoryError::MissingSegmentUsedSizes));
     }
 
     #[test]
@@ -466,10 +421,7 @@ mod tests {
         let verified_addresses = vec![Relocatable::from((0, 3)), Relocatable::from((0, 6))];
         builtin.verified_addresses =
             RefCell::new(vec![false, false, false, true, false, false, true]);
-        assert_eq!(
-            builtin.get_additional_data(),
-            BuiltinAdditionalData::Hash(verified_addresses)
-        )
+        assert_eq!(builtin.get_additional_data(), BuiltinAdditionalData::Hash(verified_addresses))
     }
 
     #[test]
@@ -488,10 +440,8 @@ mod tests {
         let mut builtin = HashBuiltinRunner::new(Some(1), true);
         builtin.verified_addresses = RefCell::new(vec![false, false, true, false, false, true]);
 
-        let additional_data = BuiltinAdditionalData::Hash(vec![
-            Relocatable::from((0, 0)),
-            Relocatable::from((0, 4)),
-        ]);
+        let additional_data =
+            BuiltinAdditionalData::Hash(vec![Relocatable::from((0, 0)), Relocatable::from((0, 4))]);
 
         builtin.extend_additional_data(&additional_data).unwrap();
 
@@ -521,21 +471,9 @@ mod tests {
         assert_eq!(
             builtin.air_private_input(&segments),
             (vec![
-                PrivateInput::Pair(PrivateInputPair {
-                    index: 0,
-                    x: 0.into(),
-                    y: 1.into()
-                }),
-                PrivateInput::Pair(PrivateInputPair {
-                    index: 1,
-                    x: 3.into(),
-                    y: 4.into()
-                }),
-                PrivateInput::Pair(PrivateInputPair {
-                    index: 2,
-                    x: 6.into(),
-                    y: 7.into()
-                }),
+                PrivateInput::Pair(PrivateInputPair { index: 0, x: 0.into(), y: 1.into() }),
+                PrivateInput::Pair(PrivateInputPair { index: 1, x: 3.into(), y: 4.into() }),
+                PrivateInput::Pair(PrivateInputPair { index: 2, x: 6.into(), y: 7.into() }),
             ]),
         );
     }
