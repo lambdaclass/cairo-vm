@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* chore(vm): unify Uint256 usage across u256 hints and split quotient via Uint512 [#2237](https://github.com/lambdaclass/cairo-vm/pull/2237) 
+
 * fix: assign validation rules in place to preserve segment-index alignment [#2268](https://github.com/lambdaclass/cairo-vm/pull/2268)
 
 * chore: Remove old compare-benchmarks Makefile command [#2307](https://github.com/lambdaclass/cairo-vm/pull/2307)
