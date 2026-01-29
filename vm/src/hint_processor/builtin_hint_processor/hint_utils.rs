@@ -79,8 +79,12 @@ pub(crate) fn enter_scope_with_n_from_var_name(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let n: Box<dyn Any> =
-        Box::new(get_integer_from_var_name(source_var_name, vm, ids_data, ap_tracking)?);
+    let n: Box<dyn Any> = Box::new(get_integer_from_var_name(
+        source_var_name,
+        vm,
+        ids_data,
+        ap_tracking,
+    )?);
     exec_scopes.enter_scope(HashMap::from([(String::from("n"), n)]));
     Ok(())
 }
