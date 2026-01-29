@@ -47,7 +47,8 @@ jobs:
       run: |
         sudo apt update
         sudo apt install -y valgrind
-        cargo install --version 0.3.1 iai-callgrind-runner
+        IAI_VERSION=$(grep '^iai-callgrind' vm/Cargo.toml | sed 's/.*"\(.*\)"/\1/')
+        cargo install --version $IAI_VERSION iai-callgrind-runner
 
     - name: Run iai benchmarks
       if: ${{ steps.cache-iai-results.outputs.cache-hit != 'true' }}
@@ -78,7 +79,8 @@ jobs:
       run: |
         sudo apt update
         sudo apt install -y valgrind
-        cargo install --version 0.3.1 iai-callgrind-runner
+        IAI_VERSION=$(grep '^iai-callgrind' vm/Cargo.toml | sed 's/.*"\(.*\)"/\1/')
+        cargo install --version $IAI_VERSION iai-callgrind-runner
 
     - name: Restore cache for ${{ github.event.pull_request.base.sha }}
       uses: actions/cache/restore@v3
