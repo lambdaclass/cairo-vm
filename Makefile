@@ -224,7 +224,7 @@ build-cairo-2-compiler:
 	fi
 
 cargo-deps:
-	cargo install --version 0.3.1 iai-callgrind-runner
+	cargo install --version 0.14.0 iai-callgrind-runner
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph --locked
 	cargo install --version 1.19.0 hyperfine
@@ -324,9 +324,6 @@ iai-benchmark-action: cairo_bench_programs
 
 flamegraph:
 	cargo flamegraph --root --bench criterion_benchmark -- --bench
-
-compare_benchmarks: cairo_bench_programs
-	cd bench && ./run_benchmarks.sh
 
 compare_trace_memory: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_MEM)
 	cd vm/src/tests; ./compare_vm_state.sh trace memory

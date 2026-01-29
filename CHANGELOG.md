@@ -2,6 +2,12 @@
 
 #### Upcoming Changes
 
+* chore: Remove old compare-benchmarks Makefile command [#2307](https://github.com/lambdaclass/cairo-vm/pull/2307)
+
+* chore: Update iai-callgrind from 0.3.1 to 0.14.0 [#2311](https://github.com/lambdaclass/cairo-vm/pull/2311)
+
+* refactor: simplify relocated instruction locations lookup [#2293](https://github.com/lambdaclass/cairo-vm/pull/2293)
+
 * feat: Add public `ORDERED_BUILTIN_LIST` constant [#2298](https://github.com/lambdaclass/cairo-vm/pull/2298)
 
 * chore(breaking): Remove bincode crate [#2294](https://github.com/lambdaclass/cairo-vm/pull/2294)
