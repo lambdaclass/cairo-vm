@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* fix: assign validation rules in place to preserve segment-index alignment [#2268](https://github.com/lambdaclass/cairo-vm/pull/2268)
+
 * chore: Remove old compare-benchmarks Makefile command [#2307](https://github.com/lambdaclass/cairo-vm/pull/2307)
 
 * chore: Update iai-callgrind from 0.3.1 to 0.14.0 [#2311](https://github.com/lambdaclass/cairo-vm/pull/2311)
