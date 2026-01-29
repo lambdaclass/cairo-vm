@@ -2,6 +2,8 @@
 
 #### Upcoming Changes
 
+* refactor: deduplicate memcpy/memset scope initialization in builtin hint processor [#2313](https://github.com/lambdaclass/cairo-vm/pull/2313)
+
 * fix: assign validation rules in place to preserve segment-index alignment [#2268](https://github.com/lambdaclass/cairo-vm/pull/2268)
 
 * chore: Remove old compare-benchmarks Makefile command [#2307](https://github.com/lambdaclass/cairo-vm/pull/2307)

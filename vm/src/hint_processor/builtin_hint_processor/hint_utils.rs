@@ -1,4 +1,4 @@
-use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
+use crate::stdlib::{any::Any, boxed::Box, collections::HashMap, prelude::*};
 
 use crate::Felt252;
 
@@ -10,6 +10,7 @@ use crate::hint_processor::hint_processor_utils::{
     get_integer_from_reference, get_maybe_relocatable_from_reference,
 };
 use crate::serde::deserialize_program::ApTracking;
+use crate::types::exec_scope::ExecutionScopes;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::relocatable::Relocatable;
 use crate::vm::errors::hint_errors::HintError;
@@ -68,6 +69,24 @@ macro_rules! define_hint_string_map {
             };
         }
     }
+}
+
+/// Enters a new execution scope containing a single variable `n` sourced from `ids.<source_var_name>`.
+pub(crate) fn enter_scope_with_n_from_var_name(
+    source_var_name: &str,
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    ids_data: &HashMap<String, HintReference>,
+    ap_tracking: &ApTracking,
+) -> Result<(), HintError> {
+    let n: Box<dyn Any> = Box::new(get_integer_from_var_name(
+        source_var_name,
+        vm,
+        ids_data,
+        ap_tracking,
+    )?);
+    exec_scopes.enter_scope(HashMap::from([(String::from("n"), n)]));
+    Ok(())
 }
 
 //Inserts value into the address of the given ids variable
