@@ -38,6 +38,8 @@
 
 * fix: correct duplicate tuple index in InvalidTrackingGroup error message [#2276](https://github.com/lambdaclass/cairo-vm/pull/2276)
 
+* fix: preserve verified offset flags in `HashBuiltinRunner::extend_additional_data` [#2269](https://github.com/lambdaclass/cairo-vm/pull/2269)
+
 #### [3.0.0] - 2025-11-19
 
 #### [3.0.0-rc.5] - 2025-11-14
