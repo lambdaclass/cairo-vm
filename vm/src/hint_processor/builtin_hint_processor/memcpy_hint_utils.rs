@@ -2,7 +2,9 @@ use crate::stdlib::{collections::HashMap, prelude::*};
 
 use crate::{
     hint_processor::{
-        builtin_hint_processor::hint_utils::{enter_scope_with_n_from_var_name, insert_value_into_ap},
+        builtin_hint_processor::hint_utils::{
+            enter_scope_with_n_from_var_name, insert_value_into_ap,
+        },
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
