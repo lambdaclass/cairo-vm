@@ -586,7 +586,7 @@ impl Memory {
             self.validation_rules
                 .resize_with(segment_index + 1, || None);
         }
-        self.validation_rules.insert(segment_index, Some(rule));
+        self.validation_rules[segment_index] = Some(rule);
     }
 
     fn validate_memory_cell(&mut self, addr: Relocatable) -> Result<(), MemoryError> {
@@ -2411,5 +2411,45 @@ mod memory_tests {
 
         // The temp segments whose rules end at Int are not moved
         assert!(memory.temp_data.is_empty());
+    }
+
+    #[test]
+    fn add_validation_rule_out_of_order_no_shift_and_correct_validation() {
+        let mut memory = Memory::new();
+        memory.data.resize(4, Vec::new());
+
+        memory
+            .insert_value(Relocatable::from((3, 0)), Felt252::from(3))
+            .unwrap();
+        memory
+            .insert_value(Relocatable::from((1, 0)), Felt252::from(1))
+            .unwrap();
+
+        let rule_seg3 = ValidationRule(Box::new(
+            |memory: &Memory, addr: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
+                memory.get_integer(addr)?;
+                Ok(vec![addr])
+            },
+        ));
+        let rule_seg1 = ValidationRule(Box::new(
+            |memory: &Memory, addr: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
+                memory.get_integer(addr)?;
+                Ok(vec![addr])
+            },
+        ));
+
+        memory.add_validation_rule(3, rule_seg3);
+        memory.add_validation_rule(1, rule_seg1);
+
+        assert!(memory.validation_rules[3].is_some());
+        assert!(memory.validation_rules[1].is_some());
+
+        assert_eq!(memory.validate_existing_memory(), Ok(()));
+        assert!(memory
+            .validated_addresses
+            .contains(&Relocatable::from((3, 0))));
+        assert!(memory
+            .validated_addresses
+            .contains(&Relocatable::from((1, 0))));
     }
 }

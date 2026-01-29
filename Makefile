@@ -325,9 +325,6 @@ iai-benchmark-action: cairo_bench_programs
 flamegraph:
 	cargo flamegraph --root --bench criterion_benchmark -- --bench
 
-compare_benchmarks: cairo_bench_programs
-	cd bench && ./run_benchmarks.sh
-
 compare_trace_memory: $(CAIRO_RS_TRACE) $(CAIRO_TRACE) $(CAIRO_RS_MEM) $(CAIRO_MEM)
 	cd vm/src/tests; ./compare_vm_state.sh trace memory
 
