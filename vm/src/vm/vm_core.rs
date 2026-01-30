@@ -897,6 +897,13 @@ impl VirtualMachine {
         Ok(())
     }
 
+    /// Clears the execution trace to free memory.
+    /// This is useful when the trace is no longer needed (e.g., after CairoPie generation).
+    /// For large executions, the trace can consume significant memory (~1.5GB+).
+    pub fn clear_trace(&mut self) {
+        self.trace = None;
+    }
+
     /// Returns the values (fp, pc) corresponding to each call instruction in the traceback.
     /// Returns the most recent call last.
     pub fn get_traceback_entries(&self) -> Vec<(Relocatable, Relocatable)> {
