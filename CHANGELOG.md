@@ -12,6 +12,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* fix: Allow WASM32 compilation with std feature enabled [#2315](https://github.com/lambdaclass/cairo-vm/pull/2315)
+
 * chore(vm): unify Uint256 usage across u256 hints and split quotient via Uint512 [#2237](https://github.com/lambdaclass/cairo-vm/pull/2237) 
 
 * fix: assign validation rules in place to preserve segment-index alignment [#2268](https://github.com/lambdaclass/cairo-vm/pull/2268)
