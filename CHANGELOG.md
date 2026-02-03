@@ -3,9 +3,6 @@
 #### Upcoming Changes
 
 * fix: Allow WASM32 compilation with std feature enabled [#2315](https://github.com/lambdaclass/cairo-vm/pull/2315)
-  * Removes forced `no_std` for `wasm32` targets, allowing users to choose via feature flags
-  * Adds `getrandom` dependency with `js` feature for WASM32 targets
-  * Fixes cfg attributes that incorrectly assumed `wasm32` = `no_std`
 
 * chore(vm): unify Uint256 usage across u256 hints and split quotient via Uint512 [#2237](https://github.com/lambdaclass/cairo-vm/pull/2237) 
 
