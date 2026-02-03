@@ -79,10 +79,12 @@ assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
 num-prime = { version = "0.4.3", features = ["big-int"] }
 
+# wasm32 requires getrandom with js feature for std support
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3.50"
-# The js feature needs to be enabled
-getrandom = { version = "0.2", features = ["js"]}
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 iai-callgrind = "0.14.0"

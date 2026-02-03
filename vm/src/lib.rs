@@ -14,7 +14,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(warnings)]
 #![forbid(unsafe_code)]
-#![cfg_attr(any(not(feature = "std")), no_std)]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "std")]
 include!("./with_std.rs");
