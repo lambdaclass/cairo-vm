@@ -46,6 +46,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 starknet-crypto = { workspace = true }
 sha3 = { workspace = true }
+tracing = { workspace = true }
 indoc = { workspace = true }
 lazy_static = { workspace = true }
 nom = { workspace = true }
