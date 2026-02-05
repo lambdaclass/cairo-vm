@@ -639,6 +639,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "std")]
     fn write_encoded_trace_with_std_io_writer() {
         let trace = vec![RelocatedTraceEntry {
             ap: 1,
@@ -654,6 +655,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "std")]
     fn write_encoded_memory_with_std_io_writer() {
         let memory = vec![None, Some(Felt252::from(42u64))];
         let mut buf = Vec::new();
