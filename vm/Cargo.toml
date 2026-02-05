@@ -65,8 +65,6 @@ bitvec = { workspace = true }
 # Dependencies for cairo-1-hints feature
 cairo-lang-starknet-classes = { workspace = true, optional = true }
 cairo-lang-casm = { workspace = true, optional = true }
-
-# TODO: check these dependencies for wasm compatibility
 ark-ff = { workspace = true, optional = true }
 ark-std = { workspace = true, optional = true }
 
@@ -81,13 +79,15 @@ assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
 num-prime = { version = "0.4.3", features = ["big-int"] }
 
+# wasm32 requires getrandom with js feature for std support
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3.50"
-# The js feature needs to be enabled
-getrandom = { version = "0.2", features = ["js"]}
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-iai-callgrind = "0.3.1"
+iai-callgrind = "0.14.0"
 criterion = { version = "0.5.1", features = ["html_reports"] }
 proptest = "1.0.0"
 mimalloc.workspace = true
