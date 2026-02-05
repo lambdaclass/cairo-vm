@@ -614,7 +614,7 @@ impl ModBuiltinRunner {
                     != (prev_inputs.offsets_ptr + (3 * self.instance_def.batch_size))?
                 {
                     return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((self.name(), format!("inputs.offsets_ptr != prev_inputs.offsets_ptr + 3 * batch_size. Got: inputs.offsets_ptr={}, prev_inputs.offsets_ptr={}, batch_size={}",
-                inputs.values_ptr, prev_inputs.values_ptr, self.instance_def.batch_size)))).into());
+                inputs.offsets_ptr, prev_inputs.offsets_ptr, self.instance_def.batch_size)))).into());
                 }
                 if inputs.n != prev_inputs.n.saturating_sub(self.instance_def.batch_size) {
                     return Err(RunnerError::ModBuiltinSecurityCheck(Box::new((self.name(), format!("inputs.n != prev_inputs.n - batch_size. Got: inputs.n={}, prev_inputs.n={}, batch_size={}",
