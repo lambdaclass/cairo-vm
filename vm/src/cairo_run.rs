@@ -617,11 +617,16 @@ mod tests {
 
     #[test]
     fn write_encoded_trace_error_on_small_buffer() {
-        let trace = vec![RelocatedTraceEntry { ap: 1, fp: 2, pc: 3 }];
+        let trace = vec![RelocatedTraceEntry {
+            ap: 1,
+            fp: 2,
+            pc: 3,
+        }];
         let mut buffer = [0u8; 10]; // Too small (needs 24 bytes)
         let mut writer = SliceWriter::new(&mut buffer);
-        let result = write_encoded_trace(&trace, &mut writer);
-        assert!(result.is_err());
+        let err = write_encoded_trace(&trace, &mut writer).unwrap_err();
+        assert_eq!(err.to_string(), "Failed to encode trace at position 0");
+        assert_eq!(err.1.to_string(), "Failed to write bytes");
     }
 
     #[test]
@@ -629,7 +634,31 @@ mod tests {
         let memory = vec![Some(Felt252::from(1u64))];
         let mut buffer = [0u8; 10]; // Too small (needs 40 bytes: 8 + 32)
         let mut writer = SliceWriter::new(&mut buffer);
-        let result = write_encoded_memory(&memory, &mut writer);
-        assert!(result.is_err());
+        let err = write_encoded_memory(&memory, &mut writer).unwrap_err();
+        assert_eq!(err.to_string(), "Failed to encode trace at position 0");
+    }
+
+    #[test]
+    fn write_encoded_trace_with_std_io_writer() {
+        let trace = vec![RelocatedTraceEntry {
+            ap: 1,
+            fp: 2,
+            pc: 3,
+        }];
+        let mut buf = Vec::new();
+        write_encoded_trace(&trace, &mut buf).unwrap();
+        assert_eq!(buf.len(), 24);
+        assert_eq!(&buf[0..8], &1u64.to_le_bytes());
+        assert_eq!(&buf[8..16], &2u64.to_le_bytes());
+        assert_eq!(&buf[16..24], &3u64.to_le_bytes());
+    }
+
+    #[test]
+    fn write_encoded_memory_with_std_io_writer() {
+        let memory = vec![None, Some(Felt252::from(42u64))];
+        let mut buf = Vec::new();
+        write_encoded_memory(&memory, &mut buf).unwrap();
+        assert_eq!(buf.len(), 40); // 8 (addr) + 32 (value)
+        assert_eq!(&buf[0..8], &1u64.to_le_bytes()); // address = 1 (index of Some)
     }
 }
