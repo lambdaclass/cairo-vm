@@ -1,5 +1,15 @@
 ## Cairo-VM Changelog
 
+### Version Guide
+
+Cairo VM maintains two parallel branches:
+- **2.x.y branch**: Stable API, minimal breaking changes
+- **3.x (main)**: New features with breaking API changes
+
+Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
+
+---
+
 #### Upcoming Changes
 
 * feature: add negative case for inv_mod_p_uint512 [#2317](https://github.com/lambdaclass/cairo-vm/pull/2317)
@@ -22,27 +32,117 @@
 
 * refactor: Make HintReference dereference count explicit in `get_maybe_relocatable_from_reference` [#2296](https://github.com/lambdaclass/cairo-vm/pull/2296)
 
-#### [3.1.0] - 2026-1-19
+#### [3.1.0] - 2026-01-19
 
-* fix: Make cairo1-run to conditionally relocate memory and trace [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
+**Summary**: Introduces stateful VM hooks via the `StepHooks` trait, enabling debuggers and instrumentation tools.
+
+**Breaking Changes**
 
 * feat(breaking): Introduce `StepHooks` trait which allows hooks to be stateful [#2295](https://github.com/lambdaclass/cairo-vm/pull/2295)
+  * New `StepHooks` trait that `Hooks` implements
+  * Allows hooks to be stateful (needed for cairo-debugger)
+  * **Migration**: If implementing custom hooks, implement the `StepHooks` trait
 
-#### [3.0.1] - 2025-12-22
-
-* fix: Fix compute_ids_high_low hint constant path [#2285](https://github.com/lambdaclass/cairo-vm/pull/2285)
-
-* fix: also mark PC as accessed in run_instruction [#2106](https://github.com/lambdaclass/cairo-vm/pull/2106)
+**Features**
 
 * feat: Make Blake2s API public [#2286](https://github.com/lambdaclass/cairo-vm/pull/2286)
 
 * feat: implemented delete_unaccessed function [#2282](https://github.com/lambdaclass/cairo-vm/pull/2282)
 
+**Bug Fixes**
+
+* fix: Make cairo1-run to conditionally relocate memory and trace [#2241](https://github.com/lambdaclass/cairo-vm/pull/2241)
+  * Honor `relocate_mem` and `trace_enabled` flags in cairo1-run
+
+* fix: Fix compute_ids_high_low hint constant path [#2285](https://github.com/lambdaclass/cairo-vm/pull/2285)
+
+* fix: also mark PC as accessed in run_instruction [#2106](https://github.com/lambdaclass/cairo-vm/pull/2106)
+
 * fix: rename y_cube_int to y_square_int in get_point_from_x [#2271](https://github.com/lambdaclass/cairo-vm/pull/2271)
 
 * fix: correct duplicate tuple index in InvalidTrackingGroup error message [#2276](https://github.com/lambdaclass/cairo-vm/pull/2276)
 
+#### [3.0.1] - 2025-12-22
+
+*Patch release with bug fixes backported to 3.0.x. See [3.1.0] for the consolidated changes.*
+
 #### [3.0.0] - 2025-11-19
+
+**Summary**: Major release consolidating all changes from v3.0.0-rc.1 through v3.0.0-rc.5. Introduces accessible scopes for hints, deterministic iteration, and various API improvements.
+
+**Breaking Changes**
+
+* feat(BREAKING): add support for accessible scopes in hint processor [#2042](https://github.com/lambdaclass/cairo-vm/pull/2042)
+  * `accessible_scopes` field added to `HintProcessorData`
+
+* breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
+  * Constants now stored in hint data for correct resolution in nested programs
+
+* dev(BREAKING): Make blake2s API internal [#2265](https://github.com/lambdaclass/cairo-vm/pull/2265)
+
+* feat: Make QM31 functions internal [#2181](https://github.com/lambdaclass/cairo-vm/pull/2181)
+
+* feat: Use BTreeMap in PIE additional data [#2162](https://github.com/lambdaclass/cairo-vm/pull/2162)
+  * Ensures deterministic PIE ordering
+
+* [BREAKING] Compute missing builtin cells only in proof mode [#2088](https://github.com/lambdaclass/cairo-vm/pull/2088)
+  * Fill holes only in proof mode
+
+**Features**
+
+* feat: Add support for WASM with Cairo 1 [#2216](https://github.com/lambdaclass/cairo-vm/pull/2216)
+
+* feat: Add `--fill-holes` CLI flag instead of relying on `--proof-mode` [#2165](https://github.com/lambdaclass/cairo-vm/pull/2165)
+
+* feat: Added support for large files in PIE [#2136](https://github.com/lambdaclass/cairo-vm/pull/2136)
+
+* feat: Enable using secure run in proof mode [#2113](https://github.com/lambdaclass/cairo-vm/pull/2113)
+
+* feat: Add perpetual and dex with bitwise layouts [#2067](https://github.com/lambdaclass/cairo-vm/pull/2067)
+
+* feat: Fill holes in builtins segments to save computation in the prover [#2036](https://github.com/lambdaclass/cairo-vm/pull/2036)
+
+* feat: add support for alias identifiers destination in program serde [#2071](https://github.com/lambdaclass/cairo-vm/pull/2071)
+
+* feat: add get_current_step getter [#2034](https://github.com/lambdaclass/cairo-vm/pull/2034)
+
+* feat: implement VirtualMachine::is_accessed [#2033](https://github.com/lambdaclass/cairo-vm/pull/2033)
+
+* dev: make `VirtualMachine::get_traceback_entries` pub [#2126](https://github.com/lambdaclass/cairo-vm/pull/2126)
+
+**Bug Fixes**
+
+* bugfix: Fix temp segment chain bug [#2195](https://github.com/lambdaclass/cairo-vm/pull/2195)
+
+* fix: save x1 variable to execution scope in fast_ec_add_assign_new_x [#2266](https://github.com/lambdaclass/cairo-vm/pull/2266)
+
+* fix: use div_mod_unsigned and remove unwrap_or_default in inv_mod_p_uint256 and uint384_div [#2262](https://github.com/lambdaclass/cairo-vm/pull/2262)
+
+* fix: error mapping for fee_provision in excess_balance hint [#2236](https://github.com/lambdaclass/cairo-vm/pull/2236)
+
+* fix: ArcTooBig parameter order in assert_le_felt [#2234](https://github.com/lambdaclass/cairo-vm/pull/2234)
+
+* Fix bug affecting cairo1 programs with input and System builtin [#2207](https://github.com/lambdaclass/cairo-vm/pull/2207)
+
+* fix: Use Cairo prime instead of SECP_P in WRITE_DIVMOD_SEGMENT hint [#2078](https://github.com/lambdaclass/cairo-vm/pull/2078)
+
+* fix: Fix zero offset output base assumption [#2068](https://github.com/lambdaclass/cairo-vm/pull/2068)
+
+* fix: Always use a normal segment in first SegmentArena segment [#1845](https://github.com/lambdaclass/cairo-vm/pull/1845)
+
+**Internal/Chores**
+
+* chore: Bump Rust toolchain to 1.89 [#2245](https://github.com/lambdaclass/cairo-vm/pull/2245)
+
+* chore: update Rust required version to 1.87.0 [#2100](https://github.com/lambdaclass/cairo-vm/pull/2100)
+
+* chore: Migrate from `pyenv` to `uv` [#1995](https://github.com/lambdaclass/cairo-vm/pull/1995)
+
+* Refactor: Remove unused error variants [#1760](https://github.com/lambdaclass/cairo-vm/pull/1760/)
+
+* Refactor: Replaced HashMap with BTreeMap to guarantee deterministic ordering of the data [#2023](https://github.com/lambdaclass/cairo-vm/pull/2023)
+
+*See RC versions below for individual change details.*
 
 #### [3.0.0-rc.5] - 2025-11-14
 
@@ -58,7 +158,7 @@
 
 * bugfix: Fix temp segment chain bug [#2195](https://github.com/lambdaclass/cairo-vm/pull/2195)
 
-#### [3.0.0-rc.4] - 2025-28-10
+#### [3.0.0-rc.4] - 2025-10-28
 
 * fix: error mapping for fee_provision in excess_balance hint [#2236](https://github.com/lambdaclass/cairo-vm/pull/2236)
 
@@ -82,11 +182,11 @@
 
 * breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
 
-#### [3.0.0-rc.3] - 2025-26-08
+#### [3.0.0-rc.3] - 2025-08-26
 
 * chore: Bump types-rs to 0.2.0 [#2183](https://github.com/lambdaclass/cairo-vm/pull/2183)
 
-#### [3.0.0-rc.2] - 2025-22-08
+#### [3.0.0-rc.2] - 2025-08-22
 
 * feat: Make QM31 functions internal [#2181](https://github.com/lambdaclass/cairo-vm/pull/2181)
 
@@ -167,6 +267,18 @@
 * feat: replace `thiserror-no-std` with `thiserror 2` [#1919](https://github.com/lambdaclass/cairo-vm/pull/1919)
 
 * feat: Add `ProverInfo` and extract the relevant information for it from the runner [#2001](https://github.com/lambdaclass/cairo-vm/pull/2001)
+
+#### [2.5.0] - 2025-09-11
+
+**Summary**: Fixes constant resolution for nested Cairo program execution.
+
+**Breaking Changes**
+
+* breaking: Store constants in Hint Data [#2191](https://github.com/lambdaclass/cairo-vm/pull/2191)
+  * `HintProcessorLogic::execute_hint` - Removed `constants` parameter
+  * `HintProcessorLogic::compile_hint` - Added `constants` parameter
+  * `CairoRunner::step_hint` - No longer receives program constants
+  * **Why**: When executing inner Cairo programs, hints now use the correct program's constants instead of the top-level program's constants
 
 #### [2.0.1] - 2025-03-17
 
