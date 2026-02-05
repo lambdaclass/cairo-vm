@@ -76,10 +76,9 @@ pub fn get_maybe_relocatable_from_reference(
         | OffsetValue::Value(_) => offset1.add(&offset2).ok()?,
         OffsetValue::Reference(_, _, _, false) => offset1.sub(&offset2).ok()?,
     };
-    if hint_reference.inner_dereference && hint_reference.outer_dereference {
-        val = vm.get_maybe(&val)?;
-    }
-    if hint_reference.inner_dereference || hint_reference.outer_dereference {
+    let deref_count =
+        u8::from(hint_reference.inner_dereference) + u8::from(hint_reference.outer_dereference);
+    for _ in 0..deref_count {
         val = vm.get_maybe(&val)?;
     }
     Some(val)

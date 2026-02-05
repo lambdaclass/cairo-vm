@@ -335,6 +335,29 @@ jobs:
         cargo check --no-default-features
         cargo check
 
+  smoke-wasm-std:
+    name: Make sure WASM32 with std works
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@1.89.0
+      with:
+        targets: wasm32-unknown-unknown
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up cargo cache
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+
+    - name: Check WASM32 with std
+      run: |
+        cd vm
+        cargo build --target wasm32-unknown-unknown
+        cargo build --target wasm32-unknown-unknown --no-default-features
+
   tests:
     needs: merge-caches
     strategy:
