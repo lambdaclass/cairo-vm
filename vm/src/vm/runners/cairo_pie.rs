@@ -446,7 +446,7 @@ pub(super) mod serde_impl {
 
     use super::CAIRO_PIE_VERSION;
     use super::{CairoPieMemory, Pages, PublicMemoryPage, SegmentInfo};
-    #[cfg(any(target_arch = "wasm32", not(feature = "std")))]
+    #[cfg(not(feature = "std"))]
     use crate::alloc::string::ToString;
     use crate::stdlib::prelude::{String, Vec};
     use crate::{
