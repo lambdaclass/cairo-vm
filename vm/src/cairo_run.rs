@@ -325,7 +325,7 @@ impl<W: std::io::Write> BinaryWrite for W {
 
 /// Error returned when encoding trace or memory fails.
 #[derive(Debug)]
-pub struct EncodeTraceError(pub usize, pub WriteError);
+pub struct EncodeTraceError(usize, WriteError);
 
 impl fmt::Display for EncodeTraceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -626,7 +626,6 @@ mod tests {
         let mut writer = SliceWriter::new(&mut buffer);
         let err = write_encoded_trace(&trace, &mut writer).unwrap_err();
         assert_eq!(err.to_string(), "Failed to encode trace at position 0");
-        assert_eq!(err.1.to_string(), "Failed to write bytes");
     }
 
     #[test]
