@@ -1,6 +1,8 @@
 #![deny(warnings)]
 #![forbid(unsafe_code)]
 use cairo_vm::air_public_input::PublicInputError;
+use cairo_vm::cairo_run;
+use cairo_vm::cairo_run::{write_encoded_memory, write_encoded_trace, EncodeTraceError};
 use cairo_vm::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::serde::deserialize_program::DebugInfo;
@@ -13,8 +15,6 @@ use cairo_vm::vm::runners::cairo_pie::CairoPie;
 #[cfg(feature = "with_tracer")]
 use cairo_vm::vm::runners::cairo_runner::CairoRunner;
 use cairo_vm::vm::runners::cairo_runner::RunResources;
-use cairo_vm::vm::trace::trace_entry;
-use cairo_vm::{cairo_run, Felt252};
 #[cfg(feature = "with_tracer")]
 use cairo_vm_tracer::error::trace_data_errors::TraceDataError;
 #[cfg(feature = "with_tracer")]
@@ -106,56 +106,6 @@ enum Error {
     #[error(transparent)]
     #[cfg(feature = "with_tracer")]
     TraceData(#[from] TraceDataError),
-}
-
-#[derive(Debug, Error)]
-#[error("Failed to encode trace at position {0}, serialize error: {1}")]
-pub struct EncodeTraceError(usize, std::io::Error);
-
-/// Writes the trace binary representation.
-///
-/// The trace entries (ap, fp, pc) are little-endian encoded and concatenated:
-/// - ap: 8-byte.
-/// - fp: 8-byte.
-/// - pc: 8-byte.
-fn write_encoded_trace(
-    relocated_trace: &[trace_entry::RelocatedTraceEntry],
-    dest: &mut impl Write,
-) -> Result<(), EncodeTraceError> {
-    for (i, entry) in relocated_trace.iter().enumerate() {
-        dest.write_all(&((entry.ap as u64).to_le_bytes()))
-            .map_err(|e| EncodeTraceError(i, e))?;
-        dest.write_all(&((entry.fp as u64).to_le_bytes()))
-            .map_err(|e| EncodeTraceError(i, e))?;
-        dest.write_all(&((entry.pc as u64).to_le_bytes()))
-            .map_err(|e| EncodeTraceError(i, e))?;
-    }
-
-    Ok(())
-}
-
-/// Writes the relocated memory binary representation.
-///
-/// The memory pairs (address, value) are little-endian encoded and concatenated:
-/// - address: 8-byte.
-/// - value: 32-byte.
-fn write_encoded_memory(
-    relocated_memory: &[Option<Felt252>],
-    dest: &mut impl Write,
-) -> Result<(), EncodeTraceError> {
-    for (i, memory_cell) in relocated_memory.iter().enumerate() {
-        match memory_cell {
-            None => continue,
-            Some(unwrapped_memory_cell) => {
-                dest.write_all(&(i as u64).to_le_bytes())
-                    .map_err(|e| EncodeTraceError(i, e))?;
-                dest.write_all(&unwrapped_memory_cell.to_bytes_le())
-                    .map_err(|e| EncodeTraceError(i, e))?;
-            }
-        }
-    }
-
-    Ok(())
 }
 
 #[cfg(feature = "with_tracer")]
