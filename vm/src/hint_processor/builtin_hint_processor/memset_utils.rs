@@ -1,10 +1,10 @@
-use crate::stdlib::{any::Any, collections::HashMap, prelude::*};
+use crate::stdlib::{collections::HashMap, prelude::*};
 
 use crate::Felt252;
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
-            get_integer_from_var_name, insert_value_from_var_name,
+            enter_scope_with_n_from_var_name, insert_value_from_var_name,
         },
         hint_processor_definition::HintReference,
     },
@@ -21,9 +21,7 @@ pub fn memset_enter_scope(
     ids_data: &HashMap<String, HintReference>,
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
-    let n: Box<dyn Any> = Box::new(get_integer_from_var_name("n", vm, ids_data, ap_tracking)?);
-    exec_scopes.enter_scope(HashMap::from([(String::from("n"), n)]));
-    Ok(())
+    enter_scope_with_n_from_var_name("n", vm, exec_scopes, ids_data, ap_tracking)
 }
 
 /* Implements hint:

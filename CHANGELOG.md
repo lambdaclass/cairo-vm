@@ -12,6 +12,12 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+<<<<<<< main
+* refactor: deduplicate memcpy/memset scope initialization in builtin hint processor [#2313](https://github.com/lambdaclass/cairo-vm/pull/2313)
+=======
+* fix: correct offsets_ptr values in mod builtin security check [#2318](https://github.com/lambdaclass/cairo-vm/pull/2318)
+>>>>>>> main
+
 * fix: Allow WASM32 compilation with std feature enabled [#2315](https://github.com/lambdaclass/cairo-vm/pull/2315)
 
 * chore(vm): unify Uint256 usage across u256 hints and split quotient via Uint512 [#2237](https://github.com/lambdaclass/cairo-vm/pull/2237) 
