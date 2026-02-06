@@ -58,6 +58,7 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
+    use crate::types::errors::math_errors::MathError;
     use crate::types::relocatable::Relocatable;
     use crate::utils::test_utils::mayberelocatable;
     use crate::utils::test_utils::memory;
@@ -71,6 +72,7 @@ mod tests {
             add_segments, non_continuous_ids_data, run_hint, segments, vm_with_range_check,
         },
     };
+    use assert_matches::assert_matches;
     use num_bigint::BigUint;
     use num_traits::Num;
     #[cfg(target_arch = "wasm32")]
@@ -161,6 +163,39 @@ mod tests {
                 .unwrap()
                 .into_owned(),
             felt_str!("5810892639608724280512701676461676039")
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_inv_mod_p_uint512_igcdex_not_1() {
+        let mut vm = vm_with_range_check!();
+        add_segments!(vm, 3);
+
+        // Initialize fp to match the layout used in the ok test.
+        vm.run_context.fp = 25;
+
+        // Create hint data
+        let ids_data = non_continuous_ids_data![("x", -5), ("p", -10), ("x_inverse_mod_p", -20)];
+
+        // Choose small values with gcd(x, p) != 1 to trigger DivModIgcdexNotZero.
+        // x = 4, p = 6 => gcd(4, 6) = 2.
+        vm.segments = segments![
+            // ids.x
+            ((1, 20), 4), // d0
+            ((1, 21), 0), // d1
+            ((1, 22), 0), // d2
+            ((1, 23), 0), // d3
+            // ids.p
+            ((1, 15), 6), // low
+            ((1, 16), 0), // high
+        ];
+
+        let mut exec_scopes = ExecutionScopes::new();
+
+        assert_matches!(
+            run_hint!(vm, ids_data, INV_MOD_P_UINT512, &mut exec_scopes),
+            Err(HintError::Math(MathError::DivModIgcdexNotZero(_)))
         );
     }
 }
