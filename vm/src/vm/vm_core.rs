@@ -61,6 +61,11 @@ pub struct OperandsAddresses {
     op1_addr: Relocatable,
 }
 
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
+pub enum ExtendedExecutionResourceType {
+    Blake,
+}
+
 #[derive(Default, Debug, Clone, Copy)]
 pub struct DeducedOperands(u8);
 
@@ -100,6 +105,7 @@ pub struct VirtualMachine {
     /// implementation of this mechanism in `simulated_builtins.cairo`, or
     /// cairo-lang's `simple_bootloader.cairo`.
     pub simulated_builtin_runners: Vec<BuiltinRunner>,
+    pub extended_resource_counter: HashMap<ExtendedExecutionResourceType, u32>,
     pub segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
@@ -132,6 +138,7 @@ impl VirtualMachine {
             run_context,
             builtin_runners: Vec::new(),
             simulated_builtin_runners: Vec::new(),
+            extended_resource_counter: HashMap::new(),
             trace,
             current_step: 0,
             skip_instruction_execution: false,
@@ -460,6 +467,10 @@ impl VirtualMachine {
                 &operands_addresses,
                 instruction.opcode_extension == OpcodeExtension::BlakeFinalize,
             )?;
+            *self
+                .extended_resource_counter
+                .entry(ExtendedExecutionResourceType::Blake)
+                .or_insert(0) += 1;
         }
 
         self.update_registers(instruction, operands)?;
@@ -1426,6 +1437,7 @@ impl VirtualMachineBuilder {
             run_context: self.run_context,
             builtin_runners: self.builtin_runners,
             simulated_builtin_runners: Vec::new(),
+            extended_resource_counter: HashMap::new(),
             trace: self.trace,
             current_step: self.current_step,
             skip_instruction_execution: self.skip_instruction_execution,
