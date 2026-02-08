@@ -577,13 +577,13 @@ pub mod test_utils {
             tracker.insert_value(&MaybeRelocatable::from($key), &MaybeRelocatable::from($val));
             )*
             let mut dict_manager = DictManager::new();
-            dict_manager.trackers.insert(2, tracker);
+            dict_manager.trackers.insert($tracker_num, tracker);
             $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr) => {
             let  tracker = DictTracker::new_empty(relocatable!($tracker_num, 0));
             let mut dict_manager = DictManager::new();
-            dict_manager.trackers.insert(2, tracker);
+            dict_manager.trackers.insert($tracker_num, tracker);
             $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
 
@@ -597,13 +597,13 @@ pub mod test_utils {
             tracker.insert_value(&MaybeRelocatable::from($key), &MaybeRelocatable::from($val));
             )*
             let mut dict_manager = DictManager::new();
-            dict_manager.trackers.insert(2, tracker);
+            dict_manager.trackers.insert($tracker_num, tracker);
             $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr,$default:expr) => {
             let tracker = DictTracker::new_default_dict(relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
             let mut dict_manager = DictManager::new();
-            dict_manager.trackers.insert(2, tracker);
+            dict_manager.trackers.insert($tracker_num, tracker);
             $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
     }
@@ -916,6 +916,21 @@ mod test {
         dict_manager.trackers.insert(2, tracker);
         let mut exec_scopes = ExecutionScopes::new();
         dict_manager!(exec_scopes, 2);
+        assert_matches::assert_matches!(
+            exec_scopes.get_dict_manager(),
+            Ok(x) if x == Rc::new(RefCell::new(dict_manager))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn dict_manager_macro_uses_tracker_num() {
+        let tracker_num = 7;
+        let tracker = DictTracker::new_empty(relocatable!(tracker_num, 0));
+        let mut dict_manager = DictManager::new();
+        dict_manager.trackers.insert(tracker_num, tracker);
+        let mut exec_scopes = ExecutionScopes::new();
+        dict_manager!(exec_scopes, tracker_num);
         assert_matches::assert_matches!(
             exec_scopes.get_dict_manager(),
             Ok(x) if x == Rc::new(RefCell::new(dict_manager))
