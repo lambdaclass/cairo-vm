@@ -6,16 +6,13 @@
 //! To generate a [`Program`] from a JSON string, see [`Program::from_bytes()`].
 //! To do the same from a JSON file, see [`Program::from_file()`].
 
-use crate::{
-    stdlib::{
-        collections::{BTreeMap, HashMap},
-        fmt,
-        prelude::*,
-        sync::Arc,
-    },
-    types::builtin_name::BuiltinName,
-    utils::CAIRO_PRIME,
+use std::{
+    collections::{BTreeMap, HashMap},
+    fmt,
+    sync::Arc,
 };
+
+use crate::{types::builtin_name::BuiltinName, utils::CAIRO_PRIME};
 
 use crate::utils::PRIME_STR;
 use crate::Felt252;
@@ -193,7 +190,6 @@ pub struct InputFile {
 }
 
 impl InputFile {
-    #[cfg(feature = "std")]
     pub fn get_content(&self) -> Result<String, String> {
         let content = std::fs::read_to_string(self.filename.clone());
         if let Ok(content) = content {

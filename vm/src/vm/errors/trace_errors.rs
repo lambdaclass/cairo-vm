@@ -23,7 +23,7 @@ mod tests {
     #[test]
     // Test to catch possible enum size regressions
     fn test_trace_error_size() {
-        let size = crate::stdlib::mem::size_of::<TraceError>();
+        let size = std::mem::size_of::<TraceError>();
         assert!(size <= 24, "{size}")
     }
 }

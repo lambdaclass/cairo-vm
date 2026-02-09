@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -9,7 +11,6 @@ use crate::{
     },
     math_utils::div_mod,
     serde::deserialize_program::ApTracking,
-    stdlib::{boxed::Box, collections::HashMap, prelude::*},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -211,7 +212,6 @@ pub fn is_zero_assign_scope_variables_external_const(
 mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code::{self, REDUCE_V2};
-    use crate::stdlib::string::ToString;
 
     use crate::{
         any_box,

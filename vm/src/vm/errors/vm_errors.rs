@@ -2,7 +2,7 @@
 #![allow(clippy::explicit_auto_deref)]
 
 use crate::types::builtin_name::BuiltinName;
-use crate::{stdlib::prelude::*, Felt252};
+use crate::Felt252;
 
 use thiserror::Error;
 
@@ -150,7 +150,7 @@ mod tests {
     #[test]
     // Test to catch possible enum size regressions
     fn test_vm_error_size() {
-        let size = crate::stdlib::mem::size_of::<VirtualMachineError>();
+        let size = std::mem::size_of::<VirtualMachineError>();
         assert!(size <= 32, "{size}")
     }
 }

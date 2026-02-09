@@ -1,8 +1,6 @@
-use crate::stdlib::{
+use std::{
     collections::HashMap,
-    ops::Deref,
-    ops::{Add, Mul, Rem},
-    prelude::*,
+    ops::{Add, Deref, Mul, Rem},
 };
 
 use crate::define_hint_string_map;

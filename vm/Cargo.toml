@@ -9,16 +9,6 @@ readme.workspace = true
 keywords.workspace = true
 
 [features]
-default = ["std"]
-std = [
-    "serde_json/std",
-    "anyhow/std",
-    "starknet-types-core/std",
-    "starknet-crypto/std",
-    "dep:num-prime",
-    "thiserror/std",
-    "dep:zip",
-]
 cairo-1-hints = [
     "dep:cairo-lang-casm",
     "dep:cairo-lang-starknet-classes",
@@ -31,13 +21,13 @@ cairo-0-secp-hints = []
 cairo-0-data-availability-hints = []
 
 # Note that these features are not retro-compatible with the cairo Python VM.
-test_utils = ["std", "dep:arbitrary", "starknet-types-core/arbitrary", "starknet-types-core/std"] # This feature will reference every test-oriented feature
+test_utils = ["dep:arbitrary", "starknet-types-core/arbitrary", "starknet-types-core/std"] # This feature will reference every test-oriented feature
 # Allows extending the set of hints for the current vm run from within a hint.
 # For a usage example checkout vm/src/tests/run_deprecated_contract_class_simplified.rs
 extensive_hints = []
 
 [dependencies]
-zip = { version = "0.6.6", optional = true, default-features = false, features = ["deflate"] }
+zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
 num-bigint = { workspace = true }
 rand = { workspace = true }
 num-traits = { workspace = true }
@@ -52,14 +42,12 @@ nom = { workspace = true }
 sha2 = { workspace = true }
 generic-array = { workspace = true }
 keccak = { workspace = true }
-hashbrown = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 starknet-types-core = { version = "0.2.0", default-features = false, features = ["serde", "curve", "num-traits", "hash"] }
 rust_decimal = { version = "1.35.0", default-features = false }
 
-# only for std
-num-prime = { version = "0.4.3", features = ["big-int"], optional = true }
+num-prime = { version = "0.4.3", features = ["big-int"] }
 bitvec = { workspace = true }
 
 # Dependencies for cairo-1-hints feature
@@ -77,7 +65,6 @@ clap = { version = "4.3.10", features = ["derive"], optional = true}
 [dev-dependencies]
 assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
-num-prime = { version = "0.4.3", features = ["big-int"] }
 
 # wasm32 requires getrandom with js feature for std support
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -105,4 +92,3 @@ harness = false
 [[example]]
 name = "custom_hint"
 path = "../examples/custom_hint/src/main.rs"
-required-features = ["std"]

@@ -1,5 +1,5 @@
 use crate::hint_processor::hint_processor_utils::felt_to_usize;
-use crate::stdlib::{borrow::Cow, collections::HashMap, prelude::*};
+use std::{borrow::Cow, collections::HashMap};
 
 use crate::types::errors::math_errors::MathError;
 use crate::Felt252;

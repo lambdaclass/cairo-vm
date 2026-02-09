@@ -1,6 +1,5 @@
 use crate::air_private_input::PrivateInput;
 use crate::math_utils::safe_div_usize;
-use crate::stdlib::prelude::*;
 use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::bitwise_instance_def::{
     CELLS_PER_BITWISE, INPUT_CELLS_PER_BITWISE,

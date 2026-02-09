@@ -1,7 +1,5 @@
 use core::str::FromStr;
 
-use crate::stdlib::{boxed::Box, prelude::*};
-
 use crate::vm::errors::hint_errors::HintError;
 
 use lazy_static::lazy_static;
@@ -96,10 +94,10 @@ pub fn bigint3_split(integer: &num_bigint::BigUint) -> Result<[num_bigint::BigUi
 mod tests {
     use super::*;
 
-    use crate::stdlib::{collections::HashMap, string::ToString};
     use crate::utils::test_utils::*;
     use assert_matches::assert_matches;
     use num_bigint::BigUint;
+    use std::collections::HashMap;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

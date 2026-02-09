@@ -1,9 +1,9 @@
-use crate::stdlib::{any::Any, cell::RefCell, collections::HashMap, prelude::*, rc::Rc};
 use crate::{
     any_box,
     hint_processor::builtin_hint_processor::dict_manager::DictManager,
     vm::errors::{exec_scope_errors::ExecScopeError, hint_errors::HintError},
 };
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug)]
 pub struct ExecutionScopes {

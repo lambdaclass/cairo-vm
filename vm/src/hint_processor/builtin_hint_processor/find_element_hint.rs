@@ -1,4 +1,3 @@
-use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -14,6 +13,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_traits::ToPrimitive;
+use std::collections::HashMap;
 
 pub fn find_element(
     vm: &mut VirtualMachine,
@@ -130,7 +130,6 @@ pub fn search_sorted_lower(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::string::ToString;
     use crate::types::relocatable::Relocatable;
     use crate::{
         any_box,

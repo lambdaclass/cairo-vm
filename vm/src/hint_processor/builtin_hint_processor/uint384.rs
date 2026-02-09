@@ -4,7 +4,6 @@ use num_integer::Integer;
 use num_traits::Zero;
 
 use crate::math_utils::isqrt;
-use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
@@ -12,6 +11,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+use std::collections::HashMap;
 
 use super::hint_utils::{
     get_constant_from_var_name, get_integer_from_var_name, get_relocatable_from_var_name,
@@ -211,7 +211,6 @@ pub fn uint384_signed_nn(
     p = pack(ids.p, num_bits_shift = 128)
 
     res = (a - b) % p
-
 
     res_split = split(res, num_bits_shift=128, length=3)
 

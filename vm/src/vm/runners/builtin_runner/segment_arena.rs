@@ -4,8 +4,6 @@ use crate::{
     vm::vm_memory::memory_segments::MemorySegmentManager,
 };
 
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
 use num_integer::div_ceil;
 
 pub(crate) const ARENA_BUILTIN_SIZE: u32 = 3;
@@ -91,8 +89,6 @@ mod tests {
     use crate::types::builtin_name::BuiltinName;
     use crate::vm::errors::runner_errors::RunnerError;
     use crate::{relocatable, utils::test_utils::*, vm::runners::builtin_runner::BuiltinRunner};
-    #[cfg(not(feature = "std"))]
-    use alloc::boxed::Box;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 

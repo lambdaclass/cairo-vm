@@ -1,10 +1,6 @@
-use crate::{
-    stdlib::{
-        collections::{BTreeMap, HashMap},
-        prelude::{String, Vec},
-    },
-    types::builtin_name::BuiltinName,
-};
+use std::collections::{BTreeMap, HashMap};
+
+use crate::types::builtin_name::BuiltinName;
 use serde::{Deserialize, Serialize};
 
 use crate::Felt252;
@@ -229,7 +225,6 @@ mod mod_input_instance_batch_serde {
         Ok(value.into_iter().enumerate().collect())
     }
 
-    #[cfg(feature = "std")]
     #[test]
     fn test_serde() {
         let input_value = vec![
@@ -292,17 +287,12 @@ mod mod_input_instance_batch_serde {
 #[cfg(test)]
 mod tests {
     use crate::types::layout_name::LayoutName;
-    #[cfg(feature = "std")]
     use {
         super::*,
         crate::air_private_input::{AirPrivateInput, AirPrivateInputSerializable},
         assert_matches::assert_matches,
     };
 
-    #[cfg(not(feature = "std"))]
-    use crate::alloc::string::ToString;
-
-    #[cfg(feature = "std")]
     #[test]
     fn test_from_serializable() {
         let serializable_private_input = AirPrivateInputSerializable {

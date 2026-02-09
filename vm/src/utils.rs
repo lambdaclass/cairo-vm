@@ -1,4 +1,3 @@
-use crate::stdlib::prelude::*;
 use crate::types::relocatable::Relocatable;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
@@ -23,7 +22,7 @@ lazy_static! {
 #[macro_export]
 macro_rules! any_box {
     ($val : expr) => {
-        $crate::stdlib::boxed::Box::new($val) as $crate::stdlib::boxed::Box<dyn core::any::Any>
+        Box::new($val) as Box<dyn core::any::Any>
     };
 }
 
@@ -161,9 +160,9 @@ pub mod test_utils {
                 Err($crate::vm::errors::memory_errors::MemoryError::UnallocatedSegment(_))
             ) {
                 if $si < 0 {
-                    $mem.temp_data.push($crate::stdlib::vec::Vec::new())
+                    $mem.temp_data.push(Vec::new())
                 } else {
-                    $mem.data.push($crate::stdlib::vec::Vec::new());
+                    $mem.data.push(Vec::new());
                 }
                 res = $mem.insert(k, v);
             }
@@ -176,9 +175,9 @@ pub mod test_utils {
                 Err($crate::vm::errors::memory_errors::MemoryError::UnallocatedSegment(_))
             ) {
                 if $si < 0 {
-                    $mem.temp_data.push($crate::stdlib::vec::Vec::new())
+                    $mem.temp_data.push(Vec::new())
                 } else {
-                    $mem.data.push($crate::stdlib::vec::Vec::new());
+                    $mem.data.push(Vec::new());
                 }
                 res = $mem.insert(k, v);
             }
@@ -223,7 +222,7 @@ pub mod test_utils {
 
     macro_rules! references {
         ($num: expr) => {{
-            let mut references = crate::stdlib::collections::HashMap::<usize, HintReference>::new();
+            let mut references = std::collections::HashMap::<usize, HintReference>::new();
             for i in 0..$num {
                 references.insert(i as usize, HintReference::new_simple((i as i32 - $num)));
             }
@@ -290,10 +289,10 @@ pub mod test_utils {
     }
     pub(crate) use cairo_runner;
 
-    pub(crate) use crate::stdlib::{collections::BTreeMap, sync::Arc};
     pub(crate) use crate::types::program::HintsCollection;
     pub(crate) use crate::types::program::Program;
     pub(crate) use crate::types::program::SharedProgramData;
+    pub(crate) use std::{collections::BTreeMap, sync::Arc};
     macro_rules! program {
         //Empty program
         () => {
@@ -302,21 +301,21 @@ pub mod test_utils {
         //Program with builtins
         ( $( $builtin_name: expr ),* ) => {{
             let shared_program_data = SharedProgramData {
-                data: crate::stdlib::vec::Vec::new(),
+                data: Vec::new(),
                 hints_collection: HintsCollection::new(&BTreeMap::new(), 0).unwrap(),
                 main: None,
                 start: None,
                 end: None,
-                error_message_attributes: crate::stdlib::vec::Vec::new(),
+                error_message_attributes: Vec::new(),
                 instruction_locations: None,
-                identifiers: crate::stdlib::collections::HashMap::new(),
+                identifiers: HashMap::new(),
                 reference_manager: Program::get_reference_list(&ReferenceManager {
-                    references: crate::stdlib::vec::Vec::new(),
+                    references: Vec::new(),
                 }),
             };
             Program {
                 shared_program_data: Arc::new(shared_program_data),
-                constants: crate::stdlib::collections::HashMap::new().into(),
+                constants: HashMap::new().into(),
                 builtins: vec![$( $builtin_name ),*],
             }
         }};
@@ -336,30 +335,24 @@ pub mod test_utils {
     pub(crate) use program;
 
     pub(crate) struct ProgramFlat {
-        pub(crate) data: crate::utils::Vec<MaybeRelocatable>,
-        pub(crate) hints: crate::stdlib::collections::BTreeMap<
-            usize,
-            crate::utils::Vec<crate::serde::deserialize_program::HintParams>,
-        >,
+        pub(crate) data: Vec<MaybeRelocatable>,
+        pub(crate) hints:
+            std::collections::BTreeMap<usize, Vec<crate::serde::deserialize_program::HintParams>>,
         pub(crate) main: Option<usize>,
         //start and end labels will only be used in proof-mode
         pub(crate) start: Option<usize>,
         pub(crate) end: Option<usize>,
-        pub(crate) error_message_attributes:
-            crate::utils::Vec<crate::serde::deserialize_program::Attribute>,
+        pub(crate) error_message_attributes: Vec<crate::serde::deserialize_program::Attribute>,
         pub(crate) instruction_locations: Option<
-            crate::stdlib::collections::HashMap<
+            std::collections::HashMap<
                 usize,
                 crate::serde::deserialize_program::InstructionLocation,
             >,
         >,
-        pub(crate) identifiers: crate::stdlib::collections::HashMap<
-            crate::stdlib::string::String,
-            crate::serde::deserialize_program::Identifier,
-        >,
-        pub(crate) constants:
-            crate::stdlib::collections::HashMap<crate::stdlib::string::String, crate::Felt252>,
-        pub(crate) builtins: crate::utils::Vec<crate::types::builtin_name::BuiltinName>,
+        pub(crate) identifiers:
+            std::collections::HashMap<String, crate::serde::deserialize_program::Identifier>,
+        pub(crate) constants: std::collections::HashMap<String, crate::Felt252>,
+        pub(crate) builtins: Vec<crate::types::builtin_name::BuiltinName>,
         pub(crate) reference_manager: crate::serde::deserialize_program::ReferenceManager,
     }
 
@@ -377,7 +370,7 @@ pub mod test_utils {
                 constants: Default::default(),
                 builtins: Default::default(),
                 reference_manager: crate::serde::deserialize_program::ReferenceManager {
-                    references: crate::utils::Vec::new(),
+                    references: Vec::new(),
                 },
             }
         }
@@ -431,9 +424,9 @@ pub mod test_utils {
             {
                 let ids_names = vec![$( $name ),*];
                 let references = references!(ids_names.len() as i32);
-                let mut ids_data = crate::stdlib::collections::HashMap::<crate::stdlib::string::String, HintReference>::new();
+                let mut ids_data = std::collections::HashMap::<String, HintReference>::new();
                 for (i, name) in ids_names.iter().enumerate() {
-                    ids_data.insert(crate::stdlib::string::ToString::to_string(name), references.get(&i).unwrap().clone());
+                    ids_data.insert(ToString::to_string(name), references.get(&i).unwrap().clone());
                 }
                 ids_data
             }
@@ -444,9 +437,9 @@ pub mod test_utils {
     macro_rules! non_continuous_ids_data {
         ( $( ($name: expr, $offset:expr) ),* $(,)? ) => {
             {
-                let mut ids_data = crate::stdlib::collections::HashMap::<crate::stdlib::string::String, HintReference>::new();
+                let mut ids_data = std::collections::HashMap::<String, HintReference>::new();
                 $(
-                    ids_data.insert(crate::stdlib::string::String::from($name), HintReference::new_simple($offset));
+                    ids_data.insert(String::from($name), HintReference::new_simple($offset));
                 )*
                 ids_data
             }
@@ -481,18 +474,14 @@ pub mod test_utils {
             hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data))
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr, $exec_scopes:expr) => {{
-            let hint_data = HintProcessorData::new_default(
-                crate::stdlib::string::ToString::to_string($hint_code),
-                $ids_data,
-            );
+            let hint_data =
+                HintProcessorData::new_default(ToString::to_string($hint_code), $ids_data);
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(&mut $vm, $exec_scopes, &any_box!(hint_data))
         }};
         ($vm:expr, $ids_data:expr, $hint_code:expr) => {{
-            let hint_data = HintProcessorData::new_default(
-                crate::stdlib::string::ToString::to_string($hint_code),
-                $ids_data,
-            );
+            let hint_data =
+                HintProcessorData::new_default(ToString::to_string($hint_code), $ids_data);
             let mut hint_processor = BuiltinHintProcessor::new_empty();
             hint_processor.execute_hint(&mut $vm, exec_scopes_ref!(), &any_box!(hint_data))
         }};
@@ -578,13 +567,13 @@ pub mod test_utils {
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", std::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr) => {
             let  tracker = DictTracker::new_empty(relocatable!($tracker_num, 0));
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", std::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
 
     }
@@ -598,13 +587,13 @@ pub mod test_utils {
             )*
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", std::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr,$default:expr) => {
             let tracker = DictTracker::new_default_dict(relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
             let mut dict_manager = DictManager::new();
             dict_manager.trackers.insert(2, tracker);
-            $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
+            $exec_scopes.insert_value("dict_manager", std::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
     }
     pub(crate) use dict_manager_default;
@@ -639,7 +628,6 @@ pub mod test_utils {
 #[cfg(test)]
 mod test {
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
-    use crate::stdlib::{cell::RefCell, collections::HashMap, rc::Rc, string::String, vec::Vec};
     use crate::types::builtin_name::BuiltinName;
     use crate::types::program::HintsCollection;
     use crate::{
@@ -655,6 +643,7 @@ mod test {
         utils::test_utils::*,
         vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
+    use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

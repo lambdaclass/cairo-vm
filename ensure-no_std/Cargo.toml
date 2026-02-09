@@ -1,9 +1,0 @@
-[package]
-name = "ensure-no_std"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-cairo-vm = { path = "../vm", default-features = false }
-
-esp-alloc = "0.3.0"

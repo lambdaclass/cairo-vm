@@ -8,12 +8,12 @@ use super::secp::bigint_utils::Uint384;
 use super::uint256_utils::Uint256;
 use crate::math_utils::{is_quad_residue, mul_inv, sqrt_prime_power};
 use crate::serde::deserialize_program::ApTracking;
-use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::vm::errors::hint_errors::HintError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, vm::vm_core::VirtualMachine,
 };
+use std::collections::HashMap;
 
 /* Implements Hint:
 %{
@@ -29,7 +29,6 @@ use crate::{
     def pack(z, num_bits_shift: int = 128) -> int:
         limbs = (z.d0, z.d1, z.d2)
         return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-
 
     generator = pack(ids.generator)
     x = pack(ids.x)
@@ -227,7 +226,6 @@ pub fn u256_get_square_root(
     # b_inverse_mod_p = pow(b, -1, p)
     # Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
     b_inverse_mod_p = div_mod(1, b, p)
-
 
     b_inverse_mod_p_split = split(b_inverse_mod_p, num_bits_shift=128, length=3)
 

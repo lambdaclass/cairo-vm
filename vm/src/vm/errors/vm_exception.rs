@@ -1,11 +1,6 @@
-use crate::{
-    stdlib::{
-        fmt::{self, Display},
-        prelude::*,
-        str,
-    },
-    types::relocatable::Relocatable,
-};
+use std::fmt::{self, Display};
+
+use crate::types::relocatable::Relocatable;
 
 use thiserror::Error;
 
@@ -238,25 +233,24 @@ impl Location {
         )
     }
 
-    #[cfg(not(feature = "std"))]
-    pub fn to_string_with_content(&self, message: &str) -> String {
-        self.to_string(message)
-    }
-
-    #[cfg(feature = "std")]
     pub fn to_string_with_content(&self, message: &str) -> String {
         let mut string = self.to_string(message);
         let input_file_path = std::path::Path::new(&self.input_file.filename);
         #[cfg(test)]
         let input_file_path = {
             use std::path::PathBuf;
-            let current_dir = std::env::current_dir().expect("should return the current directory");
-            let mut parent_dir: PathBuf = current_dir
-                .parent()
-                .expect("should have a parent directory")
-                .into();
-            parent_dir.push(input_file_path);
-            parent_dir
+            match std::env::current_dir() {
+                Ok(current_dir) => {
+                    let mut parent_dir: PathBuf = current_dir
+                        .parent()
+                        .expect("should have a parent directory")
+                        .into();
+                    parent_dir.push(input_file_path);
+                    parent_dir
+                }
+                // current_dir() is unsupported on some platforms (e.g. WASM)
+                Err(_) => return string,
+            }
         };
         if let Ok(file_content) = std::fs::read(input_file_path) {
             string.push_str(&format!("\n{}", self.get_location_marks(&file_content)));
@@ -293,10 +287,10 @@ impl Location {
 }
 #[cfg(test)]
 mod test {
-    use crate::stdlib::{boxed::Box, collections::HashMap};
     use crate::types::layout_name::LayoutName;
     use assert_matches::assert_matches;
-    #[cfg(feature = "std")]
+    use std::collections::HashMap;
+    #[cfg(not(target_arch = "wasm32"))]
     use std::path::Path;
 
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
@@ -645,9 +639,9 @@ mod test {
         let end = cairo_runner.initialize(false).unwrap();
         assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_err());
 
-        #[cfg(feature = "std")]
+        #[cfg(not(target_arch = "wasm32"))]
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n    dict_update{dict_ptr=my_dict}(key=2, prev_value=3, new_value=4);\n    ^*************************************************************^\n");
-        #[cfg(not(feature = "std"))]
+        #[cfg(target_arch = "wasm32")]
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n");
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -666,7 +660,7 @@ mod test {
             Some("main"),
         )
         .unwrap();
-        #[cfg(feature = "std")]
+        #[cfg(not(target_arch = "wasm32"))]
         let expected_traceback = r"Cairo traceback (most recent call last):
 cairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)
     let (output_len, output, multiplicities) = usort(input_len=3, input=input_array);
@@ -678,7 +672,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     verify_multiplicity(multiplicity=multiplicity, input_len=input_len, input=input, value=value);
     ^*******************************************************************************************^
 ";
-        #[cfg(not(feature = "std"))]
+        #[cfg(target_arch = "wasm32")]
         let expected_traceback = r"Cairo traceback (most recent call last):
 cairo_programs/bad_programs/bad_usort.cairo:91:48: (pc=0:97)
 cairo_programs/bad_programs/bad_usort.cairo:36:5: (pc=0:30)
@@ -731,9 +725,9 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
         };
         let message = String::from("Error at pc=0:75:");
 
-        #[cfg(feature = "std")]
+        #[cfg(not(target_arch = "wasm32"))]
         let expected_message = "cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:\nfunc usort{range_check_ptr}(input_len: felt, input: felt*) -> (\n^";
-        #[cfg(not(feature = "std"))]
+        #[cfg(target_arch = "wasm32")]
         let expected_message = "cairo_programs/bad_programs/bad_usort.cairo:5:1: Error at pc=0:75:";
 
         assert_eq!(
@@ -765,7 +759,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     }
 
     #[test]
-    #[cfg(feature = "std")]
+    #[cfg(not(target_arch = "wasm32"))]
     fn location_get_location_marks() {
         let location = Location {
             end_line: 5,
@@ -805,7 +799,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_bad_range_check_and_check_error_displayed() {
-        #[cfg(feature = "std")]
+        #[cfg(not(target_arch = "wasm32"))]
         let expected_error_string = r#"Error message: Failed range-check
 cairo_programs/bad_programs/bad_range_check.cairo:5:9: Error at pc=0:0:
 An ASSERT_EQ instruction failed: 4 != 5.
@@ -825,7 +819,7 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
     check_range(num - 1);
     ^******************^
 "#;
-        #[cfg(not(feature = "std"))]
+        #[cfg(target_arch = "wasm32")]
         let expected_error_string = r#"Error message: Failed range-check
 cairo_programs/bad_programs/bad_range_check.cairo:5:9: Error at pc=0:0:
 An ASSERT_EQ instruction failed: 4 != 5.
@@ -855,7 +849,7 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_bad_usort_and_check_error_displayed() {
-        #[cfg(feature = "std")]
+        #[cfg(not(target_arch = "wasm32"))]
         let expected_error_string = r#"cairo_programs/bad_programs/bad_usort.cairo:79:5: Error at pc=0:75:
 Got an exception while executing a hint: unexpected verify multiplicity fail: positions length != 0
     %{ assert len(positions) == 0 %}
@@ -871,7 +865,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     verify_multiplicity(multiplicity=multiplicity, input_len=input_len, input=input, value=value);
     ^*******************************************************************************************^
 "#;
-        #[cfg(not(feature = "std"))]
+        #[cfg(target_arch = "wasm32")]
         let expected_error_string = r#"cairo_programs/bad_programs/bad_usort.cairo:79:5: Error at pc=0:75:
 Got an exception while executing a hint: unexpected verify multiplicity fail: positions length != 0
 Cairo traceback (most recent call last):
@@ -899,7 +893,7 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_bad_ec_recover_product_mod() {
-        #[cfg(feature = "std")]
+        #[cfg(not(target_arch = "wasm32"))]
         let expected_error_string = r#"cairo_programs/bad_programs/ec_recover_product_mod_m_zero.cairo:16:5: Error at pc=0:21:
 Got an exception while executing a hint: Attempted to divide by zero
     %{
@@ -909,7 +903,7 @@ cairo_programs/bad_programs/ec_recover_product_mod_m_zero.cairo:11:5: (pc=0:18)
     ec_recover_product(a, b, m);
     ^*************************^
 "#;
-        #[cfg(not(feature = "std"))]
+        #[cfg(target_arch = "wasm32")]
         let expected_error_string = r#"cairo_programs/bad_programs/ec_recover_product_mod_m_zero.cairo:16:5: Error at pc=0:21:
 Got an exception while executing a hint: Attempted to divide by zero
 Cairo traceback (most recent call last):
@@ -937,7 +931,7 @@ cairo_programs/bad_programs/ec_recover_product_mod_m_zero.cairo:11:5: (pc=0:18)
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_bad_ec_recover_div_mod_n_packed_n_zero() {
-        #[cfg(feature = "std")]
+        #[cfg(not(target_arch = "wasm32"))]
         let expected_error_string = r#"cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:16:5: Error at pc=0:21:
 Got an exception while executing a hint: Attempted to divide by zero
     %{
@@ -947,7 +941,7 @@ cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:11:5: (pc=0
     ec_recover_product(x, s, n);
     ^*************************^
 "#;
-        #[cfg(not(feature = "std"))]
+        #[cfg(target_arch = "wasm32")]
         let expected_error_string = r#"cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:16:5: Error at pc=0:21:
 Got an exception while executing a hint: Attempted to divide by zero
 Cairo traceback (most recent call last):
@@ -975,7 +969,7 @@ cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:11:5: (pc=0
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_bad_uint512_unsigned_div_rem() {
-        #[cfg(feature = "std")]
+        #[cfg(not(target_arch = "wasm32"))]
         let expected_error_string = r#"cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:24:1: Error at pc=0:17:
 Got an exception while executing a hint: Attempted to divide by zero
 %{
@@ -985,7 +979,7 @@ cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:15:2: (pc
 	hint_func(x, div);
  ^***************^
 "#;
-        #[cfg(not(feature = "std"))]
+        #[cfg(target_arch = "wasm32")]
         let expected_error_string = r#"cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:24:1: Error at pc=0:17:
 Got an exception while executing a hint: Attempted to divide by zero
 Cairo traceback (most recent call last):
@@ -1013,7 +1007,7 @@ cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:15:2: (pc
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_bad_uint256_sub_check_error_displayed() {
-        #[cfg(feature = "std")]
+        #[cfg(not(target_arch = "wasm32"))]
         let expected_error_string = r#"cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:17:1: Error at pc=0:17:
 Got an exception while executing a hint: Inconsistent memory assignment at address Relocatable { segment_index: 1, offset: 6 }. Int(1) != Int(41367660292349381832802403122744918015)
 %{
@@ -1023,7 +1017,7 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
 	hint_func(a, b, res);
  ^******************^
 "#;
-        #[cfg(not(feature = "std"))]
+        #[cfg(target_arch = "wasm32")]
         let expected_error_string = r#"cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:17:1: Error at pc=0:17:
 Got an exception while executing a hint: Inconsistent memory assignment at address Relocatable { segment_index: 1, offset: 6 }. Int(1) != Int(41367660292349381832802403122744918015)
 Cairo traceback (most recent call last):

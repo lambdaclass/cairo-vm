@@ -1,8 +1,6 @@
 // The `(*.0).0` syntax of thiserror falsely triggers this clippy warning
 #![allow(clippy::explicit_auto_deref)]
 
-use crate::stdlib::prelude::*;
-
 use thiserror::Error;
 
 use crate::Felt252;
@@ -227,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_hint_error_size() {
-        let size = crate::stdlib::mem::size_of::<HintError>();
+        let size = std::mem::size_of::<HintError>();
         assert!(size <= 32, "{size}")
     }
 }

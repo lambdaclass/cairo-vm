@@ -1,6 +1,7 @@
 use core::str::FromStr;
 
 use super::{hint_utils::get_relocatable_from_var_name, secp::bigint_utils::BigInt3};
+use crate::types::exec_scope::ExecutionScopes;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
@@ -9,15 +10,12 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
     Felt252,
 };
-use crate::{
-    stdlib::{collections::HashMap, prelude::*},
-    types::exec_scope::ExecutionScopes,
-};
 use lazy_static::lazy_static;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::FromPrimitive;
 use num_traits::Signed;
+use std::collections::HashMap;
 
 lazy_static! {
     static ref BLS_BASE: BigInt = BigInt::from_u64(2).unwrap().pow(86);

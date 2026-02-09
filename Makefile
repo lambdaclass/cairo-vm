@@ -290,8 +290,6 @@ endif
 
 test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts cairo_1_program
 	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints"
-test-no_std: cairo_proof_programs cairo_test_programs cairo_1_program
-	$(TEST_COMMAND) --workspace --features test_utils --no-default-features
 test-wasm: cairo_proof_programs cairo_test_programs cairo_1_program
 	# NOTE: release mode is needed to avoid "too many locals" error
 	wasm-pack test --release --node vm --no-default-features

@@ -1,9 +1,7 @@
+use std::cmp::{max, min};
+
 use crate::{
     air_private_input::{PrivateInput, PrivateInputValue},
-    stdlib::{
-        cmp::{max, min},
-        prelude::*,
-    },
     types::{builtin_name::BuiltinName, instance_definitions::LowRatio},
 };
 

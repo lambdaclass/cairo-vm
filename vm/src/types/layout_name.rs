@@ -1,6 +1,6 @@
 #[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary};
-#[cfg(all(feature = "clap", feature = "std"))]
+#[cfg(feature = "clap")]
 use clap::{builder::PossibleValue, ValueEnum};
 use core::fmt::{self, Display};
 use serde::{Deserialize, Serialize};
@@ -53,7 +53,7 @@ impl Display for LayoutName {
     }
 }
 
-#[cfg(all(feature = "clap", feature = "std"))]
+#[cfg(feature = "clap")]
 impl ValueEnum for LayoutName {
     fn value_variants<'a>() -> &'a [Self] {
         &[

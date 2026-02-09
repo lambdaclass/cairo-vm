@@ -15,8 +15,6 @@ use crate::{
 #[cfg(feature = "cairo-1-hints")]
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 
-use crate::stdlib::prelude::*;
-
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
@@ -24,9 +22,6 @@ use crate::{
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
-
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
 
 mod bitwise_test;
 #[cfg(test)]

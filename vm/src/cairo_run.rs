@@ -302,7 +302,6 @@ impl fmt::Display for WriteError {
     }
 }
 
-#[cfg(feature = "std")]
 impl std::error::Error for WriteError {}
 
 /// A minimal binary write trait that works in both std and no_std environments.
@@ -316,7 +315,6 @@ pub trait BinaryWrite {
     fn write_all(&mut self, bytes: &[u8]) -> Result<(), WriteError>;
 }
 
-#[cfg(feature = "std")]
 impl<W: std::io::Write> BinaryWrite for W {
     fn write_all(&mut self, bytes: &[u8]) -> Result<(), WriteError> {
         std::io::Write::write_all(self, bytes).map_err(|_| WriteError)
@@ -333,7 +331,6 @@ impl fmt::Display for EncodeTraceError {
     }
 }
 
-#[cfg(feature = "std")]
 impl std::error::Error for EncodeTraceError {}
 
 /// Writes the trace binary representation.
@@ -382,7 +379,6 @@ pub fn write_encoded_memory(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::prelude::*;
     use crate::vm::runners::cairo_runner::RunResources;
     use crate::Felt252;
     use crate::{
@@ -638,7 +634,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "std")]
     fn write_encoded_trace_with_std_io_writer() {
         let trace = vec![RelocatedTraceEntry {
             ap: 1,
@@ -654,7 +649,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "std")]
     fn write_encoded_memory_with_std_io_writer() {
         let memory = vec![None, Some(Felt252::from(42u64))];
         let mut buf = Vec::new();

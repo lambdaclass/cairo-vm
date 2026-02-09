@@ -1,4 +1,3 @@
-use crate::stdlib::{collections::BTreeMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::errors::memory_errors::MemoryError;
@@ -8,6 +7,7 @@ use crate::vm::runners::cairo_pie::{
 };
 use crate::vm::vm_core::VirtualMachine;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct OutputBuiltinState {

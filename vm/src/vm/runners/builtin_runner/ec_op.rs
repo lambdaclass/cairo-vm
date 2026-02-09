@@ -1,6 +1,4 @@
 use crate::air_private_input::{PrivateInput, PrivateInputEcOp};
-use crate::stdlib::prelude::*;
-use crate::stdlib::{cell::RefCell, collections::HashMap};
 use crate::types::instance_definitions::ec_op_instance_def::{
     CELLS_PER_EC_OP, INPUT_CELLS_PER_EC_OP, SCALAR_HEIGHT,
 };
@@ -12,6 +10,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::Felt252;
 use num_integer::{div_ceil, Integer};
 use starknet_types_core::curve::ProjectivePoint;
+use std::{cell::RefCell, collections::HashMap};
 
 #[derive(Debug, Clone)]
 pub struct EcOpBuiltinRunner {
