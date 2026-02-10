@@ -577,13 +577,13 @@ pub mod test_utils {
             tracker.insert_value(&MaybeRelocatable::from($key), &MaybeRelocatable::from($val));
             )*
             let mut dict_manager = DictManager::new();
-            dict_manager.trackers.insert(2, tracker);
+            dict_manager.trackers.insert($tracker_num, tracker);
             $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr) => {
             let  tracker = DictTracker::new_empty(relocatable!($tracker_num, 0));
             let mut dict_manager = DictManager::new();
-            dict_manager.trackers.insert(2, tracker);
+            dict_manager.trackers.insert($tracker_num, tracker);
             $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
 
@@ -597,13 +597,13 @@ pub mod test_utils {
             tracker.insert_value(&MaybeRelocatable::from($key), &MaybeRelocatable::from($val));
             )*
             let mut dict_manager = DictManager::new();
-            dict_manager.trackers.insert(2, tracker);
+            dict_manager.trackers.insert($tracker_num, tracker);
             $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
         ($exec_scopes:expr, $tracker_num:expr,$default:expr) => {
             let tracker = DictTracker::new_default_dict(relocatable!($tracker_num, 0), &MaybeRelocatable::from($default), None);
             let mut dict_manager = DictManager::new();
-            dict_manager.trackers.insert(2, tracker);
+            dict_manager.trackers.insert($tracker_num, tracker);
             $exec_scopes.insert_value("dict_manager", crate::stdlib::rc::Rc::new(core::cell::RefCell::new(dict_manager)))
         };
     }
