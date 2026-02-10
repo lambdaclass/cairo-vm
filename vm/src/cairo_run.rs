@@ -19,6 +19,7 @@ use crate::types::exec_scope::ExecutionScopes;
 #[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary};
 use core::fmt;
+use tracing::{info, span, Level};
 
 #[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 pub struct CairoRunConfig<'a> {
@@ -74,6 +75,7 @@ pub fn cairo_run_program_with_initial_scope(
     hint_processor: &mut dyn HintProcessor,
     exec_scopes: ExecutionScopes,
 ) -> Result<CairoRunner, CairoRunError> {
+    let _span = span!(Level::INFO, "cairo run").entered();
     let secure_run = cairo_run_config
         .secure_run
         .unwrap_or(!cairo_run_config.proof_mode);
@@ -93,9 +95,11 @@ pub fn cairo_run_program_with_initial_scope(
 
     cairo_runner.exec_scopes = exec_scopes;
 
+    info!(layout = ?cairo_run_config.layout, proof_mode = ?cairo_run_config.proof_mode, trace_enabled = ?cairo_run_config.trace_enabled, disable_trace_padding = ?cairo_run_config.disable_trace_padding, allow_missing_builtins = ?allow_missing_builtins, "Initializing Cairo runner.");
     let end = cairo_runner.initialize(allow_missing_builtins)?;
     // check step calculation
 
+    info!("Running until PC.");
     cairo_runner
         .run_until_pc(end, hint_processor)
         .map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
@@ -105,6 +109,8 @@ pub fn cairo_run_program_with_initial_scope(
         // rather than the one after it.
         cairo_runner.run_for_steps(1, hint_processor)?;
     }
+
+    info!(disable_trace_padding = ?cairo_run_config.disable_trace_padding, fill_holes = ?cairo_run_config.fill_holes, "Ending run.");
     cairo_runner.end_run(
         cairo_run_config.disable_trace_padding,
         false,
@@ -112,13 +118,19 @@ pub fn cairo_run_program_with_initial_scope(
         cairo_run_config.fill_holes,
     )?;
 
+    info!("Reading return values.");
     cairo_runner.read_return_values(allow_missing_builtins)?;
     if cairo_run_config.proof_mode {
+        info!("In proof mode, finalizing segments.");
         cairo_runner.finalize_segments()?;
     }
+
     if secure_run {
+        info!("In secure run, verifying secure runner.");
         verify_secure_runner(&cairo_runner, true, None)?;
     }
+
+    info!(relocate_mem = ?cairo_run_config.relocate_mem, relocate_trace = ?cairo_run_config.relocate_trace, "Relocating.");
     cairo_runner.relocate(
         cairo_run_config.relocate_mem,
         cairo_run_config.relocate_trace,

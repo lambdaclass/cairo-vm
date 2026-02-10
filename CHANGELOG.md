@@ -38,6 +38,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 * refactor: Make HintReference dereference count explicit in `get_maybe_relocatable_from_reference` [#2296](https://github.com/lambdaclass/cairo-vm/pull/2296)
 
+* chore: Add logs to `cairo_run_program_with_initial_scope` [#2319](https://github.com/lambdaclass/cairo-vm/pull/2319)
+
 #### [3.1.0] - 2026-01-19
 
 **Summary**: Introduces stateful VM hooks via the `StepHooks` trait, enabling debuggers and instrumentation tools.
