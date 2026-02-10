@@ -12,8 +12,6 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
-* test: add unit test for `apply_ap_tracking_correction` with invalid offset [#2327](https://github.com/lambdaclass/cairo-vm/pull/2327)
-
 * feat: Make `write_encoded` API public again [#2306](https://github.com/lambdaclass/cairo-vm/pull/2306)
 
 * refactor: deduplicate memcpy/memset scope initialization in builtin hint processor [#2313](https://github.com/lambdaclass/cairo-vm/pull/2313)
