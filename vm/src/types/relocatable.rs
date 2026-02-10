@@ -397,13 +397,8 @@ mod tests {
     use crate::{felt_hex, felt_str};
     use crate::{relocatable, utils::test_utils::mayberelocatable};
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
-    #[cfg(not(target_arch = "wasm32"))]
     use proptest::prelude::*;
 
-    #[cfg(not(target_arch = "wasm32"))]
     proptest! {
         #[test]
         fn add_relocatable_felt(offset in any::<u64>(), ref bigint in any::<[u8; 32]>()) {
@@ -435,7 +430,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_bigint_to_int() {
         let addr = MaybeRelocatable::from(Felt252::from(7i32));
         let added_addr = addr.add_int(&Felt252::from(2i32));
@@ -443,7 +437,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_usize_to_int() {
         let addr = MaybeRelocatable::from(Felt252::from(7_i32));
         let added_addr = addr.add_usize(2).unwrap();
@@ -451,7 +444,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_bigint_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
         let added_addr = addr.add_int(&Felt252::from(2));
@@ -465,7 +457,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_mod_offset_exceeded() {
         let addr = MaybeRelocatable::from((0, 0));
         let error = addr.add_int(&felt_hex!("0x10000000000000000"));
@@ -479,7 +470,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_usize_to_relocatable() {
         let addr = MaybeRelocatable::RelocatableValue(relocatable!(7, 65));
         let added_addr = addr.add_usize(2);
@@ -493,7 +483,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_bigint_to_int_prime_mod() {
         let addr = MaybeRelocatable::Int(felt_hex!(
             "800000000000011000000000000000000000000000000000000000000000004"
@@ -503,7 +492,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_bigint_to_relocatable_prime() {
         let addr = MaybeRelocatable::from((1, 9));
         let added_addr = addr.add_int(&felt_str!(
@@ -519,7 +507,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_to_int() {
         let addr_a = &MaybeRelocatable::from(felt_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020488"
@@ -530,7 +517,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_relocatable_to_relocatable_should_fail() {
         let addr_a = &MaybeRelocatable::from((7, 5));
         let addr_b = &MaybeRelocatable::RelocatableValue(relocatable!(7, 10));
@@ -545,7 +531,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_to_relocatable() {
         let addr_a = &MaybeRelocatable::from((7, 7));
         let addr_b = &MaybeRelocatable::from(Felt252::from(10));
@@ -560,7 +545,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_relocatable_to_int() {
         let addr_a = &MaybeRelocatable::from(Felt252::from(10_i32));
         let addr_b = &MaybeRelocatable::RelocatableValue(relocatable!(7, 7));
@@ -575,7 +559,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_to_relocatable_prime() {
         let addr_a = &MaybeRelocatable::from((7, 14));
         let addr_b = &MaybeRelocatable::Int(felt_hex!(
@@ -592,7 +575,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_rel_int_offset_exceeded() {
         let addr = MaybeRelocatable::from((0, 0));
         let error = addr.add(&MaybeRelocatable::from(felt_hex!("0x10000000000000000")));
@@ -606,7 +588,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_int_int_rel_offset_exceeded() {
         let addr = MaybeRelocatable::Int(felt_hex!("0x10000000000000000"));
         let relocatable = Relocatable {
@@ -624,7 +605,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_int_from_int() {
         let addr_a = &MaybeRelocatable::from(Felt252::from(7));
         let addr_b = &MaybeRelocatable::from(Felt252::from(5));
@@ -633,7 +613,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_relocatable_from_relocatable_same_offset() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((7, 7));
@@ -642,7 +621,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_relocatable_from_relocatable_diff_offset() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from((8, 7));
@@ -657,7 +635,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_int_addr_ref_from_relocatable_addr_ref() {
         let addr_a = &MaybeRelocatable::from((7, 17));
         let addr_b = &MaybeRelocatable::from(Felt252::from(5_i32));
@@ -666,7 +643,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_rel_to_int_error() {
         assert_eq!(
             MaybeRelocatable::from(Felt252::from(7_i32)).sub(&MaybeRelocatable::from((7, 10))),
@@ -678,7 +654,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn divmod_working() {
         let value = &MaybeRelocatable::from(Felt252::from(10));
         let div = &MaybeRelocatable::from(Felt252::from(3));
@@ -693,7 +668,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn divmod_bad_type() {
         let value = &MaybeRelocatable::from(Felt252::from(10));
         let div = &MaybeRelocatable::from((2, 7));
@@ -707,7 +681,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_relocatable_value() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2, 5];
@@ -718,7 +691,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_relocatable_in_temp_segment_value() {
         let value = MaybeRelocatable::from((-1, 7));
         let relocation_table = vec![1, 2, 5];
@@ -729,7 +701,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_relocatable_in_temp_segment_value_with_offset() {
         let value = MaybeRelocatable::from((-1, 7));
         let relocation_table = vec![1, 2, 5];
@@ -740,7 +711,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_relocatable_in_temp_segment_value_error() {
         let value = MaybeRelocatable::from((-1, 7));
         let relocation_table = vec![1, 2, 5];
@@ -751,7 +721,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_int_value() {
         let value = MaybeRelocatable::from(Felt252::from(7));
         let relocation_table = vec![1, 2, 5];
@@ -762,7 +731,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocate_relocatable_value_no_relocation() {
         let value = MaybeRelocatable::from((2, 7));
         let relocation_table = vec![1, 2];
@@ -773,7 +741,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocatable_add_int() {
         assert_eq!(
             relocatable!(1, 2) + &Felt252::from(4),
@@ -783,7 +750,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocatable_add_int_mod_offset_exceeded_error() {
         assert_eq!(
             relocatable!(0, 0) + &(Felt252::from(usize::MAX) + 1_u64),
@@ -795,7 +761,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocatable_add_i32() {
         let reloc = relocatable!(1, 5);
 
@@ -817,7 +782,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mayberelocatable_try_into_reloctable() {
         let address = mayberelocatable!(1, 2);
         assert_eq!(Ok(relocatable!(1, 2)), address.try_into());
@@ -828,7 +792,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocatable_sub_rel_test() {
         let reloc = relocatable!(7, 6);
         assert_eq!(reloc - relocatable!(7, 5), Ok(1));
@@ -842,7 +805,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sub_rel_different_indexes() {
         let a = relocatable!(7, 6);
         let b = relocatable!(8, 6);
@@ -853,7 +815,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_maybe_mod_ok() {
         assert_eq!(
             relocatable!(1, 0) + &mayberelocatable!(2),
@@ -878,7 +839,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_maybe_mod_add_two_relocatable_error() {
         assert_eq!(
             relocatable!(1, 0) + &mayberelocatable!(1, 2),
@@ -890,7 +850,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_maybe_mod_offset_exceeded_error() {
         assert_eq!(
             relocatable!(1, 0) + &mayberelocatable!(usize::MAX as i128 + 1),
@@ -902,7 +861,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_relocatable_test() {
         assert_eq!(
             mayberelocatable!(1, 2).get_relocatable(),
@@ -912,7 +870,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocatable_display() {
         assert_eq!(
             format!("{}", Relocatable::from((1, 0))),
@@ -921,7 +878,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn maybe_relocatable_relocatable_display() {
         assert_eq!(
             format!("{}", MaybeRelocatable::from((1, 0))),
@@ -930,7 +886,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn maybe_relocatable_int_display() {
         assert_eq!(
             format!("{}", MaybeRelocatable::from(Felt252::from(6))),

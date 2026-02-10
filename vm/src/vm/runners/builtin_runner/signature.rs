@@ -269,8 +269,6 @@ mod tests {
     };
 
     use crate::felt_str;
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[test]
     fn get_used_cells_and_allocated_size_valid() {
@@ -282,7 +280,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_for_ecdsa() {
         let mut builtin = SignatureBuiltinRunner::new(Some(512), true);
         let mut segments = MemorySegmentManager::new();
@@ -291,7 +288,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin: BuiltinRunner = SignatureBuiltinRunner::new(Some(512), true).into();
 
@@ -302,7 +298,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin: BuiltinRunner = SignatureBuiltinRunner::new(Some(512), true).into();
 
@@ -326,7 +321,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin: BuiltinRunner = SignatureBuiltinRunner::new(Some(512), true).into();
 
@@ -354,7 +348,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin: BuiltinRunner = SignatureBuiltinRunner::new(Some(512), true).into();
 
@@ -378,7 +371,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(Some(512), true));
         let vm = vm!();
@@ -390,7 +382,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(Some(512), true));
         let mut vm = vm!();
@@ -400,7 +391,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin = BuiltinRunner::Signature(SignatureBuiltinRunner::new(Some(512), true));
         let mut vm = vm!();
@@ -410,7 +400,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_initial_stack_for_range_check_with_base() {
         let mut builtin = SignatureBuiltinRunner::new(Some(512), true);
         builtin.base = 1;
@@ -423,14 +412,12 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initial_stack_not_included_test() {
         let ecdsa_builtin = SignatureBuiltinRunner::new(Some(512), false);
         assert_eq!(ecdsa_builtin.initial_stack(), Vec::new())
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_test() {
         let memory = Memory::new();
         let builtin: BuiltinRunner = SignatureBuiltinRunner::new(Some(512), true).into();
@@ -439,21 +426,18 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_ratio() {
         let builtin = SignatureBuiltinRunner::new(Some(512), true);
         assert_eq!(builtin.ratio(), Some(512));
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_base() {
         let builtin = SignatureBuiltinRunner::new(Some(512), true);
         assert_eq!(builtin.base(), 0);
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_min_step_not_reached() {
         let builtin: BuiltinRunner = SignatureBuiltinRunner::new(Some(512), true).into();
         let mut vm = vm!();
@@ -470,7 +454,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_insufficient_allocated() {
         let builtin: BuiltinRunner = SignatureBuiltinRunner::new(Some(512), true).into();
         let mut vm = vm!();
@@ -489,7 +472,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_invalid_stop_pointer() {
         let mut builtin: BuiltinRunner = SignatureBuiltinRunner::new(Some(512), true).into();
         let mut vm = vm!();
@@ -505,7 +487,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_no_used_instances() {
         let mut builtin: BuiltinRunner = SignatureBuiltinRunner::new(Some(512), true).into();
         let mut vm = vm!();

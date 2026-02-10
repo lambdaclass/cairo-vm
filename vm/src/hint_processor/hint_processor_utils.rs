@@ -169,11 +169,7 @@ mod tests {
     use crate::{relocatable, utils::test_utils::*, vm::vm_memory::memory::Memory};
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_reference_with_immediate_value() {
         // Reference: cast(2, felt)
         let mut vm = vm!();
@@ -189,7 +185,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_offset_value_reference_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
@@ -203,7 +198,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_offset_value_invalid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
@@ -222,7 +216,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_reference_short_path() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (2, 0))];
@@ -238,7 +231,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_reference_with_dereference() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (3, 0))];
@@ -254,7 +246,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_reference_with_dereference_and_imm() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (4, 0))];
@@ -268,7 +259,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_addr_from_reference_no_regiter_in_reference() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (4, 0))];
@@ -279,7 +269,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_addr_from_reference_failed_to_get_ids() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 4)];
@@ -294,7 +283,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn tracking_correction_valid() {
         let mut ref_ap_tracking = ApTracking::new();
         ref_ap_tracking.group = 1;
@@ -308,7 +296,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn tracking_correction_invalid_group() {
         let mut ref_ap_tracking = ApTracking::new();
         ref_ap_tracking.group = 1;
@@ -324,7 +311,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_relocatable_from_reference_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];
@@ -336,7 +322,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_relocatable_from_reference_invalid() {
         let mut vm = vm!();
         vm.segments.memory = Memory::new();
@@ -348,7 +333,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_reference_with_triple_deref() {
         // Reference: [cast([[fp + 2)] + 2], felt*)]
         let mut vm = vm!();
@@ -374,7 +358,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_reference_without_outer_defer() {
         // Reference: cast([fp + 4] + (-5), felt)
         let mut vm = vm!();

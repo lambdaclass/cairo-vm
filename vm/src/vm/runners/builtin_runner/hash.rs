@@ -178,11 +178,7 @@ mod tests {
 
     use crate::vm::{errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner};
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin = HashBuiltinRunner::new(Some(10), true);
 
@@ -193,7 +189,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
@@ -217,7 +212,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
@@ -245,7 +239,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_not_included() {
         let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), false).into();
 
@@ -269,7 +262,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
@@ -293,7 +285,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
@@ -340,7 +331,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(Some(10), true).into();
 
@@ -382,7 +372,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_valid() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let builtin = HashBuiltinRunner::new(Some(8), true);
@@ -401,7 +390,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_incorrect_offset() {
         let memory = memory![((0, 4), 32), ((0, 5), 72), ((0, 6), 0)];
         let builtin = HashBuiltinRunner::new(Some(8), true);
@@ -410,7 +398,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_no_values_to_hash() {
         let memory = memory![((0, 4), 72), ((0, 5), 0)];
         let builtin = HashBuiltinRunner::new(Some(8), true);
@@ -419,7 +406,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_pedersen_for_preset_memory_already_computed() {
         let memory = memory![((0, 3), 32), ((0, 4), 72), ((0, 5), 0)];
         let mut builtin = HashBuiltinRunner::new(Some(8), true);
@@ -429,7 +415,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let vm = vm!();
@@ -441,7 +426,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
@@ -451,7 +435,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(256), true));
         let mut vm = vm!();
@@ -484,7 +467,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_air_private_input() {
         let builtin: BuiltinRunner = HashBuiltinRunner::new(None, true).into();
 

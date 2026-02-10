@@ -425,7 +425,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+
     fn write_binary_trace_file() {
         let program_content = include_bytes!("../../cairo_programs/struct.json");
         let expected_encoded_trace =
@@ -447,7 +447,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+
     fn write_binary_memory_file() {
         let program_content = include_bytes!("../../cairo_programs/struct.json");
         let expected_encoded_memory =

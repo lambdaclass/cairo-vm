@@ -382,11 +382,7 @@ mod tests {
         range_check_instance_def::RangeCheckInstanceDef, LowRatio,
     };
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_plain_instance() {
         let layout = CairoLayout::plain_instance();
         let builtins = BuiltinsInstanceDef::plain();
@@ -398,7 +394,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_small_instance() {
         let layout = CairoLayout::small_instance();
         let builtins = BuiltinsInstanceDef::small();
@@ -410,7 +405,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_dex_instance() {
         let layout = CairoLayout::dex_instance();
         let builtins = BuiltinsInstanceDef::dex();

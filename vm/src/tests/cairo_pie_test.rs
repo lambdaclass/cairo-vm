@@ -3,9 +3,6 @@ use crate::{
     types::{builtin_name::BuiltinName, layout_name::LayoutName},
 };
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
-
 use std::collections::BTreeMap;
 
 use crate::{
@@ -21,7 +18,6 @@ use crate::{
 };
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn pedersen_test() {
     // Run the program
     let program_content = include_bytes!("../../../cairo_programs/pedersen_test.json");
@@ -103,7 +99,6 @@ fn pedersen_test() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn common_signature() {
     // Run the program
     let program_content = include_bytes!("../../../cairo_programs/common_signature.json");
@@ -178,7 +173,6 @@ fn common_signature() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn relocate_segments() {
     // Run the program
     let program_content = include_bytes!("../../../cairo_programs/relocate_segments.json");
@@ -237,7 +231,6 @@ fn relocate_segments() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn serialize_cairo_pie() {
     // Run the program
     let program_content = include_bytes!("../../../cairo_programs/print.json");
@@ -265,7 +258,6 @@ fn serialize_cairo_pie() {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn run_pie_validity_checks_integration() {
     // Run the program
     let program_content = include_bytes!("../../../cairo_programs/integration.json");

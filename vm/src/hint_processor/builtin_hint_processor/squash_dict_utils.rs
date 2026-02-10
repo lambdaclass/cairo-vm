@@ -316,9 +316,6 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     //Hint code as consts
     const SQUASH_DICT_INNER_FIRST_ITERATION : &str = "current_access_indices = sorted(access_indices[key])[::-1]\ncurrent_access_index = current_access_indices.pop()\nmemory[ids.range_check_ptr] = current_access_index";
     const SQUASH_DICT_INNER_SKIP_LOOP: &str =
@@ -333,7 +330,6 @@ mod tests {
     const SQUASH_DICT_INNER_NEXT_KEY: &str = "assert len(keys) > 0, 'No keys left but remaining_accesses > 0.'\nids.next_key = key = keys.pop()";
     const SQUASH_DICT: &str ="dict_access_size = ids.DictAccess.SIZE\naddress = ids.dict_accesses.address_\nassert ids.ptr_diff % dict_access_size == 0, \\\n    'Accesses array size must be divisible by DictAccess.SIZE'\nn_accesses = ids.n_accesses\nif '__squash_dict_max_size' in globals():\n    assert n_accesses <= __squash_dict_max_size, \\\n        f'squash_dict() can only be used with n_accesses<={__squash_dict_max_size}. ' \\\n        f'Got: n_accesses={n_accesses}.'\n# A map from key to the list of indices accessing it.\naccess_indices = {}\nfor i in range(n_accesses):\n    key = memory[address + dict_access_size * i]\n    access_indices.setdefault(key, []).append(i)\n# Descending list of keys.\nkeys = sorted(access_indices.keys(), reverse=True)\n# Are the keys used bigger than range_check bound.\nids.big_keys = 1 if keys[0] >= range_check_builtin.bound else 0\nids.first_key = key = keys.pop()";
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_inner_first_iteration_valid() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //Prepare scope variables
@@ -377,7 +373,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_inner_first_iteration_empty_accessed_indices() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //Prepare scope variables
@@ -406,7 +401,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_inner_first_iteration_no_local_variables() {
         let hint_code = SQUASH_DICT_INNER_FIRST_ITERATION;
         //No scope variables
@@ -426,7 +420,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn should_skip_loop_valid_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_SKIP_LOOP;
         //Create vm
@@ -445,7 +438,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn should_skip_loop_valid_non_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_SKIP_LOOP;
         //Create vm
@@ -467,7 +459,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_inner_check_access_index_valid() {
         let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX;
         //Create vm
@@ -511,7 +502,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_inner_check_access_current_access_addr_empty() {
         let hint_code = SQUASH_DICT_INNER_CHECK_ACCESS_INDEX;
         //Create vm
@@ -535,7 +525,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn should_continue_loop_valid_non_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP;
         //Create vm
@@ -557,7 +546,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn should_continue_loop_valid_empty_current_access_indices() {
         let hint_code = SQUASH_DICT_INNER_CONTINUE_LOOP;
         //Create vm
@@ -576,7 +564,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn assert_current_indices_len_is_empty() {
         let hint_code = SQUASH_DICT_INNER_ASSERT_LEN;
         //Create vm
@@ -592,7 +579,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn assert_current_indices_len_is_empty_not() {
         let hint_code = SQUASH_DICT_INNER_ASSERT_LEN;
         //Create vm
@@ -608,7 +594,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_inner_uses_accesses_assert_valid() {
         let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
@@ -639,7 +624,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_inner_uses_accesses_assert_wrong_used_access_number() {
         let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
@@ -672,7 +656,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_inner_uses_accesses_assert_used_access_number_relocatable() {
         let hint_code = SQUASH_DICT_INNER_USED_ACCESSES_ASSERT;
         //Prepare scope variables
@@ -705,7 +688,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_assert_len_keys_empty() {
         let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Create vm
@@ -720,7 +702,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_assert_len_keys_not_empty() {
         let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Create vm
@@ -735,7 +716,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_assert_len_keys_no_keys() {
         let hint_code = SQUASH_DICT_INNER_LEN_KEYS;
         //Create vm
@@ -748,7 +728,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_inner_next_key_keys_non_empty() {
         let hint_code = SQUASH_DICT_INNER_NEXT_KEY;
         //Create vm
@@ -772,7 +751,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_inner_next_key_keys_empty() {
         let hint_code = SQUASH_DICT_INNER_NEXT_KEY;
         //Create vm
@@ -791,7 +769,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_valid_one_key_dict_no_max_size() {
         //Dict = {1: (1,1), 1: (1,2)}
         let hint_code = SQUASH_DICT;
@@ -838,7 +815,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_valid_two_key_dict_no_max_size() {
         //Dict = {1: (1,1), 1: (1,2), 2: (10,10), 2: (10,20)}
         let hint_code = SQUASH_DICT;
@@ -895,7 +871,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_valid_one_key_dict_with_max_size() {
         //Dict = {1: (1,1), 1: (1,2)}
         let hint_code = SQUASH_DICT;
@@ -943,7 +918,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_invalid_one_key_dict_with_max_size_exceeded() {
         //Dict = {1: (1,1), 1: (1,2)}
         let hint_code = SQUASH_DICT;
@@ -981,7 +955,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_invalid_one_key_dict_bad_ptr_diff() {
         //Dict = {1: (1,1), 1: (1,2)}
         let hint_code = SQUASH_DICT;
@@ -1016,7 +989,6 @@ mod tests {
         );
     }
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_invalid_one_key_dict_with_n_access_too_big() {
         //Dict = {1: (1,1), 1: (1,2)}
         let hint_code = SQUASH_DICT;
@@ -1060,7 +1032,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn squash_dict_valid_one_key_dict_no_max_size_big_keys() {
         //Dict = {(prime - 1): (1,1), (prime - 1): (1,2)}
         let hint_code = SQUASH_DICT;
