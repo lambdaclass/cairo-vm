@@ -1,5 +1,6 @@
 use starknet_types_core::qm31::QM31;
 
+use crate::math_utils::qm31_pack_reduced;
 use crate::stdlib::prelude::*;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::{errors::math_errors::MathError, instruction::OpcodeExtension};
@@ -25,7 +26,7 @@ pub fn typed_add(
                 let y_qm31 = QM31::unpack_from_felt(num_y)
                     .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
                 let res = x_qm31 + y_qm31;
-                Ok(MaybeRelocatable::Int(res.pack_into_felt()))
+                Ok(MaybeRelocatable::Int(qm31_pack_reduced(res)))
             } else {
                 Err(VirtualMachineError::Math(MathError::RelocatableQM31Add(
                     Box::new((x.clone(), y.clone())),
@@ -57,7 +58,7 @@ pub fn typed_sub(
                 let y_qm31 = QM31::unpack_from_felt(num_y)
                     .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
                 let res = x_qm31 - y_qm31;
-                Ok(MaybeRelocatable::Int(res.pack_into_felt()))
+                Ok(MaybeRelocatable::Int(qm31_pack_reduced(res)))
             } else {
                 Err(VirtualMachineError::Math(MathError::RelocatableQM31Sub(
                     Box::new((x.clone(), y.clone())),
@@ -89,8 +90,7 @@ pub fn typed_mul(
                 let y_qm31 = QM31::unpack_from_felt(num_y)
                     .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
                 let res = x_qm31 * y_qm31;
-
-                Ok(MaybeRelocatable::Int(res.pack_into_felt()))
+                Ok(MaybeRelocatable::Int(qm31_pack_reduced(res)))
             }
             _ => Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(
                 "typed_mul".to_owned().into_boxed_str(),
@@ -123,14 +123,7 @@ pub fn typed_div(
             let y_qm31 = QM31::unpack_from_felt(y)
                 .map_err(|e| MathError::QM31UnreducedError(Box::new(e.0)))?;
             let res = (x_qm31 / y_qm31).map_err(|_| MathError::DividedByZero)?;
-            // let res = res.to_coefficients();
-            // let res = QM31::from_coefficients(
-            //     res.0 % STWO_PRIME,
-            //     res.1 % STWO_PRIME,
-            //     res.2 % STWO_PRIME,
-            //     res.3 % STWO_PRIME,
-            // );
-            Ok(res.pack_into_felt())
+            Ok(qm31_pack_reduced(res))
         }
         _ => Err(VirtualMachineError::InvalidTypedOperationOpcodeExtension(
             "typed_div".to_owned().into_boxed_str(),

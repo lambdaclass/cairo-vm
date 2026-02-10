@@ -26,6 +26,21 @@ lazy_static! {
 
 pub const STWO_PRIME: u32 = (1 << 31) - 1;
 
+/// Packs a QM31 element into a Felt252, canonicalizing M31 coordinates.
+/// Lambdaworks' Mersenne31 arithmetic can represent zero as STWO_PRIME
+/// instead of 0. This function normalizes coordinates before packing
+/// so that `QM31::unpack_from_felt` can accept the result.
+pub(crate) fn qm31_pack_reduced(qm31: starknet_types_core::qm31::QM31) -> Felt252 {
+    let (a, b, c, d) = qm31.to_coefficients();
+    starknet_types_core::qm31::QM31::from_coefficients(
+        a % STWO_PRIME,
+        b % STWO_PRIME,
+        c % STWO_PRIME,
+        d % STWO_PRIME,
+    )
+    .pack_into_felt()
+}
+
 /// Returns the `n`th (up to the `251`th power) power of 2 as a [`Felt252`]
 /// in constant time.
 /// It silently returns `1` if the input is out of bounds.

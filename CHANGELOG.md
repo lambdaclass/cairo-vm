@@ -12,6 +12,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* Use starknet-types-core's QM31 instead of hand-rolled implementation [#2203](https://github.com/lambdaclass/cairo-vm/pull/2203)
+
 * fix: correct off-by-one error in Cairo PIE address validation [#2329](https://github.com/lambdaclass/cairo-vm/pull/2329)
 
 * feat: Make `write_encoded` API public again [#2306](https://github.com/lambdaclass/cairo-vm/pull/2306)
