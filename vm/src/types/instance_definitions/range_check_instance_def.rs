@@ -28,11 +28,7 @@ impl RangeCheckInstanceDef {
 mod tests {
     use super::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_new() {
         let builtin_instance = RangeCheckInstanceDef {
             ratio: Some(LowRatio::new_int(10)),
@@ -41,7 +37,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_default() {
         let builtin_instance = RangeCheckInstanceDef {
             ratio: Some(LowRatio::new_int(8)),

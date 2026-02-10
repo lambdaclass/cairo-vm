@@ -277,11 +277,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u384_get_square_ok_goldilocks_prime() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -335,7 +331,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u384_get_square_no_successes() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -372,7 +367,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u384_get_square_ok_success_gx() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -426,7 +420,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u256_get_square_ok_goldilocks_prime() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -472,7 +465,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u256_get_square_no_successes() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -506,7 +498,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u256_get_square_ok_success_gx() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -552,7 +543,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint384_div_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -588,7 +578,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint384_div_b_is_zero() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -619,7 +608,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint384_div_inconsistent_memory() {
         let mut vm = vm_with_range_check!();
         //Initialize fp

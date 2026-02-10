@@ -18,8 +18,6 @@ use std::collections::HashMap;
 
 use crate::Felt252;
 use num_traits::Zero;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
 
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
@@ -320,7 +318,6 @@ pub fn hello_world() -> Result<HintExtension, HintError> {
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn run_deprecated_cc() {
     let mut hint_processor = SimplifiedOsHintProcessor::default();
     let program_content =

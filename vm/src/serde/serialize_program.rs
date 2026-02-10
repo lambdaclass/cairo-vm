@@ -249,11 +249,7 @@ mod tests {
 
     use super::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn program_json_from_program_test() {
         let programs_bytes: Vec<Vec<u8>> = [
             include_bytes!("../../../cairo_programs/keccak.json").to_vec(),
@@ -291,7 +287,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn serialize_and_deserialize_programs() {
         let programs_bytes: Vec<Vec<u8>> = [
             include_bytes!("../../../cairo_programs/keccak.json").to_vec(),

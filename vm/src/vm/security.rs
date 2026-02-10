@@ -124,11 +124,7 @@ mod test {
     use crate::{relocatable, types::program::Program, utils::test_utils::*};
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_without_program_base() {
         let program = program!();
 
@@ -141,7 +137,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_empty_memory() {
         let program = program!(main = Some(0),);
         let mut runner = cairo_runner!(program);
@@ -158,7 +153,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_program_access_out_of_bounds() {
         let program = program!(main = Some(0),);
         let mut runner = cairo_runner!(program);
@@ -175,7 +169,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_program_with_program_size() {
         let program = program!(main = Some(0),);
         let mut runner = cairo_runner!(program);
@@ -191,7 +184,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_builtin_access_out_of_bounds() {
         let program = program!(main = Some(0), builtins = vec![BuiltinName::range_check],);
         let mut runner = cairo_runner!(program);
@@ -208,7 +200,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_builtin_access_correct() {
         let program = program!(main = Some(0), builtins = vec![BuiltinName::range_check],);
         let mut runner = cairo_runner!(program);
@@ -230,7 +221,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_success() {
         let program = program!(
             data = vec![
@@ -262,7 +252,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_temporary_memory_properly_relocated() {
         let program = program!(
             data = vec![
@@ -294,7 +283,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_temporary_memory_not_fully_relocated() {
         let program = program!(
             data = vec![
@@ -329,7 +317,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_missing_initial_fp_error() {
         let program = program!(main = Some(0),);
         let mut runner = cairo_runner!(program);
@@ -343,7 +330,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_ret_fp_address_not_in_memory() {
         let program = program!(main = Some(0),);
         let mut runner = cairo_runner!(program);
@@ -357,7 +343,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_return_fp_not_equal_final_fp_proof_mode() {
         let program = program!(main = Some(0),);
         let mut runner = cairo_runner!(program);
@@ -374,7 +359,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_return_fp_offset_not_equal_final_fp_offset_execution_mode() {
         let program = program!(main = Some(0),);
         let mut runner = cairo_runner!(program);
@@ -388,7 +372,6 @@ mod test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_secure_runner_return_fp_felt_not_equal_final_fp_offse() {
         let program = program!(main = Some(0),);
         let mut runner = cairo_runner!(program);

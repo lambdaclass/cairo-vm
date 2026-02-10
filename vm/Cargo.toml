@@ -65,15 +65,6 @@ clap = { version = "4.3.10", features = ["derive"], optional = true}
 [dev-dependencies]
 assert_matches = "1.5.0"
 rstest = { version = "0.17.0", default-features = false }
-
-# wasm32 requires getrandom with js feature for std support
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = ["js"] }
-
-[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = "0.3.50"
-
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 iai-callgrind = "0.14.0"
 criterion = { version = "0.5.1", features = ["html_reports"] }
 proptest = "1.0.0"

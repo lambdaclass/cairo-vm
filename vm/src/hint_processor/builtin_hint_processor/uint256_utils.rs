@@ -479,11 +479,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_add_ok() {
         let hint_code = hint_code::UINT256_ADD;
         let mut vm = vm_with_range_check!();
@@ -505,7 +501,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_add_low_only_ok() {
         let hint_code =
             "sum_low = ids.a.low + ids.b.low\nids.carry_low = 1 if sum_low >= ids.SHIFT else 0";
@@ -527,7 +522,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint128_add_ok() {
         let hint_code = hint_code::UINT128_ADD;
         let mut vm = vm_with_range_check!();
@@ -546,7 +540,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_add_fail_inserts() {
         let hint_code = hint_code::UINT256_ADD;
         let mut vm = vm_with_range_check!();
@@ -575,7 +568,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sub_nonnegative_ok() {
         let hint_code = hint_code::UINT256_SUB;
         let mut vm = vm_with_range_check!();
@@ -596,7 +588,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sub_negative_ok() {
         let hint_code = hint_code::UINT256_SUB;
         let mut vm = vm_with_range_check!();
@@ -621,7 +612,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sub_b_high_gt_256_lte_a() {
         let hint_code = hint_code::UINT256_SUB;
         let mut vm = vm_with_range_check!();
@@ -642,7 +632,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sub_b_high_gt_256_gt_a() {
         let hint_code = hint_code::UINT256_SUB;
         let mut vm = vm_with_range_check!();
@@ -667,7 +656,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sub_missing_member() {
         let hint_code = hint_code::UINT256_SUB;
         let mut vm = vm_with_range_check!();
@@ -687,7 +675,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_64_ok() {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
@@ -709,7 +696,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_64_with_big_a() {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
@@ -732,7 +718,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_64_memory_error() {
         let hint_code = "ids.low = ids.a & ((1<<64) - 1)\nids.high = ids.a >> 64";
         let mut vm = vm_with_range_check!();
@@ -757,7 +742,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sqrt_ok() {
         let hint_code = hint_code::UINT256_SQRT;
         let mut vm = vm_with_range_check!();
@@ -778,7 +762,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sqrt_felt_ok() {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root = root";
         let mut vm = vm_with_range_check!();
@@ -795,7 +778,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_sqrt_assert_error() {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = vm_with_range_check!();
@@ -815,7 +797,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint256_invalid_memory_insert() {
         let hint_code = "from starkware.python.math_utils import isqrt\nn = (ids.n.high << 128) + ids.n.low\nroot = isqrt(n)\nassert 0 <= root < 2 ** 128\nids.root.low = root\nids.root.high = 0";
         let mut vm = vm_with_range_check!();
@@ -837,7 +818,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_ok_result_one() {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
@@ -861,7 +841,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_ok_result_zero() {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
@@ -885,7 +864,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_ok_invalid_memory_insert() {
         let hint_code = "memory[ap] = 1 if 0 <= (ids.a.high % PRIME) < 2 ** 127 else 0";
         let mut vm = vm_with_range_check!();
@@ -906,7 +884,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_ok() {
         let hint_code = hint_code::UINT256_UNSIGNED_DIV_REM;
         let mut vm = vm_with_range_check!();
@@ -931,7 +908,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_expanded_ok() {
         let hint_code = hint_code::UINT256_EXPANDED_UNSIGNED_DIV_REM;
         let mut vm = vm_with_range_check!();
@@ -966,7 +942,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_invalid_memory_insert() {
         let hint_code = hint_code::UINT256_UNSIGNED_DIV_REM;
         let mut vm = vm_with_range_check!();
@@ -995,7 +970,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_invalid_memory_insert_2() {
         let hint_code = hint_code::UINT256_UNSIGNED_DIV_REM;
         let mut vm = vm_with_range_check!();
@@ -1024,7 +998,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_mul_div_mod_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -1074,7 +1047,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_mul_div_mod_missing_ids() {
         let mut vm = vm_with_range_check!();
         //Initialize fp

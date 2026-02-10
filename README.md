@@ -36,7 +36,6 @@ A faster and safer implementation of the Cairo VM in Rust
   - [Running cairo-vm from CLI](#running-cairo-vm-from-cli)
   - [Using hints](#using-hints)
   - [Running a function in a Cairo program with arguments](#running-a-function-in-a-cairo-program-with-arguments)
-  - [WebAssembly Demo](#webassembly-demo)
   - [Testing](#testing)
   - [Tracer](#tracer)
 - [📊 Benchmarks](#-benchmarks)
@@ -264,10 +263,6 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
 
 To run a cairo 1 program enter in the folder `cd cairo1-run` and follow the [`cairo1-run documentation`](cairo1-run/README.md)
 
-
-### WebAssembly Demo
-
-A demo on how to use `cairo-vm` with WebAssembly can be found in [`examples/wasm-demo`](examples/wasm-demo/)
 
 ### Testing
 

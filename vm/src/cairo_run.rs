@@ -390,8 +390,6 @@ mod tests {
     };
 
     use rstest::rstest;
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[allow(clippy::result_large_err)]
     fn run_test_program(
@@ -410,7 +408,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn cairo_run_custom_entry_point() {
         let program = Program::from_bytes(
             include_bytes!("../../cairo_programs/not_main.json"),
@@ -429,7 +426,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn cairo_run_with_no_data_program() {
         // a compiled program with no `data` key.
         // it should fail when the program is loaded.
@@ -441,7 +437,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn cairo_run_with_no_main_program() {
         // a compiled program with no main scope
         // it should fail when trying to run initialize_main_entrypoint.
@@ -453,7 +448,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn cairo_run_with_invalid_memory() {
         // the program invalid_memory.json has an invalid memory cell and errors when trying to
         // decode the instruction.
@@ -465,7 +459,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn write_output_program() {
         let program_content = include_bytes!("../../cairo_programs/bitwise_output.json");
         let mut hint_processor = BuiltinHintProcessor::new_empty();
@@ -478,7 +471,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_with_no_trace() {
         let program = Program::from_bytes(
             include_bytes!("../../cairo_programs/struct.json"),
@@ -573,7 +565,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn write_binary_trace_file() {
         let program_content = include_bytes!("../../cairo_programs/struct.json");
         let expected_encoded_trace =
@@ -593,7 +584,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn write_binary_memory_file() {
         let program_content = include_bytes!("../../cairo_programs/struct.json");
         let expected_encoded_memory =

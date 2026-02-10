@@ -229,9 +229,6 @@ mod tests {
 
     use super::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
     fn test_is_quad_residue_less_than_2() {
         assert!(is_quad_residue(&BigUint::one()));
@@ -307,7 +304,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_op_random_ec_point_hint() {
         let hint_code = hint_code::RANDOM_EC_POINT;
         let mut vm = vm!();
@@ -371,7 +367,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_chained_ec_op_random_ec_point_hint() {
         let hint_code = hint_code::CHAINED_EC_OP_RANDOM_EC_POINT;
         let mut vm = vm!();
@@ -477,7 +472,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_recover_y_hint() {
         let hint_code = hint_code::RECOVER_Y;
         let mut vm = vm!();

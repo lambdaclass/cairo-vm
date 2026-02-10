@@ -99,11 +99,7 @@ mod tests {
     use num_bigint::BigUint;
     use std::collections::HashMap;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn secp_split() {
         let mut constants = HashMap::new();
         constants.insert(BASE_86.to_string(), crate::math_utils::pow2_const(86));
