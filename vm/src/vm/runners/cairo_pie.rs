@@ -260,7 +260,7 @@ impl CairoPie {
         let validate_addr = |addr: Relocatable| -> Result<(), CairoPieValidationError> {
             if segment_sizes
                 .get(&addr.segment_index)
-                .is_none_or(|size| addr.offset > *size)
+                .is_none_or(|size| addr.offset >= *size)
             {
                 return Err(CairoPieValidationError::InvalidAddress);
             }
