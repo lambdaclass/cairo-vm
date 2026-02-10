@@ -508,6 +508,9 @@ impl ModBuiltinRunner {
         add_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
         mul_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
     ) -> Result<(), RunnerError> {
+        // Treat n=0 as if the builtin wasn't specified, matching Python's behavior.
+        let add_mod = add_mod.filter(|&(_, _, n)| n > 0);
+        let mul_mod = mul_mod.filter(|&(_, _, n)| n > 0);
         if add_mod.is_none() && mul_mod.is_none() {
             return Err(RunnerError::FillMemoryNoBuiltinSet);
         }
@@ -717,6 +720,7 @@ impl ModBuiltinRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_matches::assert_matches;
 
     #[test]
     fn apply_operation_add() {
@@ -1011,5 +1015,37 @@ mod tests {
                 zero_value_address: 23019
             })
         )
+    }
+
+    #[test]
+    fn fill_memory_n_zero_both_builtins() {
+        let mut memory = Memory::new();
+        let add_mod = ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(1), 1, 96), true);
+        let mul_mod = ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(Some(1), 1, 96), true);
+        let ptr = Relocatable::from((0, 0));
+        let result = ModBuiltinRunner::fill_memory(
+            &mut memory,
+            Some((ptr, &add_mod, 0)),
+            Some((ptr, &mul_mod, 0)),
+        );
+        assert_matches!(result, Err(RunnerError::FillMemoryNoBuiltinSet));
+    }
+
+    #[test]
+    fn fill_memory_n_zero_add_mod_only() {
+        let mut memory = Memory::new();
+        let add_mod = ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(Some(1), 1, 96), true);
+        let ptr = Relocatable::from((0, 0));
+        let result = ModBuiltinRunner::fill_memory(&mut memory, Some((ptr, &add_mod, 0)), None);
+        assert_matches!(result, Err(RunnerError::FillMemoryNoBuiltinSet));
+    }
+
+    #[test]
+    fn fill_memory_n_zero_mul_mod_only() {
+        let mut memory = Memory::new();
+        let mul_mod = ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(Some(1), 1, 96), true);
+        let ptr = Relocatable::from((0, 0));
+        let result = ModBuiltinRunner::fill_memory(&mut memory, None, Some((ptr, &mul_mod, 0)));
+        assert_matches!(result, Err(RunnerError::FillMemoryNoBuiltinSet));
     }
 }

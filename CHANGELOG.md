@@ -12,6 +12,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* fix: Handle n=0 in `mod_builtin_fill_memory` [#1935](https://github.com/lambdaclass/cairo-vm/pull/1935)
+
 * feat: Make `write_encoded` API public again [#2306](https://github.com/lambdaclass/cairo-vm/pull/2306)
 
 * refactor: deduplicate memcpy/memset scope initialization in builtin hint processor [#2313](https://github.com/lambdaclass/cairo-vm/pull/2313)
