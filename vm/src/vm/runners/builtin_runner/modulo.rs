@@ -508,7 +508,8 @@ impl ModBuiltinRunner {
         add_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
         mul_mod: Option<(Relocatable, &ModBuiltinRunner, usize)>,
     ) -> Result<(), RunnerError> {
-        // Treat n=0 as if the builtin wasn't specified, matching Python's behavior.
+        // Treat n=0 as if the builtin wasn't specified.
+        // https://github.com/starkware-libs/cairo-lang/blob/8276ac35830148a397e1143389f23253c8b80e93/src/starkware/cairo/lang/builtins/modulo/mod_builtin_runner.py#L349-L352
         let add_mod = add_mod.filter(|&(_, _, n)| n > 0);
         let mul_mod = mul_mod.filter(|&(_, _, n)| n > 0);
         if add_mod.is_none() && mul_mod.is_none() {
