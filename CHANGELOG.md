@@ -12,6 +12,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* perf: remove redundant Felt252 bytes roundtrip in SignatureBuiltinRunner [#2323](https://github.com/lambdaclass/cairo-vm/pull/2323)
+
 * feat: Make `write_encoded` API public again [#2306](https://github.com/lambdaclass/cairo-vm/pull/2306)
 
 * refactor: deduplicate memcpy/memset scope initialization in builtin hint processor [#2313](https://github.com/lambdaclass/cairo-vm/pull/2313)
