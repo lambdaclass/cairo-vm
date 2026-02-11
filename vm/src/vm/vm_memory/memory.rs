@@ -265,15 +265,13 @@ impl Memory {
         Relocatable: TryFrom<&'a K>,
     {
         let relocatable: Relocatable = key.try_into().ok()?;
-
-        let data = if relocatable.segment_index.is_negative() {
-            &self.temp_data
-        } else {
-            &self.data
-        };
-        let (i, j) = from_relocatable_to_indexes(relocatable);
-        let value = data.get(i)?.get(j)?.get_value()?;
-        Some(Cow::Owned(self.relocate_value(&value).ok()?.into_owned()))
+        let value = self
+            .get_segment_cells(relocatable.segment_index)?
+            .get(relocatable.offset)?
+            .get_value()?;
+        Some(Cow::Owned(
+            self.relocate_value(&value).ok()?.into_owned(),
+        ))
     }
 
     // Version of Memory.relocate_value() that doesn't require a self reference
@@ -623,6 +621,15 @@ impl Memory {
         Ok(())
     }
 
+    #[inline]
+    fn get_segment_cells(&self, idx: isize) -> Option<&[MemoryCell]> {
+        if idx.is_negative() {
+            self.temp_data.get(-(idx + 1) as usize).map(Vec::as_slice)
+        } else {
+            self.data.get(idx as usize).map(Vec::as_slice)
+        }
+    }
+
     /// Compares two ranges of values in memory of length `len`
     /// Returns the ordering and the first relative position at which they differ
     /// Special cases:
@@ -638,16 +645,9 @@ impl Memory {
         rhs: Relocatable,
         len: usize,
     ) -> (Ordering, usize) {
-        let get_segment = |idx: isize| {
-            if idx.is_negative() {
-                self.temp_data.get(-(idx + 1) as usize)
-            } else {
-                self.data.get(idx as usize)
-            }
-        };
         match (
-            get_segment(lhs.segment_index),
-            get_segment(rhs.segment_index),
+            self.get_segment_cells(lhs.segment_index),
+            self.get_segment_cells(rhs.segment_index),
         ) {
             (None, None) => {
                 return (Ordering::Equal, 0);
@@ -688,16 +688,11 @@ impl Memory {
         if lhs == rhs {
             return true;
         }
-        let get_segment = |idx: isize| {
-            if idx.is_negative() {
-                self.temp_data.get(-(idx + 1) as usize)
-            } else {
-                self.data.get(idx as usize)
-            }
-        };
         match (
-            get_segment(lhs.segment_index).and_then(|s| s.get(lhs.offset..)),
-            get_segment(rhs.segment_index).and_then(|s| s.get(rhs.offset..)),
+            self.get_segment_cells(lhs.segment_index)
+                .and_then(|s| s.get(lhs.offset..)),
+            self.get_segment_cells(rhs.segment_index)
+                .and_then(|s| s.get(rhs.offset..)),
         ) {
             (Some(lhs), Some(rhs)) => {
                 let (lhs_len, rhs_len) = (lhs.len().min(len), rhs.len().min(len));
