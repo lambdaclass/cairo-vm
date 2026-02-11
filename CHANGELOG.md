@@ -14,6 +14,10 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 * docs: Add onboarding doc for new developers [#2325](https://github.com/lambdaclass/cairo-vm/pull/2325)
 
+* fix: Handle n=0 in `mod_builtin_fill_memory` [#1935](https://github.com/lambdaclass/cairo-vm/pull/1935)
+
+* fix: correct off-by-one error in Cairo PIE address validation [#2329](https://github.com/lambdaclass/cairo-vm/pull/2329)
+
 * feat: Make `write_encoded` API public again [#2306](https://github.com/lambdaclass/cairo-vm/pull/2306)
 
 * refactor: deduplicate memcpy/memset scope initialization in builtin hint processor [#2313](https://github.com/lambdaclass/cairo-vm/pull/2313)
@@ -37,6 +41,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 * chore(breaking): Remove bincode crate [#2294](https://github.com/lambdaclass/cairo-vm/pull/2294)
 
 * refactor: Make HintReference dereference count explicit in `get_maybe_relocatable_from_reference` [#2296](https://github.com/lambdaclass/cairo-vm/pull/2296)
+
+* chore: Add logs to `cairo_run_program_with_initial_scope` [#2319](https://github.com/lambdaclass/cairo-vm/pull/2319)
 
 #### [3.1.0] - 2026-01-19
 

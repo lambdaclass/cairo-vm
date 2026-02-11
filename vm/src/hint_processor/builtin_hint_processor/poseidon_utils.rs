@@ -119,4 +119,64 @@ mod tests {
         //Check hint memory inserts
         check_memory![vm.segments.memory, ((1, 3), 0)];
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_elements_over_ten_true() {
+        let hint_code = hint_code::NONDET_ELEMENTS_OVER_TEN;
+        let mut vm = vm!();
+        vm.set_ap(3);
+        // elements at (1,0) points to (2,0), elements_end at (1,1) points to (2,12)
+        // difference = 12 >= 10, should insert 1
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), (2, 12))];
+        vm.set_fp(2);
+        let ids_data = ids_data!["elements", "elements_end"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        check_memory![vm.segments.memory, ((1, 3), 1)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_elements_over_ten_false() {
+        let hint_code = hint_code::NONDET_ELEMENTS_OVER_TEN;
+        let mut vm = vm!();
+        vm.set_ap(3);
+        // elements at (1,0) points to (2,0), elements_end at (1,1) points to (2,5)
+        // difference = 5 < 10, should insert 0
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), (2, 5))];
+        vm.set_fp(2);
+        let ids_data = ids_data!["elements", "elements_end"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        check_memory![vm.segments.memory, ((1, 3), 0)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_elements_over_two_true() {
+        let hint_code = hint_code::NONDET_ELEMENTS_OVER_TWO;
+        let mut vm = vm!();
+        vm.set_ap(3);
+        // elements at (1,0) points to (2,0), elements_end at (1,1) points to (2,5)
+        // difference = 5 >= 2, should insert 1
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), (2, 5))];
+        vm.set_fp(2);
+        let ids_data = ids_data!["elements", "elements_end"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        check_memory![vm.segments.memory, ((1, 3), 1)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn run_elements_over_two_false() {
+        let hint_code = hint_code::NONDET_ELEMENTS_OVER_TWO;
+        let mut vm = vm!();
+        vm.set_ap(3);
+        // elements at (1,0) points to (2,0), elements_end at (1,1) points to (2,1)
+        // difference = 1 < 2, should insert 0
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), (2, 1))];
+        vm.set_fp(2);
+        let ids_data = ids_data!["elements", "elements_end"];
+        assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
+        check_memory![vm.segments.memory, ((1, 3), 0)];
+    }
 }
