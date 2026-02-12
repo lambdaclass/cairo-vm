@@ -6,53 +6,47 @@ This document helps new developers navigate the Cairo VM codebase. It covers the
 
 The repository is a Cargo workspace with these crates:
 
-| Crate | What it does |
-|---|---|
-| `vm/` | Core library. Contains the VM, memory model, builtins, hint processors, types, and serialization. This is what downstream projects depend on. |
-| `cairo-vm-cli/` | CLI binary for running compiled Cairo 0 programs (JSON format). |
-| `cairo1-run/` | CLI binary for compiling and running Cairo 1 programs. Depends on the Cairo compiler crates. |
-| `cairo-vm-tracer/` | Library for the web-based execution tracer. Used by `cairo-vm-cli` when the `tracer` feature is enabled. See [tracer docs](./tracer/). |
-| `hint_accountant/` | Dev tool that reports which hints from `cairo-lang` are implemented and which are missing. |
-| `examples/` | Usage examples: WASM demo, hyper-threading benchmarks, custom hint processor. |
-| `fuzzer/` | Fuzz testing and differential fuzzing against the Python VM. |
-| `ensure-no_std/` | CI-only crate that verifies the `vm` crate compiles without `std`. |
-| `bench/` | Criterion and iai-callgrind benchmark files, compiled as part of the `vm` crate (not a standalone crate). |
+- `vm/` — Core library. Contains the VM, memory model, builtins, hint processors, types, and serialization. This is what downstream projects depend on.
+- `cairo-vm-cli/` — CLI binary for running compiled Cairo 0 programs (JSON format).
+- `cairo1-run/` — CLI binary for compiling and running Cairo 1 programs. Depends on the Cairo compiler crates.
+- `cairo-vm-tracer/` — Library for the web-based execution tracer. Used by `cairo-vm-cli` when the `tracer` feature is enabled. See [tracer docs](./tracer/).
+- `hint_accountant/` — Dev tool that reports which hints from `cairo-lang` are implemented and which are missing.
+- `examples/` — Usage examples: WASM demo, hyper-threading benchmarks, custom hint processor.
+- `fuzzer/` — Fuzz testing and differential fuzzing against the Python VM.
+- `ensure-no_std/` — CI-only crate that verifies the `vm` crate compiles without `std`.
+- `bench/` — Criterion and iai-callgrind benchmark files, compiled as part of the `vm` crate (not a standalone crate).
 
 ### Inside `vm/src/`
 
 The core crate has these top-level modules:
 
-| Module | Responsibility |
-|---|---|
-| `vm/vm_core.rs` | The VM itself: fetch-decode-execute loop, operand resolution, register updates. |
-| `vm/vm_memory/` | Memory model: write-once segments, relocation, validated memory. |
-| `vm/runners/` | `CairoRunner` (orchestrates a full run: init, execute, relocate, output) and builtin runners (pedersen, range_check, ecdsa, etc.). |
-| `vm/decoding/` | Instruction decoder: turns a 63-bit encoded felt into an `Instruction` struct. |
-| `vm/trace/` | Trace recording and relocation for the prover. |
-| `vm/context/` | `RunContext`: holds pc, ap, fp and computes operand addresses. |
-| `vm/security.rs` | Post-execution security checks (memory holes, builtin segment validation). |
-| `vm/hooks.rs` | Optional callbacks before/after each VM step. |
-| `types/` | Core data types: `Relocatable`, `MaybeRelocatable`, `Instruction`, `Program`, layouts, builtin definitions. |
-| `hint_processor/` | Hint execution: trait definition (`HintProcessor`), the built-in hint processor (implements all whitelisted hints), and the Cairo 1 hint processor. |
-| `serde/` | Deserialization of compiled program JSON and Program parsing. |
-| `air_public_input.rs` / `air_private_input.rs` | Serialization of AIR inputs for the prover (Stone/Stwo). |
-| `cairo_run.rs` | High-level `cairo_run` function that wires everything together. |
-| `math_utils/` | Field arithmetic helpers. |
+- `vm/vm_core.rs` — The VM itself: fetch-decode-execute loop, operand resolution, register updates.
+- `vm/vm_memory/` — Memory model: write-once segments, relocation, validated memory.
+- `vm/runners/` — `CairoRunner` (orchestrates a full run: init, execute, relocate, output) and builtin runners (pedersen, range_check, ecdsa, etc.).
+- `vm/decoding/` — Instruction decoder: turns a 63-bit encoded felt into an `Instruction` struct.
+- `vm/trace/` — Trace recording and relocation for the prover.
+- `vm/context/` — `RunContext`: holds pc, ap, fp and computes operand addresses.
+- `vm/security.rs` — Post-execution security checks (memory holes, builtin segment validation).
+- `vm/hooks.rs` — Optional callbacks before/after each VM step.
+- `types/` — Core data types: `Relocatable`, `MaybeRelocatable`, `Instruction`, `Program`, layouts, builtin definitions.
+- `hint_processor/` — Hint execution: trait definition (`HintProcessor`), the built-in hint processor (implements all whitelisted hints), and the Cairo 1 hint processor.
+- `serde/` — Deserialization of compiled program JSON and Program parsing.
+- `air_public_input.rs` / `air_private_input.rs` — Serialization of AIR inputs for the prover (Stone/Stwo).
+- `cairo_run.rs` — High-level `cairo_run` function that wires everything together.
+- `math_utils/` — Field arithmetic helpers.
 
 ## Feature flags
 
 The `vm` crate has several feature flags that control compilation:
 
-| Flag | Purpose |
-|---|---|
-| `std` (default) | Standard library support. Disable for `no_std`/WASM targets. |
-| `cairo-1-hints` | Enables the Cairo 1 hint processor. Pulls in `cairo-lang-casm` and ark dependencies. |
-| `mod_builtin` | Enables the modular arithmetic builtin. |
-| `cairo-0-secp-hints` | Enables secp256k1/secp256r1 hint implementations for Cairo 0. |
-| `cairo-0-data-availability-hints` | Enables data availability-related hints for Cairo 0. |
-| `extensive_hints` | Allows extending the hint set at runtime from within a hint. |
-| `test_utils` | Exposes test utilities and derives `Arbitrary` for fuzzing. |
-| `tracer` | Marker flag used by `cairo-vm-cli`'s `with_tracer` feature to conditionally compile tracer support. |
+- `std` (default) — Standard library support. Disable for `no_std`/WASM targets.
+- `cairo-1-hints` — Enables the Cairo 1 hint processor. Pulls in `cairo-lang-casm` and ark dependencies.
+- `mod_builtin` — Enables the modular arithmetic builtin.
+- `cairo-0-secp-hints` — Enables secp256k1/secp256r1 hint implementations for Cairo 0.
+- `cairo-0-data-availability-hints` — Enables data availability-related hints for Cairo 0.
+- `extensive_hints` — Allows extending the hint set at runtime from within a hint.
+- `test_utils` — Exposes test utilities and derives `Arbitrary` for fuzzing.
+- `tracer` — Marker flag used by `cairo-vm-cli`'s `with_tracer` feature to conditionally compile tracer support.
 
 ## Layouts
 
@@ -70,12 +64,17 @@ The layout must match what the prover expects. If you're generating traces for S
 
 ## Proof mode vs normal mode
 
-| | Normal mode | Proof mode (`--proof_mode`) |
-|---|---|---|
-| Purpose | Execute and get output | Execute and generate a provable trace |
-| Builtins | Must match layout (unless `--allow_missing_builtins`) | Missing builtins always allowed |
-| Security checks | Enabled by default (`--secure_run`) | Must be explicitly enabled |
-| Outputs | Can generate Cairo PIE (`--cairo_pie_output`) | Can generate AIR inputs (`--air_public_input`, `--air_private_input`) |
+**Normal mode:**
+- Executes and gets output.
+- Builtins must match layout (unless `--allow_missing_builtins`).
+- Security checks enabled by default (`--secure_run`).
+- Can generate Cairo PIE (`--cairo_pie_output`).
+
+**Proof mode** (`--proof_mode`):
+- Executes and generates a provable trace.
+- Missing builtins always allowed.
+- Security checks must be explicitly enabled.
+- Can generate AIR inputs (`--air_public_input`, `--air_private_input`).
 
 For prover integration you need proof mode with trace and memory files:
 ```
