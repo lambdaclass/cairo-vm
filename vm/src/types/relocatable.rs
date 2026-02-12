@@ -1,7 +1,6 @@
-use crate::stdlib::{
+use std::{
     fmt::{self, Display},
     ops::{Add, AddAssign, Sub},
-    prelude::*,
 };
 
 use crate::Felt252;
@@ -401,10 +400,10 @@ mod tests {
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
-    #[cfg(feature = "std")]
+    #[cfg(not(target_arch = "wasm32"))]
     use proptest::prelude::*;
 
-    #[cfg(feature = "std")]
+    #[cfg(not(target_arch = "wasm32"))]
     proptest! {
         #[test]
         fn add_relocatable_felt(offset in any::<u64>(), ref bigint in any::<[u8; 32]>()) {

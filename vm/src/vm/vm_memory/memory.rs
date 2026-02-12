@@ -1,4 +1,4 @@
-use crate::stdlib::{borrow::Cow, collections::HashMap, fmt, prelude::*};
+use std::{borrow::Cow, collections::HashMap, fmt};
 
 use crate::types::errors::math_errors::MathError;
 use crate::vm::runners::cairo_pie::CairoPieMemory;

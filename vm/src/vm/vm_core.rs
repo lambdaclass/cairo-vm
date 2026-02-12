@@ -1,5 +1,4 @@
 use crate::math_utils::signed_felt;
-use crate::stdlib::{any::Any, borrow::Cow, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 #[cfg(feature = "extensive_hints")]
 use crate::types::program::HintRange;
@@ -33,6 +32,7 @@ use crate::{
         vm_memory::memory_segments::MemorySegmentManager,
     },
 };
+use std::{any::Any, borrow::Cow, collections::HashMap};
 
 use crate::Felt252;
 use core::cmp::Ordering;
@@ -1446,7 +1446,6 @@ mod tests {
     use super::*;
     use crate::felt_hex;
     use crate::math_utils::{qm31_coordinates_to_packed_reduced, STWO_PRIME};
-    use crate::stdlib::collections::HashMap;
     use crate::types::instruction::OpcodeExtension;
     use crate::types::layout_name::LayoutName;
     use crate::types::program::Program;
@@ -1467,6 +1466,7 @@ mod tests {
         },
     };
     use assert_matches::assert_matches;
+    use std::collections::HashMap;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
@@ -3979,7 +3979,6 @@ mod tests {
     from starkware.cairo.common.bitwise import bitwise_and
     from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 
-
     func main{bitwise_ptr: BitwiseBuiltin*}():
         let (result) = bitwise_and(12, 10)  # Binary (1100, 1010).
         assert result = 8  # Binary 1000.
@@ -4223,7 +4222,6 @@ mod tests {
     from starkware.cairo.common.bitwise import bitwise_and
     from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 
-
     func main{bitwise_ptr: BitwiseBuiltin*}():
         let (result) = bitwise_and(12, 10)  # Binary (1100, 1010).
         assert result = 8  # Binary 1000.
@@ -4245,7 +4243,6 @@ mod tests {
     %builtins bitwise
     from starkware.cairo.common.bitwise import bitwise_and
     from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
-
 
     func main{bitwise_ptr: BitwiseBuiltin*}():
         let (result) = bitwise_and(12, 10)  # Binary (1100, 1010).

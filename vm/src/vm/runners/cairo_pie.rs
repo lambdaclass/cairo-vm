@@ -1,18 +1,14 @@
 use super::cairo_runner::ExecutionResources;
-use crate::stdlib::prelude::{String, Vec};
 use crate::types::builtin_name::BuiltinName;
 use crate::vm::errors::cairo_pie_errors::CairoPieValidationError;
+use std::collections::{BTreeMap, HashMap};
+
 use crate::{
-    stdlib::{
-        collections::{BTreeMap, HashMap},
-        prelude::*,
-    },
     types::relocatable::{MaybeRelocatable, Relocatable},
     Felt252,
 };
 use num_traits::{One, Zero};
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "std")]
 use {
     std::{fs::File, io::Write, path::Path},
     zip::ZipWriter,
@@ -303,7 +299,6 @@ impl CairoPie {
         Ok(())
     }
 
-    #[cfg(feature = "std")]
     pub fn write_zip_file(
         &self,
         file_path: &Path,
@@ -342,7 +337,6 @@ impl CairoPie {
         Ok(())
     }
 
-    #[cfg(feature = "std")]
     pub fn from_zip_archive<R: std::io::Read + std::io::Seek>(
         mut zip_reader: zip::ZipArchive<R>,
     ) -> Result<CairoPie, std::io::Error> {
@@ -379,7 +373,6 @@ impl CairoPie {
         })
     }
 
-    #[cfg(feature = "std")]
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, std::io::Error> {
         let reader = std::io::Cursor::new(bytes);
         let zip_archive = zip::ZipArchive::new(reader)?;
@@ -387,7 +380,6 @@ impl CairoPie {
         Self::from_zip_archive(zip_archive)
     }
 
-    #[cfg(feature = "std")]
     pub fn read_zip_file(path: &Path) -> Result<Self, std::io::Error> {
         let file = File::open(path)?;
         let zip = zip::ZipArchive::new(file)?;
@@ -401,7 +393,6 @@ impl CairoPie {
     ///
     /// Returns a tuple with the new `extra_segments` (containing just the merged segment)
     /// and a HashMap with the old segment indices mapped to their new offset in the new segment
-    #[cfg(feature = "std")]
     fn merge_extra_segments(&self) -> Option<(SegmentInfo, HashMap<usize, Relocatable>)> {
         if self.metadata.extra_segments.is_empty() {
             return None;
@@ -439,16 +430,13 @@ impl CairoPie {
 }
 
 pub(super) mod serde_impl {
-    use crate::stdlib::collections::{BTreeMap, HashMap};
     use crate::types::builtin_name::BuiltinName;
     use crate::vm::runners::cairo_runner::ORDERED_BUILTIN_LIST;
     use num_traits::Num;
+    use std::collections::{BTreeMap, HashMap};
 
     use super::CAIRO_PIE_VERSION;
     use super::{CairoPieMemory, Pages, PublicMemoryPage, SegmentInfo};
-    #[cfg(not(feature = "std"))]
-    use crate::alloc::string::ToString;
-    use crate::stdlib::prelude::{String, Vec};
     use crate::{
         types::relocatable::{MaybeRelocatable, Relocatable},
         utils::CAIRO_PRIME,
@@ -864,7 +852,6 @@ pub(super) mod serde_impl {
 
 #[cfg(test)]
 mod test {
-    #[cfg(feature = "std")]
     use {
         crate::{
             cairo_run::CairoRunConfig,
@@ -952,7 +939,6 @@ mod test {
     }
 
     #[rstest]
-    #[cfg(feature = "std")]
     #[case(include_bytes!("../../../../cairo_programs/fibonacci.json"), "fibonacci")]
     #[case(include_bytes!("../../../../cairo_programs/integration.json"), "integration")]
     #[case(include_bytes!("../../../../cairo_programs/common_signature.json"), "signature")]
@@ -988,7 +974,6 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature = "std")]
     fn cairo_pie_with_extra_segments() {
         let program_content = include_bytes!("../../../../cairo_programs/fibonacci.json");
         let mut cairo_pie = {
@@ -1076,7 +1061,6 @@ mod test {
     }
 
     #[test]
-    #[cfg(feature = "std")]
     fn cairo_pie_without_extra_segments() {
         let program_content = include_bytes!("../../../../cairo_programs/fibonacci.json");
         let mut cairo_pie = {

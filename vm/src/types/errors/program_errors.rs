@@ -1,10 +1,8 @@
-use crate::stdlib::prelude::*;
 use crate::utils::PRIME_STR;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ProgramError {
-    #[cfg(feature = "std")]
     #[error(transparent)]
     IO(#[from] std::io::Error),
     #[error(transparent)]

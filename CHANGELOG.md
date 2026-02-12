@@ -12,6 +12,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* Remove no_std support [#2326](https://github.com/lambdaclass/cairo-vm/pull/2326)
+
 * fix: Handle n=0 in `mod_builtin_fill_memory` [#1935](https://github.com/lambdaclass/cairo-vm/pull/1935)
 
 * fix: correct off-by-one error in Cairo PIE address validation [#2329](https://github.com/lambdaclass/cairo-vm/pull/2329)

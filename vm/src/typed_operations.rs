@@ -2,7 +2,6 @@ use crate::math_utils::{
     qm31_packed_reduced_add, qm31_packed_reduced_div, qm31_packed_reduced_mul,
     qm31_packed_reduced_sub,
 };
-use crate::stdlib::prelude::*;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::{errors::math_errors::MathError, instruction::OpcodeExtension};
 use crate::vm::errors::vm_errors::VirtualMachineError;

@@ -1,14 +1,13 @@
 use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::Uint512;
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
-use crate::stdlib::prelude::String;
 use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, math_utils::div_mod,
-    serde::deserialize_program::ApTracking, stdlib::collections::HashMap,
-    vm::errors::hint_errors::HintError,
+    serde::deserialize_program::ApTracking, vm::errors::hint_errors::HintError,
 };
 use num_bigint::BigInt;
 use num_traits::One;
+use std::collections::HashMap;
 
 use crate::vm::vm_core::VirtualMachine;
 

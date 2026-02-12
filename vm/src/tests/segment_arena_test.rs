@@ -1,12 +1,10 @@
 // This test mirrors the test on cairo-lang for segment_arena
 // https://github.com/starkware-libs/cairo-lang/blob/master/src/starkware/starknet/builtins/segment_arena/segment_arena_test.py
-use crate::stdlib::{borrow::Cow, collections::HashMap, rc::Rc};
-use crate::{tests::*, types::layout_name::LayoutName};
+use crate::types::layout_name::LayoutName;
+use std::{borrow::Cow, collections::HashMap, rc::Rc};
 
-#[cfg(not(feature = "std"))]
-use crate::alloc::borrow::ToOwned;
-#[cfg(not(feature = "std"))]
-use crate::alloc::string::ToString;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_test::*;
 
 use crate::any_box;
 use crate::cairo_run::{cairo_run, CairoRunConfig};

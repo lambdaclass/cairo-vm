@@ -658,9 +658,9 @@ fn error_msg_attr_tempvar() {
     let program_data =
         include_bytes!("../../../cairo_programs/bad_programs/error_msg_attr_tempvar.json");
 
-    #[cfg(feature = "std")]
+    #[cfg(not(target_arch = "wasm32"))]
     let error_msg = "Error message: SafeUint256: addition overflow: {x} (Cannot evaluate ap-based or complex references: ['x'])\ncairo_programs/bad_programs/error_msg_attr_tempvar.cairo:4:9: Error at pc=0:2:\nAn ASSERT_EQ instruction failed: 3 != 2.\n        assert x = 2;\n        ^***********^\n";
-    #[cfg(not(feature = "std"))]
+    #[cfg(target_arch = "wasm32")]
     let error_msg = "Error message: SafeUint256: addition overflow: {x} (Cannot evaluate ap-based or complex references: ['x'])\ncairo_programs/bad_programs/error_msg_attr_tempvar.cairo:4:9: Error at pc=0:2:\nAn ASSERT_EQ instruction failed: 3 != 2.\n";
     run_program_with_error(program_data.as_slice(), error_msg);
 }
