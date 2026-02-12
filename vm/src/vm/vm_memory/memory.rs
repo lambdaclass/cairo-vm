@@ -621,7 +621,6 @@ impl Memory {
         Ok(())
     }
 
-    #[inline]
     fn get_segment_cells(&self, idx: isize) -> Option<&[MemoryCell]> {
         if idx.is_negative() {
             self.temp_data.get(-(idx + 1) as usize).map(Vec::as_slice)
