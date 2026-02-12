@@ -915,6 +915,7 @@ dependencies = [
  "starknet-crypto",
  "starknet-types-core 0.2.0",
  "thiserror",
+ "tracing",
  "wasm-bindgen-test",
  "zip",
 ]
