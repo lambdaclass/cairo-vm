@@ -15,10 +15,7 @@ use crate::Felt252;
 
 use nom::{
     branch::alt,
-    bytes::{
-        complete::{take_till, take_until},
-        streaming::tag,
-    },
+    bytes::complete::{tag, take_till, take_until},
     character::complete::digit1,
     combinator::{map_res, opt, value},
     error::{Error, ErrorKind, ParseError},
@@ -814,5 +811,21 @@ mod tests {
                 ErrorKind::TakeUntil
             )))
         );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn parse_value_with_malformed_input_returns_error_not_incomplete() {
+        // Regression test: ensures complete::tag is used instead of streaming::tag.
+        // streaming::tag returns Err::Incomplete on prefix matches, which opt/alt
+        // combinators don't catch, causing unexpected parser failures.
+        let malformed_inputs = ["", "c", "cas", "cast", "cast(", " ", " +", "a", "f"];
+        for input in malformed_inputs {
+            let result = parse_value(input);
+            assert!(
+                !matches!(result, Err(nom::Err::Incomplete(_))),
+                "parse_value({input:?}) returned Err::Incomplete, expected Err::Error"
+            );
+        }
     }
 }
