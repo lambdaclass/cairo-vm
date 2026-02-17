@@ -113,8 +113,6 @@ impl EcOpBuiltinRunner {
             return Ok(None);
         }
         let instance = Relocatable::from((address.segment_index, address.offset - index));
-        let x_addr = (instance + (&Felt252::from(INPUT_CELLS_PER_EC_OP)))
-            .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(instance))))?;
 
         if let Some(number) = self.cache.borrow().get(&address).cloned() {
             return Ok(Some(MaybeRelocatable::Int(number)));
@@ -165,12 +163,12 @@ impl EcOpBuiltinRunner {
             &input_cells[4],
             SCALAR_HEIGHT,
         )?;
-        self.cache.borrow_mut().insert(x_addr, result.0);
-        self.cache.borrow_mut().insert(
-            (x_addr + 1usize)
-                .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(x_addr))))?,
-            result.1,
-        );
+        let output_addr_0 = (instance + OUTPUT_INDICES.0)
+            .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(instance))))?;
+        let output_addr_1 = (instance + OUTPUT_INDICES.1)
+            .map_err(|_| RunnerError::Memory(MemoryError::ExpectedInteger(Box::new(instance))))?;
+        self.cache.borrow_mut().insert(output_addr_0, result.0);
+        self.cache.borrow_mut().insert(output_addr_1, result.1);
         match index - INPUT_CELLS_PER_EC_OP as usize {
             0 => Ok(Some(MaybeRelocatable::Int(result.0))),
             _ => Ok(Some(MaybeRelocatable::Int(result.1))),
@@ -637,6 +635,55 @@ mod tests {
         ];
         let builtin = EcOpBuiltinRunner::new(Some(256), true);
 
+        let result = builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory);
+        assert_eq!(
+            result,
+            Ok(Some(MaybeRelocatable::from(felt_str!(
+                "3598390311618116577316045819420613574162151407434885460365915347732568210029"
+            ))))
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deduce_memory_cell_ec_op_cache_hit_on_second_output_cell() {
+        let memory = memory![
+            (
+                (3, 0),
+                (
+                    "0x68caa9509b7c2e90b4d92661cbf7c465471c1e8598c5f989691eef6653e0f38",
+                    16
+                )
+            ),
+            (
+                (3, 1),
+                (
+                    "0x79a8673f498531002fc549e06ff2010ffc0c191cceb7da5532acb95cdcb591",
+                    16
+                )
+            ),
+            (
+                (3, 2),
+                (
+                    "0x1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca",
+                    16
+                )
+            ),
+            (
+                (3, 3),
+                (
+                    "0x5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f",
+                    16
+                )
+            ),
+            ((3, 4), 34),
+        ];
+        let mut builtin = EcOpBuiltinRunner::new(Some(256), true);
+
+        // First call for output cell at index 5 should compute and cache both results
+        let _ = builtin.deduce_memory_cell(Relocatable::from((3, 5)), &memory);
+
+        // Second call for output cell at index 6 should hit cache
         let result = builtin.deduce_memory_cell(Relocatable::from((3, 6)), &memory);
         assert_eq!(
             result,
