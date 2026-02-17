@@ -12,6 +12,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* fix: correct index calculation in set_add hint [#2334](https://github.com/lambdaclass/cairo-vm/pull/2334)
+
 * fix: replace `streaming::tag` with `complete::tag` in deserialize_utils [#2332](https://github.com/lambdaclass/cairo-vm/pull/2332)
 
 * Use starknet-types-core's QM31 instead of hand-rolled implementation [#2203](https://github.com/lambdaclass/cairo-vm/pull/2203)
