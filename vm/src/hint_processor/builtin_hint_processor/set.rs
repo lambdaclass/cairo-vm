@@ -41,7 +41,13 @@ pub fn set_add(
 
     for i in 0..range_limit {
         if vm.mem_eq(elm_ptr, (set_ptr + elm_size * i)?, elm_size) {
-            insert_value_from_var_name("index", Felt252::from(i), vm, ids_data, ap_tracking)?;
+            insert_value_from_var_name(
+                "index",
+                Felt252::from(i / elm_size),
+                vm,
+                ids_data,
+                ap_tracking,
+            )?;
             return insert_value_from_var_name(
                 "is_elm_in_set",
                 Felt252::ONE,
@@ -137,6 +143,14 @@ mod tests {
         let (mut vm, ids_data) = init_vm_ids_data(None, None, Some(1), Some(3));
         assert_matches!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
         check_memory![vm.segments.memory, ((1, 0), 1), ((1, 1), 0)];
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn set_add_index_with_elm_size_3() {
+        let (mut vm, ids_data) = init_vm_ids_data(Some((2, 0)), Some(3), Some(5), Some(7));
+        assert_matches!(run_hint!(vm, ids_data, HINT_CODE), Ok(()));
+        check_memory![vm.segments.memory, ((1, 0), 1), ((1, 1), 1)];
     }
 
     #[test]
