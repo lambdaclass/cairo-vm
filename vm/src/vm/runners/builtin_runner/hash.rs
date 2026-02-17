@@ -134,10 +134,10 @@ impl HashBuiltinRunner {
                 return Err(RunnerError::InvalidAdditionalData(BuiltinName::pedersen));
             }
             // Mark offset as verified
-            if addr.offset > verified_addresses.len() {
-                verified_addresses.resize(addr.offset, false);
+            if addr.offset >= verified_addresses.len() {
+                verified_addresses.resize(addr.offset + 1, false);
             }
-            verified_addresses.insert(addr.offset, true)
+            verified_addresses[addr.offset] = true;
         }
         Ok(())
     }
@@ -481,6 +481,14 @@ mod tests {
         let mut builtin_b = HashBuiltinRunner::new(Some(1), true);
         builtin_b.extend_additional_data(&additional_data).unwrap();
         assert_eq!(builtin_a.verified_addresses, builtin_b.verified_addresses);
+    }
+
+    #[test]
+    fn extend_additional_data_with_zero_offset() {
+        let mut builtin = HashBuiltinRunner::new(Some(1), true);
+        let additional_data = BuiltinAdditionalData::Hash(vec![Relocatable::from((0, 0))]);
+        builtin.extend_additional_data(&additional_data).unwrap();
+        assert_eq!(builtin.verified_addresses.into_inner(), vec![true]);
     }
 
     #[test]
