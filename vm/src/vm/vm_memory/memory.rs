@@ -269,9 +269,7 @@ impl Memory {
             .get_segment_cells(relocatable.segment_index)?
             .get(relocatable.offset)?
             .get_value()?;
-        Some(Cow::Owned(
-            self.relocate_value(&value).ok()?.into_owned(),
-        ))
+        Some(Cow::Owned(self.relocate_value(&value).ok()?.into_owned()))
     }
 
     // Version of Memory.relocate_value() that doesn't require a self reference
