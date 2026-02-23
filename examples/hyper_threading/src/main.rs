@@ -40,7 +40,10 @@ fn main() {
     let n_programs = &program_filenames.len();
 
     for filename in program_filenames {
-        programs.push(Program::from_file(Path::new(&filename), Some("main")).unwrap())
+        programs.push(
+            Program::from_file(Path::new(&filename), Some("main"))
+                .expect("Failed to load benchmark program"),
+        )
     }
 
     let start_time = std::time::Instant::now();
