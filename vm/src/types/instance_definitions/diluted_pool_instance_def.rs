@@ -1,3 +1,4 @@
+use crate::vm::errors::runner_errors::RunnerError;
 use serde::Serialize;
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -27,12 +28,15 @@ impl DilutedPoolInstanceDef {
         }
     }
 
-    pub(crate) fn from_log_units_per_step(log_units_per_step: i32) -> Self {
-        DilutedPoolInstanceDef {
-            units_per_step: 2_u32.pow(log_units_per_step.unsigned_abs()),
+    pub(crate) fn from_log_units_per_step(log_units_per_step: i32) -> Result<Self, RunnerError> {
+        let units_per_step = 2_u32.checked_pow(log_units_per_step.unsigned_abs()).ok_or(
+            RunnerError::DynamicLayoutLogDilutedUnitsPerStepOverflow(log_units_per_step),
+        )?;
+        Ok(DilutedPoolInstanceDef {
+            units_per_step,
             fractional_units_per_step: log_units_per_step.is_negative(),
             ..DilutedPoolInstanceDef::default()
-        }
+        })
     }
 }
 
