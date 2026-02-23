@@ -12,6 +12,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* refactor: deduplicate memory segment selection in Memory helpers [#2331](https://github.com/lambdaclass/cairo-vm/pull/2331)
+
 * feat: `Add_ecop_to_all_cairo_stwo_and_add_stwo_no_ecop_layout` [#2333](https://github.com/lambdaclass/cairo-vm/pull/2333)
   * `all_cairo_stwo` now includes `ec_op`.
   * Added new `stwo_no_ecop` layout preserving the previous `all_cairo_stwo` behavior.
