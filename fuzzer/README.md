@@ -1,18 +1,26 @@
+# Fuzzers
+
+Both fuzzers use [honggfuzz](https://github.com/google/honggfuzz) via the [honggfuzz-rs](https://github.com/rust-fuzz/honggfuzz-rs) crate.
+
+## Requirements
+
+- **Linux only** — honggfuzz does not support macOS.
+- Install the honggfuzz CLI: `cargo install honggfuzz`
+
 ## fuzz_json
-This fuzzer creates a json file directly from bytes.
-`HFUZZ_RUN_ARGS="--dict=json.dict" cargo hfuzz run fuzz_json`
 
-## cairo_compiled_programs_fuzzer
-To run this fuzzer you need to be able to run cairo-compile command from the fuzzer folder beforehand.
+Generates random Cairo program JSON structures using the `arbitrary` crate, then runs them through `cairo_run`. Tests JSON deserialization and VM execution with fuzzed program data, builtins, hints, and configurations.
 
-To run the fuzzer you need to have installed `cargo-fuzz`. If not, use the command `cargo +nightly install cargo-fuzz`
+```
+cd fuzzer
+HFUZZ_RUN_ARGS="--dict=json.dict" cargo hfuzz run fuzz_json
+```
 
-To run simply use `cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer`
+## fuzz_program
 
-We use nightly for this fuzzer because cargo fuzz runs with the -Z flag, which only works with +nightly.
+Generates random `Program` structs directly (bypassing JSON) and runs them through `cairo_run_fuzzed_program` with a 1M step limit. Tests VM execution with fuzzed programs and configurations.
 
-## diff_fuzzer
-To run the diff fuzzer on various cairo hints, go to the root of the project and run
-`make fuzzer-deps` if you haven't before, this should only be run once. Then, you can call
-`make fuzzer-run-hint-diff` to run the fuzzer.
-For more documentaion, check out the diff_fuzzer [README](diff_fuzzer/README.md)
+```
+cd fuzzer
+cargo hfuzz run fuzz_program
+```

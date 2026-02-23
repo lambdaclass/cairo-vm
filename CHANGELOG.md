@@ -12,6 +12,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* chore: Update fuzz_json with missing hint constants and improve fuzzer docs [#2341](https://github.com/lambdaclass/cairo-vm/pull/2341)
+
 * refactor: deduplicate memory segment selection in Memory helpers [#2331](https://github.com/lambdaclass/cairo-vm/pull/2331)
 
 * feat: `Add_ecop_to_all_cairo_stwo_and_add_stwo_no_ecop_layout` [#2333](https://github.com/lambdaclass/cairo-vm/pull/2333)
