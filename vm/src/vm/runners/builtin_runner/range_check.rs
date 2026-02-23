@@ -146,7 +146,7 @@ impl<const N_PARTS: u64> RangeCheckBuiltinRunner<N_PARTS> {
                 .flat_map(|digit| {
                     (0..=3)
                         .rev()
-                        .map(move |i| ((digit >> (i * INNER_RC_BOUND_SHIFT)) & INNER_RC_BOUND_MASK))
+                        .map(move |i| (digit >> (i * INNER_RC_BOUND_SHIFT)) & INNER_RC_BOUND_MASK)
                 })
                 .take(N_PARTS as usize)
                 .fold(rc_bounds, |mm, x| {

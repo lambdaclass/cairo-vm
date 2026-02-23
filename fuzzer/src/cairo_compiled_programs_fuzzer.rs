@@ -118,7 +118,10 @@ fn program_array_sum(
     let json_path_array_sum = format!("cairo_programs/array_sum_{:?}.json", FUZZ_ITERATION_COUNT);
     let _ = fs::write(&cairo_path_array_sum, file_content.as_bytes());
 
-    compile_program(&cairo_path_array_sum, &json_path_array_sum);
+    if !compile_program(&cairo_path_array_sum, &json_path_array_sum) {
+        let _ = fs::remove_file(&cairo_path_array_sum);
+        return;
+    }
 
     let program_content_array_sum = std::fs::read(&json_path_array_sum).unwrap();
 
@@ -178,7 +181,10 @@ fn program_unsafe_keccak(
     );
     let _ = fs::write(&cairo_path_unsafe_keccak, file_content.as_bytes());
 
-    compile_program(&cairo_path_unsafe_keccak, &json_path_unsafe_keccak);
+    if !compile_program(&cairo_path_unsafe_keccak, &json_path_unsafe_keccak) {
+        let _ = fs::remove_file(&cairo_path_unsafe_keccak);
+        return;
+    }
 
     let program_content_unsafe_keccak = std::fs::read(&json_path_unsafe_keccak).unwrap();
 
@@ -215,9 +221,9 @@ fn program_bitwise(
     func main{{bitwise_ptr: BitwiseBuiltin*}}() {{
         let (and_a) = bitwise_and({num1}, {num2});  
         assert and_a = {and}; 
-        let (xor_a) = bitwise_xor(num1, num2);
+        let (xor_a) = bitwise_xor({num1}, {num2});
         assert xor_a = {xor};
-        let (or_a) = bitwise_or(num1, num2);
+        let (or_a) = bitwise_or({num1}, {num2});
         assert or_a = {or};
 
         let (and_b, xor_b, or_b) = bitwise_operations({num1}, {num2});
@@ -234,7 +240,10 @@ fn program_bitwise(
     let json_path_bitwise = format!("cairo_programs/bitwise-{:?}.json", FUZZ_ITERATION_COUNT);
     let _ = fs::write(&cairo_path_bitwise, file_content.as_bytes());
 
-    compile_program(&cairo_path_bitwise, &json_path_bitwise);
+    if !compile_program(&cairo_path_bitwise, &json_path_bitwise) {
+        let _ = fs::remove_file(&cairo_path_bitwise);
+        return;
+    }
 
     let program_content_bitwise = std::fs::read(&json_path_bitwise).unwrap();
 
@@ -288,7 +297,10 @@ fn program_poseidon(
     let json_path_poseidon = format!("cairo_programs/poseidon_{:?}.json", FUZZ_ITERATION_COUNT);
     let _ = fs::write(&cairo_path_poseidon, file_content.as_bytes());
 
-    compile_program(&cairo_path_poseidon, &json_path_poseidon);
+    if !compile_program(&cairo_path_poseidon, &json_path_poseidon) {
+        let _ = fs::remove_file(&cairo_path_poseidon);
+        return;
+    }
 
     let program_content_poseidon = std::fs::read(&json_path_poseidon).unwrap();
 
@@ -352,7 +364,10 @@ fn program_range_check(
         format!("cairo_programs/range_check_{:?}.json", FUZZ_ITERATION_COUNT);
     let _ = fs::write(&cairo_path_range_check, file_content.as_bytes());
 
-    compile_program(&cairo_path_range_check, &json_path_range_check);
+    if !compile_program(&cairo_path_range_check, &json_path_range_check) {
+        let _ = fs::remove_file(&cairo_path_range_check);
+        return;
+    }
 
     let program_content_range_check = std::fs::read(&json_path_range_check).unwrap();
 
@@ -396,7 +411,10 @@ fn program_ec_op(
     let json_path_ec_op = format!("cairo_programs/ec_op_{:?}.json", FUZZ_ITERATION_COUNT);
     let _ = fs::write(&cairo_path_ec_op, file_content.as_bytes());
 
-    compile_program(&cairo_path_ec_op, &json_path_ec_op);
+    if !compile_program(&cairo_path_ec_op, &json_path_ec_op) {
+        let _ = fs::remove_file(&cairo_path_ec_op);
+        return;
+    }
 
     let program_content_ec_op = std::fs::read(&json_path_ec_op).unwrap();
 
@@ -468,7 +486,10 @@ fn program_pedersen(
     let json_path_pedersen = format!("cairo_programs/pedersen_{:?}.json", FUZZ_ITERATION_COUNT);
     let _ = fs::write(&cairo_path_pedersen, file_content.as_bytes());
 
-    compile_program(&cairo_path_pedersen, &json_path_pedersen);
+    if !compile_program(&cairo_path_pedersen, &json_path_pedersen) {
+        let _ = fs::remove_file(&cairo_path_pedersen);
+        return;
+    }
 
     let program_content_pedersen = std::fs::read(&json_path_pedersen).unwrap();
 
@@ -512,7 +533,10 @@ fn program_ecdsa(
     let json_path_ecdsa = format!("cairo_programs/ecdsa_{:?}.json", FUZZ_ITERATION_COUNT);
     let _ = fs::write(&cairo_path_ecdsa, file_content.as_bytes());
 
-    compile_program(&cairo_path_ecdsa, &json_path_ecdsa);
+    if !compile_program(&cairo_path_ecdsa, &json_path_ecdsa) {
+        let _ = fs::remove_file(&cairo_path_ecdsa);
+        return;
+    }
 
     let program_content_ecdsa = std::fs::read(&json_path_ecdsa).unwrap();
 
@@ -523,16 +547,17 @@ fn program_ecdsa(
     delete_files(&cairo_path_ecdsa, &json_path_ecdsa);
 }
 
-fn compile_program(cairo_path: &str, json_path: &str) {
-    let _output = Command::new("cairo-compile")
+fn compile_program(cairo_path: &str, json_path: &str) -> bool {
+    let output = Command::new("cairo-compile")
         .arg(cairo_path)
         .arg("--output")
         .arg(json_path)
         .output()
         .expect("failed to execute process");
+    output.status.success()
 }
 
 fn delete_files(cairo_path: &str, json_path: &str) {
-    fs::remove_file(cairo_path).expect("failed to remove file");
-    fs::remove_file(json_path).expect("failed to remove file");
+    let _ = fs::remove_file(cairo_path);
+    let _ = fs::remove_file(json_path);
 }
