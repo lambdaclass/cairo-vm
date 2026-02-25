@@ -206,6 +206,7 @@ impl CairoRunner {
             LayoutName::recursive_with_poseidon => CairoLayout::recursive_with_poseidon(),
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
             LayoutName::all_cairo_stwo => CairoLayout::all_cairo_stwo_instance(),
+            LayoutName::stwo_no_ecop => CairoLayout::stwo_no_ecop_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
             LayoutName::perpetual => CairoLayout::perpetual_instance(),
             LayoutName::dex_with_bitwise => CairoLayout::dex_with_bitwise_instance(),
