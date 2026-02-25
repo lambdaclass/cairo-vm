@@ -16,6 +16,22 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 * Remove WASM support [#2328](https://github.com/lambdaclass/cairo-vm/pull/2328)
 
+* chore: Remove `cairo_compiled_programs_fuzzer` [#2339](https://github.com/lambdaclass/cairo-vm/pull/2339)
+
+* refactor: deduplicate memory segment selection in Memory helpers [#2331](https://github.com/lambdaclass/cairo-vm/pull/2331)
+
+* feat: `Add_ecop_to_all_cairo_stwo_and_add_stwo_no_ecop_layout` [#2333](https://github.com/lambdaclass/cairo-vm/pull/2333)
+  * `all_cairo_stwo` now includes `ec_op`.
+  * Added new `stwo_no_ecop` layout preserving the previous `all_cairo_stwo` behavior.
+
+* fix: replace `streaming::tag` with `complete::tag` in deserialize_utils [#2332](https://github.com/lambdaclass/cairo-vm/pull/2332)
+
+* Use starknet-types-core's QM31 instead of hand-rolled implementation [#2203](https://github.com/lambdaclass/cairo-vm/pull/2203)
+
+* fix: Handle n=0 in `mod_builtin_fill_memory` [#1935](https://github.com/lambdaclass/cairo-vm/pull/1935)
+
+* fix: correct off-by-one error in Cairo PIE address validation [#2329](https://github.com/lambdaclass/cairo-vm/pull/2329)
+
 * feat: Make `write_encoded` API public again [#2306](https://github.com/lambdaclass/cairo-vm/pull/2306)
 
 * refactor: deduplicate memcpy/memset scope initialization in builtin hint processor [#2313](https://github.com/lambdaclass/cairo-vm/pull/2313)
@@ -39,6 +55,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 * chore(breaking): Remove bincode crate [#2294](https://github.com/lambdaclass/cairo-vm/pull/2294)
 
 * refactor: Make HintReference dereference count explicit in `get_maybe_relocatable_from_reference` [#2296](https://github.com/lambdaclass/cairo-vm/pull/2296)
+
+* chore: Add logs to `cairo_run_program_with_initial_scope` [#2319](https://github.com/lambdaclass/cairo-vm/pull/2319)
 
 #### [3.1.0] - 2026-01-19
 

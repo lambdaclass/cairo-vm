@@ -34,6 +34,7 @@ serde_json = { version = "1.0", features = ["arbitrary_precision"] }
 hex = { version = "0.4.3" }
 starknet-crypto = { version = "0.8.0", features = ["signature-display"] }
 sha3 = { version = "0.10.8" }
+tracing = { version = "0.1" }
 indoc = { version = "2.0.5" }
 lazy_static = { version = "1.4.0" }
 nom = { version = "7" }

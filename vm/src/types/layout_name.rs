@@ -22,6 +22,7 @@ pub enum LayoutName {
     all_cairo,
     dynamic,
     all_cairo_stwo,
+    stwo_no_ecop,
     perpetual,
     dex_with_bitwise,
 }
@@ -41,6 +42,7 @@ impl LayoutName {
             LayoutName::all_cairo => "all_cairo",
             LayoutName::dynamic => "dynamic",
             LayoutName::all_cairo_stwo => "all_cairo_stwo",
+            LayoutName::stwo_no_ecop => "stwo_no_ecop",
             LayoutName::perpetual => "perpetual",
             LayoutName::dex_with_bitwise => "dex_with_bitwise",
         }
@@ -69,6 +71,7 @@ impl ValueEnum for LayoutName {
             Self::all_cairo,
             Self::dynamic,
             Self::all_cairo_stwo,
+            Self::stwo_no_ecop,
             Self::perpetual,
             Self::dex_with_bitwise,
         ]

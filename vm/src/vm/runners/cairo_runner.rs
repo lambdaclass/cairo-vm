@@ -59,6 +59,7 @@ use super::{
     cairo_pie::{self, CairoPie, CairoPieMetadata, CairoPieVersion},
 };
 use crate::types::instance_definitions::mod_instance_def::ModInstanceDef;
+use tracing::info;
 
 pub const ORDERED_BUILTIN_LIST: &[BuiltinName] = &[
     BuiltinName::output,
@@ -205,6 +206,7 @@ impl CairoRunner {
             LayoutName::recursive_with_poseidon => CairoLayout::recursive_with_poseidon(),
             LayoutName::all_cairo => CairoLayout::all_cairo_instance(),
             LayoutName::all_cairo_stwo => CairoLayout::all_cairo_stwo_instance(),
+            LayoutName::stwo_no_ecop => CairoLayout::stwo_no_ecop_instance(),
             LayoutName::all_solidity => CairoLayout::all_solidity_instance(),
             LayoutName::perpetual => CairoLayout::perpetual_instance(),
             LayoutName::dex_with_bitwise => CairoLayout::dex_with_bitwise_instance(),
@@ -275,14 +277,19 @@ impl CairoRunner {
     }
 
     pub fn initialize(&mut self, allow_missing_builtins: bool) -> Result<Relocatable, RunnerError> {
+        info!("Initializing builtins.");
         self.initialize_builtins(allow_missing_builtins)?;
+        info!("Initializing segments.");
         self.initialize_segments(None);
+        info!("Initializing main entrypoint.");
         let end = self.initialize_main_entrypoint()?;
+        info!("Initializing zero segments.");
         for builtin_runner in self.vm.builtin_runners.iter_mut() {
             if let BuiltinRunner::Mod(runner) = builtin_runner {
                 runner.initialize_zero_segment(&mut self.vm.segments);
             }
         }
+        info!("Initializing VM.");
         self.initialize_vm()?;
         Ok(end)
     }
@@ -903,6 +910,7 @@ impl CairoRunner {
             return Err(RunnerError::EndRunCalledTwice.into());
         }
 
+        info!("Relocating memory.");
         self.vm.segments.memory.relocate_memory()?;
         self.vm.end_run(&self.exec_scopes, fill_holes)?;
 
@@ -910,8 +918,10 @@ impl CairoRunner {
             return Ok(());
         }
 
+        info!("Computing effective sizes of segments.");
         self.vm.segments.compute_effective_sizes();
         if self.is_proof_mode() && !disable_trace_padding {
+            info!("in proof mode and enabling trace padding, running until next power of 2.");
             self.run_until_next_power_of_2(hint_processor)?;
             loop {
                 match self.check_used_cells() {

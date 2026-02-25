@@ -311,6 +311,25 @@ mod tests {
     }
 
     #[test]
+    fn tracking_correction_invalid_offset() {
+        // Same group, but ap_diff (hint.offset - ref.offset = 5) > ap.offset (2),
+        // so the subtraction on the relocatable fails.
+        let mut ref_ap_tracking = ApTracking::new();
+        ref_ap_tracking.group = 1;
+        ref_ap_tracking.offset = 0;
+        let mut hint_ap_tracking = ApTracking::new();
+        hint_ap_tracking.group = 1;
+        hint_ap_tracking.offset = 5;
+
+        assert!(apply_ap_tracking_correction(
+            relocatable!(1, 2),
+            &ref_ap_tracking,
+            &hint_ap_tracking
+        )
+        .is_none());
+    }
+
+    #[test]
     fn get_maybe_relocatable_from_reference_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];

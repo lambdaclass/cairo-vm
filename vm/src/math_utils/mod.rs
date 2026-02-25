@@ -24,10 +24,22 @@ lazy_static! {
             .collect::<Vec<_>>();
 }
 
-pub const STWO_PRIME: u64 = (1 << 31) - 1;
-const STWO_PRIME_U128: u128 = STWO_PRIME as u128;
-const MASK_36: u64 = (1 << 36) - 1;
-const MASK_8: u64 = (1 << 8) - 1;
+pub const STWO_PRIME: u32 = (1 << 31) - 1;
+
+/// Packs a QM31 element into a Felt252, canonicalizing M31 coordinates.
+/// Lambdaworks' Mersenne31 arithmetic can represent zero as STWO_PRIME
+/// instead of 0. This function normalizes coordinates before packing
+/// so that `QM31::unpack_from_felt` can accept the result.
+pub(crate) fn qm31_pack_reduced(qm31: starknet_types_core::qm31::QM31) -> Felt252 {
+    let (a, b, c, d) = qm31.to_coefficients();
+    starknet_types_core::qm31::QM31::from_coefficients(
+        a % STWO_PRIME,
+        b % STWO_PRIME,
+        c % STWO_PRIME,
+        d % STWO_PRIME,
+    )
+    .pack_into_felt()
+}
 
 /// Returns the `n`th (up to the `251`th power) power of 2 as a [`Felt252`]
 /// in constant time.
@@ -78,225 +90,6 @@ pub fn signed_felt_for_prime(value: Felt252, prime: &BigUint) -> BigInt {
     } else {
         BigInt::from_biguint(num_bigint::Sign::Plus, value)
     }
-}
-
-/// QM31 utility function, used specifically for Stwo.
-/// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
-/// Reads four u64 coordinates from a single Felt252.
-/// STWO_PRIME fits in 36 bits, hence each coordinate can be represented by 36 bits and a QM31
-/// element can be stored in the first 144 bits of a Felt252.
-/// Returns an error if the input has over 144 bits or any coordinate is unreduced.
-fn qm31_packed_reduced_read_coordinates(felt: Felt252) -> Result<[u64; 4], MathError> {
-    let limbs = felt.to_le_digits();
-    if limbs[3] != 0 || limbs[2] >= 1 << 16 {
-        return Err(MathError::QM31UnreducedError(Box::new(felt)));
-    }
-    let coordinates = [
-        (limbs[0] & MASK_36),
-        ((limbs[0] >> 36) + ((limbs[1] & MASK_8) << 28)),
-        ((limbs[1] >> 8) & MASK_36),
-        ((limbs[1] >> 44) + (limbs[2] << 20)),
-    ];
-    for x in coordinates.iter() {
-        if *x >= STWO_PRIME {
-            return Err(MathError::QM31UnreducedError(Box::new(felt)));
-        }
-    }
-    Ok(coordinates)
-}
-
-/// QM31 utility function, used specifically for Stwo.
-/// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
-/// Reduces four u64 coordinates and packs them into a single Felt252.
-/// STWO_PRIME fits in 36 bits, hence each coordinate can be represented by 36 bits and a QM31
-/// element can be stored in the first 144 bits of a Felt252.
-pub(crate) fn qm31_coordinates_to_packed_reduced(coordinates: [u64; 4]) -> Felt252 {
-    let bytes_part1 = ((coordinates[0] % STWO_PRIME) as u128
-        + (((coordinates[1] % STWO_PRIME) as u128) << 36))
-        .to_le_bytes();
-    let bytes_part2 = ((coordinates[2] % STWO_PRIME) as u128
-        + (((coordinates[3] % STWO_PRIME) as u128) << 36))
-        .to_le_bytes();
-    let mut result_bytes = [0u8; 32];
-    result_bytes[0..9].copy_from_slice(&bytes_part1[0..9]);
-    result_bytes[9..18].copy_from_slice(&bytes_part2[0..9]);
-    Felt252::from_bytes_le(&result_bytes)
-}
-
-/// QM31 utility function, used specifically for Stwo.
-/// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
-/// Computes the addition of two QM31 elements in reduced form.
-/// Returns an error if either operand is not reduced.
-pub(crate) fn qm31_packed_reduced_add(
-    felt1: Felt252,
-    felt2: Felt252,
-) -> Result<Felt252, MathError> {
-    let coordinates1 = qm31_packed_reduced_read_coordinates(felt1)?;
-    let coordinates2 = qm31_packed_reduced_read_coordinates(felt2)?;
-    let result_unreduced_coordinates = [
-        coordinates1[0] + coordinates2[0],
-        coordinates1[1] + coordinates2[1],
-        coordinates1[2] + coordinates2[2],
-        coordinates1[3] + coordinates2[3],
-    ];
-    Ok(qm31_coordinates_to_packed_reduced(
-        result_unreduced_coordinates,
-    ))
-}
-
-/// QM31 utility function, used specifically for Stwo.
-/// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
-/// Computes the negative of a QM31 element in reduced form.
-/// Returns an error if the input is not reduced.
-#[allow(dead_code)]
-pub(crate) fn qm31_packed_reduced_neg(felt: Felt252) -> Result<Felt252, MathError> {
-    let coordinates = qm31_packed_reduced_read_coordinates(felt)?;
-    Ok(qm31_coordinates_to_packed_reduced([
-        STWO_PRIME - coordinates[0],
-        STWO_PRIME - coordinates[1],
-        STWO_PRIME - coordinates[2],
-        STWO_PRIME - coordinates[3],
-    ]))
-}
-
-/// QM31 utility function, used specifically for Stwo.
-/// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
-/// Computes the subtraction of two QM31 elements in reduced form.
-/// Returns an error if either operand is not reduced.
-pub(crate) fn qm31_packed_reduced_sub(
-    felt1: Felt252,
-    felt2: Felt252,
-) -> Result<Felt252, MathError> {
-    let coordinates1 = qm31_packed_reduced_read_coordinates(felt1)?;
-    let coordinates2 = qm31_packed_reduced_read_coordinates(felt2)?;
-    let result_unreduced_coordinates = [
-        STWO_PRIME + coordinates1[0] - coordinates2[0],
-        STWO_PRIME + coordinates1[1] - coordinates2[1],
-        STWO_PRIME + coordinates1[2] - coordinates2[2],
-        STWO_PRIME + coordinates1[3] - coordinates2[3],
-    ];
-    Ok(qm31_coordinates_to_packed_reduced(
-        result_unreduced_coordinates,
-    ))
-}
-
-/// QM31 utility function, used specifically for Stwo.
-/// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
-/// Computes the multiplication of two QM31 elements in reduced form.
-/// Returns an error if either operand is not reduced.
-pub(crate) fn qm31_packed_reduced_mul(
-    felt1: Felt252,
-    felt2: Felt252,
-) -> Result<Felt252, MathError> {
-    let coordinates1_u64 = qm31_packed_reduced_read_coordinates(felt1)?;
-    let coordinates2_u64 = qm31_packed_reduced_read_coordinates(felt2)?;
-    let coordinates1 = coordinates1_u64.map(u128::from);
-    let coordinates2 = coordinates2_u64.map(u128::from);
-
-    let result_coordinates = [
-        ((5 * STWO_PRIME_U128 * STWO_PRIME_U128 + coordinates1[0] * coordinates2[0]
-            - coordinates1[1] * coordinates2[1]
-            + 2 * coordinates1[2] * coordinates2[2]
-            - 2 * coordinates1[3] * coordinates2[3]
-            - coordinates1[2] * coordinates2[3]
-            - coordinates1[3] * coordinates2[2])
-            % STWO_PRIME_U128) as u64,
-        ((STWO_PRIME_U128 * STWO_PRIME_U128
-            + coordinates1[0] * coordinates2[1]
-            + coordinates1[1] * coordinates2[0]
-            + 2 * (coordinates1[2] * coordinates2[3] + coordinates1[3] * coordinates2[2])
-            + coordinates1[2] * coordinates2[2]
-            - coordinates1[3] * coordinates2[3])
-            % STWO_PRIME_U128) as u64,
-        2 * STWO_PRIME * STWO_PRIME + coordinates1_u64[0] * coordinates2_u64[2]
-            - coordinates1_u64[1] * coordinates2_u64[3]
-            + coordinates1_u64[2] * coordinates2_u64[0]
-            - coordinates1_u64[3] * coordinates2_u64[1],
-        coordinates1_u64[0] * coordinates2_u64[3]
-            + coordinates1_u64[1] * coordinates2_u64[2]
-            + coordinates1_u64[2] * coordinates2_u64[1]
-            + coordinates1_u64[3] * coordinates2_u64[0],
-    ];
-    Ok(qm31_coordinates_to_packed_reduced(result_coordinates))
-}
-
-/// M31 utility function, used specifically for Stwo.
-/// M31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
-/// Computes the inverse in the M31 field using Fermat's little theorem, i.e., returns
-/// `v^(STWO_PRIME-2) modulo STWO_PRIME`, which is the inverse of v unless v % STWO_PRIME == 0.
-pub(crate) fn pow2147483645(v: u64) -> u64 {
-    let t0 = (sqn(v, 2) * v) % STWO_PRIME;
-    let t1 = (sqn(t0, 1) * t0) % STWO_PRIME;
-    let t2 = (sqn(t1, 3) * t0) % STWO_PRIME;
-    let t3 = (sqn(t2, 1) * t0) % STWO_PRIME;
-    let t4 = (sqn(t3, 8) * t3) % STWO_PRIME;
-    let t5 = (sqn(t4, 8) * t3) % STWO_PRIME;
-    (sqn(t5, 7) * t2) % STWO_PRIME
-}
-
-/// M31 utility function, used specifically for Stwo.
-/// M31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
-/// Computes `v^(2^n) modulo STWO_PRIME`.
-fn sqn(v: u64, n: usize) -> u64 {
-    let mut u = v;
-    for _ in 0..n {
-        u = (u * u) % STWO_PRIME;
-    }
-    u
-}
-
-/// QM31 utility function, used specifically for Stwo.
-/// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
-/// Computes the inverse of a QM31 element in reduced form.
-/// Returns an error if the denominator is zero or either operand is not reduced.
-pub(crate) fn qm31_packed_reduced_inv(felt: Felt252) -> Result<Felt252, MathError> {
-    if felt.is_zero() {
-        return Err(MathError::DividedByZero);
-    }
-    let coordinates = qm31_packed_reduced_read_coordinates(felt)?;
-
-    let b2_r = (coordinates[2] * coordinates[2] + STWO_PRIME * STWO_PRIME
-        - coordinates[3] * coordinates[3])
-        % STWO_PRIME;
-    let b2_i = (2 * coordinates[2] * coordinates[3]) % STWO_PRIME;
-
-    let denom_r = (coordinates[0] * coordinates[0] + STWO_PRIME * STWO_PRIME
-        - coordinates[1] * coordinates[1]
-        + 2 * STWO_PRIME
-        - 2 * b2_r
-        + b2_i)
-        % STWO_PRIME;
-    let denom_i =
-        (2 * coordinates[0] * coordinates[1] + 3 * STWO_PRIME - 2 * b2_i - b2_r) % STWO_PRIME;
-
-    let denom_norm_squared = (denom_r * denom_r + denom_i * denom_i) % STWO_PRIME;
-    let denom_norm_inverse_squared = pow2147483645(denom_norm_squared);
-
-    let denom_inverse_r = (denom_r * denom_norm_inverse_squared) % STWO_PRIME;
-    let denom_inverse_i = ((STWO_PRIME - denom_i) * denom_norm_inverse_squared) % STWO_PRIME;
-
-    Ok(qm31_coordinates_to_packed_reduced([
-        coordinates[0] * denom_inverse_r + STWO_PRIME * STWO_PRIME
-            - coordinates[1] * denom_inverse_i,
-        coordinates[0] * denom_inverse_i + coordinates[1] * denom_inverse_r,
-        coordinates[3] * denom_inverse_i + STWO_PRIME * STWO_PRIME
-            - coordinates[2] * denom_inverse_r,
-        2 * STWO_PRIME * STWO_PRIME
-            - coordinates[2] * denom_inverse_i
-            - coordinates[3] * denom_inverse_r,
-    ]))
-}
-
-/// QM31 utility function, used specifically for Stwo.
-/// QM31 operations are to be relocated into https://github.com/lambdaclass/lambdaworks.
-/// Computes the division of two QM31 elements in reduced form.
-/// Returns an error if the input is zero.
-pub(crate) fn qm31_packed_reduced_div(
-    felt1: Felt252,
-    felt2: Felt252,
-) -> Result<Felt252, MathError> {
-    let felt2_inv = qm31_packed_reduced_inv(felt2)?;
-    qm31_packed_reduced_mul(felt1, felt2_inv)
 }
 
 ///Returns the integer square root of the nonnegative integer n.
@@ -629,7 +422,7 @@ mod tests {
 
     use num_prime::RandPrime;
 
-    use proptest::{array::uniform4, prelude::*};
+    use proptest::prelude::*;
 
     // Only used in proptest for now
     use num_bigint::Sign;
@@ -1135,161 +928,12 @@ mod tests {
         )
     }
 
-    #[test]
-    fn qm31_packed_reduced_read_coordinates_over_144_bits() {
-        let mut felt_bytes = [0u8; 32];
-        felt_bytes[18] = 1;
-        let felt = Felt252::from_bytes_le(&felt_bytes);
-        assert_matches!(
-            qm31_packed_reduced_read_coordinates(felt),
-            Err(MathError::QM31UnreducedError(bx)) if *bx == felt
-        );
-    }
-
-    #[test]
-    fn qm31_packed_reduced_read_coordinates_unreduced() {
-        let mut felt_bytes = [0u8; 32];
-        felt_bytes[0] = 0xff;
-        felt_bytes[1] = 0xff;
-        felt_bytes[2] = 0xff;
-        felt_bytes[3] = (1 << 7) - 1;
-        let felt = Felt252::from_bytes_le(&felt_bytes);
-        assert_matches!(
-            qm31_packed_reduced_read_coordinates(felt),
-            Err(MathError::QM31UnreducedError(bx)) if *bx == felt
-        );
-    }
-
-    #[test]
-    fn test_qm31_packed_reduced_add() {
-        let x_coordinates = [1414213562, 1732050807, 1618033988, 1234567890];
-        let y_coordinates = [1234567890, 1414213562, 1732050807, 1618033988];
-        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-        let y = qm31_coordinates_to_packed_reduced(y_coordinates);
-        let res = qm31_packed_reduced_add(x, y).unwrap();
-        let res_coordinates = qm31_packed_reduced_read_coordinates(res);
-        assert_eq!(
-            res_coordinates,
-            Ok([
-                (1414213562 + 1234567890) % STWO_PRIME,
-                (1732050807 + 1414213562) % STWO_PRIME,
-                (1618033988 + 1732050807) % STWO_PRIME,
-                (1234567890 + 1618033988) % STWO_PRIME,
-            ])
-        );
-    }
-
-    #[test]
-    fn test_qm31_packed_reduced_neg() {
-        let x_coordinates = [1749652895, 834624081, 1930174752, 2063872165];
-        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-        let res = qm31_packed_reduced_neg(x).unwrap();
-        let res_coordinates = qm31_packed_reduced_read_coordinates(res);
-        assert_eq!(
-            res_coordinates,
-            Ok([
-                STWO_PRIME - x_coordinates[0],
-                STWO_PRIME - x_coordinates[1],
-                STWO_PRIME - x_coordinates[2],
-                STWO_PRIME - x_coordinates[3]
-            ])
-        );
-    }
-
-    #[test]
-    fn test_qm31_packed_reduced_sub() {
-        let x_coordinates = [
-            (1414213562 + 1234567890) % STWO_PRIME,
-            (1732050807 + 1414213562) % STWO_PRIME,
-            (1618033988 + 1732050807) % STWO_PRIME,
-            (1234567890 + 1618033988) % STWO_PRIME,
-        ];
-        let y_coordinates = [1414213562, 1732050807, 1618033988, 1234567890];
-        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-        let y = qm31_coordinates_to_packed_reduced(y_coordinates);
-        let res = qm31_packed_reduced_sub(x, y).unwrap();
-        let res_coordinates = qm31_packed_reduced_read_coordinates(res);
-        assert_eq!(
-            res_coordinates,
-            Ok([1234567890, 1414213562, 1732050807, 1618033988])
-        );
-    }
-
-    #[test]
-    fn test_qm31_packed_reduced_mul() {
-        let x_coordinates = [1414213562, 1732050807, 1618033988, 1234567890];
-        let y_coordinates = [1259921049, 1442249570, 1847759065, 2094551481];
-        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-        let y = qm31_coordinates_to_packed_reduced(y_coordinates);
-        let res = qm31_packed_reduced_mul(x, y).unwrap();
-        let res_coordinates = qm31_packed_reduced_read_coordinates(res);
-        assert_eq!(
-            res_coordinates,
-            Ok([947980980, 1510986506, 623360030, 1260310989])
-        );
-    }
-
-    #[test]
-    fn test_qm31_packed_reduced_inv() {
-        let x_coordinates = [1259921049, 1442249570, 1847759065, 2094551481];
-        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-        let res = qm31_packed_reduced_inv(x).unwrap();
-        assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
-
-        let x_coordinates = [1, 2, 3, 4];
-        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-        let res = qm31_packed_reduced_inv(x).unwrap();
-        assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
-
-        let x_coordinates = [1749652895, 834624081, 1930174752, 2063872165];
-        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-        let res = qm31_packed_reduced_inv(x).unwrap();
-        assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
-    }
-
-    #[test]
-    fn test_qm31_packed_reduced_div() {
-        let x_coordinates = [1259921049, 1442249570, 1847759065, 2094551481];
-        let y_coordinates = [1414213562, 1732050807, 1618033988, 1234567890];
-        let xy_coordinates = [947980980, 1510986506, 623360030, 1260310989];
-        let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-        let y = qm31_coordinates_to_packed_reduced(y_coordinates);
-        let xy = qm31_coordinates_to_packed_reduced(xy_coordinates);
-
-        let res = qm31_packed_reduced_div(xy, y).unwrap();
-        assert_eq!(res, x);
-
-        let res = qm31_packed_reduced_div(xy, x).unwrap();
-        assert_eq!(res, y);
-    }
-
     /// Necessary strat to use proptest on the QM31 test
     fn configuration_strat() -> BoxedStrategy<u64> {
         prop_oneof![Just(0), Just(1), Just(STWO_PRIME - 1), 0..STWO_PRIME].boxed()
     }
 
     proptest! {
-
-        #[test]
-        fn qm31_packed_reduced_inv_random(x_coordinates in uniform4(0u64..STWO_PRIME)
-                                                            .prop_filter("All configs cant be 0",
-                                                            |arr| !arr.iter().all(|x| *x == 0))
-        ) {
-            let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-            let res = qm31_packed_reduced_inv(x).unwrap();
-            assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
-        }
-
-        #[test]
-        fn qm31_packed_reduced_inv_extensive(x_coordinates in uniform4(configuration_strat())
-                                                            .prop_filter("All configs cant be 0",
-                                                            |arr| !arr.iter().all(|x| *x == 0))
-                                                            .no_shrink()
-        ) {
-            let x = qm31_coordinates_to_packed_reduced(x_coordinates);
-            let res = qm31_packed_reduced_inv(x).unwrap();
-            assert_eq!(qm31_packed_reduced_mul(x, res), Ok(Felt252::from(1)));
-        }
 
         #[test]
         fn pow2_const_in_range_returns_power_of_2(x in 0..=251u32) {
