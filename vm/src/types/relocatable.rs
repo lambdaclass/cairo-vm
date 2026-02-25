@@ -496,10 +496,9 @@ mod tests {
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn add_bigint_to_int_prime_mod() {
-        let addr = MaybeRelocatable::Int(felt_hex!(
-            "800000000000011000000000000000000000000000000000000000000000004"
-        ));
-        let added_addr = addr.add_int(&Felt252::ONE);
+        // Felt252::MAX is PRIME - 1; adding 5 wraps around to 4
+        let addr = MaybeRelocatable::Int(Felt252::MAX);
+        let added_addr = addr.add_int(&Felt252::from(5));
         assert_eq!(added_addr, Ok(MaybeRelocatable::Int(Felt252::from(4))));
     }
 

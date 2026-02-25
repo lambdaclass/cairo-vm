@@ -12,6 +12,18 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* chore: Remove `cairo_compiled_programs_fuzzer` [#2339](https://github.com/lambdaclass/cairo-vm/pull/2339)
+
+* refactor: deduplicate memory segment selection in Memory helpers [#2331](https://github.com/lambdaclass/cairo-vm/pull/2331)
+
+* feat: `Add_ecop_to_all_cairo_stwo_and_add_stwo_no_ecop_layout` [#2333](https://github.com/lambdaclass/cairo-vm/pull/2333)
+  * `all_cairo_stwo` now includes `ec_op`.
+  * Added new `stwo_no_ecop` layout preserving the previous `all_cairo_stwo` behavior.
+
+* fix: replace `streaming::tag` with `complete::tag` in deserialize_utils [#2332](https://github.com/lambdaclass/cairo-vm/pull/2332)
+
+* Use starknet-types-core's QM31 instead of hand-rolled implementation [#2203](https://github.com/lambdaclass/cairo-vm/pull/2203)
+
 * fix: Handle n=0 in `mod_builtin_fill_memory` [#1935](https://github.com/lambdaclass/cairo-vm/pull/1935)
 
 * fix: correct off-by-one error in Cairo PIE address validation [#2329](https://github.com/lambdaclass/cairo-vm/pull/2329)
