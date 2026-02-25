@@ -972,12 +972,6 @@ mod tests {
         )
     }
 
-    /// Necessary strat to use proptest on the QM31 test
-    #[cfg(not(target_arch = "wasm32"))]
-    fn configuration_strat() -> BoxedStrategy<u64> {
-        prop_oneof![Just(0), Just(1), Just(STWO_PRIME - 1), 0..STWO_PRIME].boxed()
-    }
-
     #[cfg(not(target_arch = "wasm32"))]
     proptest! {
 
