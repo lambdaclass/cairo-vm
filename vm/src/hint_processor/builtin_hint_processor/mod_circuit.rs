@@ -1,14 +1,13 @@
-use crate::stdlib::prelude::String;
+#[cfg(not(feature = "mod_builtin"))]
+use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
-    stdlib::collections::HashMap,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
     Felt252,
 };
-#[cfg(not(feature = "mod_builtin"))]
-use crate::{stdlib::prelude::Box, types::errors::math_errors::MathError};
 use num_traits::ToPrimitive;
+use std::collections::HashMap;
 
 use super::hint_utils::{get_integer_from_var_name, get_ptr_from_var_name};
 /* Implements Hint:

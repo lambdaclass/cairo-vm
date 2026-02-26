@@ -5,11 +5,11 @@
 //!
 //! See [the docs](/docs/references_parsing/README.md) for context and grammar explanation.
 
-use crate::stdlib::{prelude::*, str::FromStr};
 use crate::{
     serde::deserialize_program::{OffsetValue, ValueAddress},
     types::instruction::Register,
 };
+use std::str::FromStr;
 
 use crate::Felt252;
 
@@ -298,7 +298,6 @@ fn take_until_unbalanced(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::string::ToString;
 
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;

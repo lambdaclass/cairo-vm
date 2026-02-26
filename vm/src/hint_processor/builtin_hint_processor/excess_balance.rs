@@ -1,11 +1,11 @@
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     serde::deserialize_program::ApTracking,
-    stdlib::collections::HashMap,
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use core::str::FromStr;
+use std::collections::HashMap;
 
 use num_bigint::{BigInt, BigUint};
 use rust_decimal::Decimal;
@@ -13,7 +13,6 @@ use starknet_types_core::felt::Felt as Felt252;
 
 use crate::{
     math_utils::{isqrt, signed_felt},
-    stdlib::prelude::{String, ToString, Vec},
     types::relocatable::Relocatable,
     vm::vm_memory::memory::Memory,
 };
@@ -443,8 +442,8 @@ pub fn excess_balance_hint(
 
 #[cfg(test)]
 mod tests {
-    use crate::stdlib::{cell::RefCell, rc::Rc};
     use core::str::FromStr;
+    use std::{cell::RefCell, rc::Rc};
 
     use super::*;
     use crate::{felt_str, utils::test_utils::*};

@@ -9,8 +9,6 @@ use super::hint_processor_utils::*;
 use crate::any_box;
 use crate::hint_processor::cairo_1_hint_processor::dict_manager::DictSquashExecScope;
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::stdlib::sync::Arc;
-use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
 use crate::vm::runners::cairo_runner::ResourceTracker;
 use crate::vm::runners::cairo_runner::RunResources;
@@ -31,6 +29,8 @@ use cairo_lang_casm::{
 };
 use core::any::Any;
 use core::ops::Shl;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use num_bigint::{BigInt, BigUint};
 use num_integer::{ExtendedGcd, Integer};
@@ -294,7 +294,7 @@ impl Cairo1HintProcessor {
             })) => self.eval_circuit(vm, n_add_mods, add_mod_builtin, n_mul_mods, mul_mod_builtin),
             Hint::Starknet(StarknetHint::Cheatcode { selector, .. }) => {
                 let selector = &selector.value.to_bytes_be().1;
-                let selector = crate::stdlib::str::from_utf8(selector).map_err(|_| {
+                let selector = std::str::from_utf8(selector).map_err(|_| {
                     HintError::CustomHint(Box::from("failed to parse selector".to_string()))
                 })?;
                 match selector {
@@ -813,7 +813,6 @@ impl Cairo1HintProcessor {
         start: &ResOperand,
         end: &ResOperand,
     ) -> Result<(), HintError> {
-        #[cfg(feature = "std")]
         {
             let mut curr = as_relocatable(vm, start)?;
             let end = as_relocatable(vm, end)?;

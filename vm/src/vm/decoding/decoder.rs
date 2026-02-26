@@ -197,7 +197,6 @@ fn decode_offset(offset: u128) -> isize {
 #[cfg(test)]
 mod decoder_test {
     use super::*;
-    use crate::stdlib::string::ToString;
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]

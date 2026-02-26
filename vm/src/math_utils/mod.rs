@@ -4,7 +4,6 @@ pub use is_prime::is_prime;
 
 use core::cmp::min;
 
-use crate::stdlib::{boxed::Box, ops::Shr, prelude::Vec};
 use crate::types::errors::math_errors::MathError;
 use crate::utils::CAIRO_PRIME;
 use crate::Felt252;
@@ -14,6 +13,7 @@ use num_integer::Integer;
 use num_traits::{One, Signed, Zero};
 use rand::{rngs::SmallRng, SeedableRng};
 use starknet_types_core::felt::NonZeroFelt;
+use std::ops::Shr;
 
 lazy_static! {
     pub static ref SIGNED_FELT_MAX: BigUint = (&*CAIRO_PRIME).shr(1_u32);
@@ -420,14 +420,14 @@ mod tests {
 
     use num_traits::Num;
 
-    #[cfg(feature = "std")]
+    #[cfg(not(target_arch = "wasm32"))]
     use num_prime::RandPrime;
 
-    #[cfg(feature = "std")]
+    #[cfg(not(target_arch = "wasm32"))]
     use proptest::prelude::*;
 
     // Only used in proptest for now
-    #[cfg(feature = "std")]
+    #[cfg(not(target_arch = "wasm32"))]
     use num_bigint::Sign;
 
     #[cfg(target_arch = "wasm32")]
@@ -972,7 +972,7 @@ mod tests {
         )
     }
 
-    #[cfg(feature = "std")]
+    #[cfg(not(target_arch = "wasm32"))]
     proptest! {
 
         #[test]

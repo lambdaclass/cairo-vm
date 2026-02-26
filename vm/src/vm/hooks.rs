@@ -9,7 +9,7 @@
 //! - pre_step_instruction, executed before each instruction_step in [step](VirtualMachine::step)
 //! - post_step_instruction, executed after each instruction_step in [step](VirtualMachine::step)
 
-use crate::stdlib::{any::Any, collections::HashMap, prelude::*, sync::Arc};
+use std::{any::Any, collections::HashMap, sync::Arc};
 
 use crate::Felt252;
 

@@ -1,15 +1,15 @@
 use crate::vm::trace::trace_entry::TraceEntry;
 
+use std::{
+    any::Any,
+    collections::{BTreeMap, HashMap, HashSet},
+    ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
+};
+
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
     math_utils::safe_div_usize,
-    stdlib::{
-        any::Any,
-        collections::{BTreeMap, HashMap, HashSet},
-        ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
-        prelude::*,
-    },
     types::{builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName},
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
@@ -1655,10 +1655,10 @@ mod tests {
     use super::*;
     use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInput};
     use crate::cairo_run::{cairo_run, CairoRunConfig};
-    use crate::stdlib::collections::{HashMap, HashSet};
     use crate::types::instance_definitions::bitwise_instance_def::CELLS_PER_BITWISE;
     use crate::types::instance_definitions::keccak_instance_def::CELLS_PER_KECCAK;
     use crate::vm::vm_memory::memory::MemoryCell;
+    use std::collections::{HashMap, HashSet};
 
     use crate::felt_hex;
     use crate::{

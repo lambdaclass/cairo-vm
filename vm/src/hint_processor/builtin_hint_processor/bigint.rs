@@ -1,8 +1,6 @@
 use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::BigInt5;
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::BASE;
 use crate::math_utils::{div_mod, safe_div_bigint, signed_felt};
-use crate::stdlib::collections::HashMap;
-use crate::stdlib::prelude::String;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::Felt252;
 use crate::{
@@ -15,6 +13,7 @@ use crate::{
 };
 use num_bigint::BigInt;
 use num_traits::Signed;
+use std::collections::HashMap;
 
 use super::hint_utils::insert_value_from_var_name;
 

@@ -1,4 +1,3 @@
-use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 use crate::utils::CAIRO_PRIME;
 use crate::Felt252;
 use crate::{
@@ -16,6 +15,7 @@ use num_bigint::BigUint;
 use num_bigint::ToBigInt;
 use num_traits::{Num, One, Pow, ToPrimitive, Zero};
 use sha2::{Digest, Sha256};
+use std::{borrow::Cow, collections::HashMap};
 
 use super::hint_utils::get_ptr_from_var_name;
 

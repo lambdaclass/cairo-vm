@@ -1,5 +1,3 @@
-use crate::stdlib::boxed::Box;
-
 use crate::{
     serde::deserialize_program::{ApTracking, OffsetValue},
     types::{

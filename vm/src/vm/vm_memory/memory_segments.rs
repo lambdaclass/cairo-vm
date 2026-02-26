@@ -1,14 +1,13 @@
-use crate::stdlib::collections::HashSet;
 use core::cmp::max;
 use core::fmt;
+use std::collections::HashSet;
 
 use crate::vm::runners::cairo_pie::CairoPieMemory;
 use crate::Felt252;
 use num_traits::Zero;
 
-use crate::stdlib::prelude::*;
-use crate::stdlib::{any::Any, collections::HashMap};
 use crate::vm::runners::cairo_runner::CairoArg;
+use std::{any::Any, collections::HashMap};
 
 use crate::{
     types::relocatable::{MaybeRelocatable, Relocatable},

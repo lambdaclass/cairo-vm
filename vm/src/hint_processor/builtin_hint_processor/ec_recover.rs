@@ -1,7 +1,6 @@
 use num_integer::Integer;
 
 use super::secp::bigint_utils::BigInt3;
-use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::div_mod,
@@ -11,6 +10,7 @@ use crate::{
 };
 use num_bigint::BigInt;
 use num_traits::Zero;
+use std::collections::HashMap;
 
 /* Implements Hint:
 %{

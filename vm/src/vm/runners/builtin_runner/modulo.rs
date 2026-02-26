@@ -1,11 +1,8 @@
+use std::{borrow::Cow, collections::BTreeMap};
+
 use crate::{
     air_private_input::{ModInput, ModInputInstance, ModInputMemoryVars, PrivateInput},
     math_utils::{div_mod_unsigned, safe_div_usize},
-    stdlib::{
-        borrow::Cow,
-        collections::BTreeMap,
-        prelude::{Box, Vec},
-    },
     types::{
         builtin_name::BuiltinName,
         errors::math_errors::MathError,

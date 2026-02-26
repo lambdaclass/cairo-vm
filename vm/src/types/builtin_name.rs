@@ -179,8 +179,8 @@ impl core::fmt::Display for BuiltinName {
 // Implementation of custom serialization & deserialization for maps using builtin names with suffixes as keys
 pub(crate) mod serde_generic_map_impl {
     use super::BuiltinName;
-    use crate::stdlib::{collections::BTreeMap, string::String};
     use serde::{de::Error, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
+    use std::collections::BTreeMap;
 
     pub fn serialize<S, V>(
         values: &BTreeMap<BuiltinName, V>,

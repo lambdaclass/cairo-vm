@@ -115,10 +115,12 @@ use crate::{
         hint_processor_definition::HintReference,
     },
     serde::deserialize_program::ApTracking,
-    stdlib::{any::Any, collections::HashMap, prelude::*, rc::Rc, sync::Arc},
+};
+use crate::{
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+use std::{any::Any, collections::HashMap, rc::Rc, sync::Arc};
 
 #[cfg(feature = "cairo-0-secp-hints")]
 use crate::hint_processor::builtin_hint_processor::secp::cairo0_hints;
@@ -1056,8 +1058,8 @@ impl ResourceTracker for BuiltinHintProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::any::Any;
     use crate::types::relocatable::Relocatable;
+    use std::any::Any;
 
     use crate::{
         any_box,

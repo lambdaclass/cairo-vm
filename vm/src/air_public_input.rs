@@ -2,15 +2,11 @@ use crate::Felt252;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{
-    stdlib::{
-        collections::HashMap,
-        prelude::{String, Vec},
-    },
-    vm::{
-        errors::{trace_errors::TraceError, vm_errors::VirtualMachineError},
-        trace::trace_entry::RelocatedTraceEntry,
-    },
+use std::collections::HashMap;
+
+use crate::vm::{
+    errors::{trace_errors::TraceError, vm_errors::VirtualMachineError},
+    trace::trace_entry::RelocatedTraceEntry,
 };
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -175,12 +171,9 @@ pub enum PublicInputError {
 }
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "std")]
     use super::*;
-    #[cfg(feature = "std")]
     use rstest::rstest;
 
-    #[cfg(feature = "std")]
     #[rstest]
     #[case(include_bytes!("../../cairo_programs/proof_programs/fibonacci.json"))]
     #[case(include_bytes!("../../cairo_programs/proof_programs/bitwise_output.json"))]

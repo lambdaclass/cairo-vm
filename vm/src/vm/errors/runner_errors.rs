@@ -1,9 +1,9 @@
 // The `(*.0).0` syntax of thiserror falsely triggers this clippy warning
 #![allow(clippy::explicit_auto_deref)]
 
-use crate::stdlib::{collections::HashSet, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 use crate::types::layout_name::LayoutName;
+use std::collections::HashSet;
 use thiserror::Error;
 
 use super::{memory_errors::MemoryError, trace_errors::TraceError};
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     // Test to catch possible enum size regressions
     fn test_runner_error_size() {
-        let size = crate::stdlib::mem::size_of::<RunnerError>();
+        let size = std::mem::size_of::<RunnerError>();
         assert!(size <= 32, "{size}")
     }
 }

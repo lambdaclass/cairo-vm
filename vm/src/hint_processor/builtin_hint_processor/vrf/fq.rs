@@ -8,13 +8,13 @@ use crate::{
     },
     math_utils::div_mod_unsigned,
     serde::deserialize_program::ApTracking,
-    stdlib::{collections::HashMap, prelude::*},
     types::errors::math_errors::MathError,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::BigUint;
 use num_integer::div_rem;
 use num_traits::{One, Zero};
+use std::collections::HashMap;
 
 /// Implements hint:
 /// ```python

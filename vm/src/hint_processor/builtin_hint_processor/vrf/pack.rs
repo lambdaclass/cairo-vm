@@ -7,11 +7,10 @@ use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
 use crate::hint_processor::hint_processor_definition::HintReference;
 use crate::math_utils::div_mod;
 use crate::serde::deserialize_program::ApTracking;
-use crate::stdlib::collections::HashMap;
-use crate::stdlib::prelude::String;
 use crate::types::exec_scope::ExecutionScopes;
 use crate::vm::errors::hint_errors::HintError;
 use crate::vm::vm_core::VirtualMachine;
+use std::collections::HashMap;
 
 /// Implements hint:
 /// ```python
@@ -81,12 +80,12 @@ mod test {
     use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::hint_processor::hint_processor_definition::HintReference;
-    use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
     use num_bigint::BigInt;
     use num_traits::One;
     use num_traits::Zero;
+    use std::collections::HashMap;
 
     static SECP_P_D0: i128 = 77371252455336267181195245_i128;
     static SECP_P_D1: i128 = 77371252455336267181195263_i128;

@@ -1,5 +1,4 @@
 use crate::air_private_input::{PrivateInput, PrivateInputPair};
-use crate::stdlib::{cell::RefCell, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::pedersen_instance_def::CELLS_PER_HASH;
 use crate::types::relocatable::{MaybeRelocatable, Relocatable};
@@ -10,6 +9,7 @@ use crate::vm::vm_memory::memory::Memory;
 use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use num_integer::{div_ceil, Integer};
 use starknet_types_core::hash::StarkHash;
+use std::cell::RefCell;
 
 #[derive(Debug, Clone)]
 pub struct HashBuiltinRunner {
