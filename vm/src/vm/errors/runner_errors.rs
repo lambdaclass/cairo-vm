@@ -122,6 +122,8 @@ pub enum RunnerError {
     BadDynamicLayoutBuiltinRatio(BuiltinName),
     #[error("Initialization failure: Cannot run with trace padding disabled without proof mode")]
     DisableTracePaddingWithoutProofMode,
+    #[error("Program segment unitialized or invalid")]
+    ProgramSegmentInvalid,
 }
 
 #[cfg(test)]
