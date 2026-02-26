@@ -1371,6 +1371,35 @@ impl CairoRunner {
         &self.program
     }
 
+    /// Returns the contents of the program segment (segment 0) as a vector of `[u32; 8]`.
+    pub fn get_program_segment_data(&self) -> Result<Vec<[u32; 8]>, RunnerError> {
+        let segment = self
+            .vm
+            .segments
+            .memory
+            .data
+            .first()
+            .ok_or(RunnerError::ProgramSegmentInvalid)?;
+        segment
+            .iter()
+            .map(|cell| {
+                let value = cell.get_value().ok_or(RunnerError::ProgramSegmentInvalid)?;
+                let felt = value.get_int().ok_or(RunnerError::ProgramSegmentInvalid)?;
+                let digits = felt.to_le_digits();
+                Ok([
+                    digits[0] as u32,
+                    (digits[0] >> 32) as u32,
+                    digits[1] as u32,
+                    (digits[1] >> 32) as u32,
+                    digits[2] as u32,
+                    (digits[2] >> 32) as u32,
+                    digits[3] as u32,
+                    (digits[3] >> 32) as u32,
+                ])
+            })
+            .collect()
+    }
+
     // Constructs and returns a CairoPie representing the current VM run.
     pub fn get_cairo_pie(&self) -> Result<CairoPie, RunnerError> {
         let program_base = self.program_base.ok_or(RunnerError::NoProgBase)?;
