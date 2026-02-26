@@ -61,6 +61,26 @@ pub struct OperandsAddresses {
     op1_addr: Relocatable,
 }
 
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
+pub enum ExtendedExecutionResourceType {
+    /// Describe opcode extensions that are not a builtin, yet imply added resources to the
+    /// execution.
+    BlakeFinalize,
+    Blake,
+}
+
+impl TryFrom<OpcodeExtension> for ExtendedExecutionResourceType {
+    type Error = &'static str; // Using a simple string instead of a custom struct
+
+    fn try_from(value: OpcodeExtension) -> Result<Self, Self::Error> {
+        match value {
+            OpcodeExtension::Blake => Ok(ExtendedExecutionResourceType::Blake),
+            OpcodeExtension::BlakeFinalize => Ok(ExtendedExecutionResourceType::BlakeFinalize),
+            _ => Err("Unsupported OpcodeExtension for ExtendedExecutionResourceType"),
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone, Copy)]
 pub struct DeducedOperands(u8);
 
@@ -100,6 +120,7 @@ pub struct VirtualMachine {
     /// implementation of this mechanism in `simulated_builtins.cairo`, or
     /// cairo-lang's `simple_bootloader.cairo`.
     pub simulated_builtin_runners: Vec<BuiltinRunner>,
+    pub(crate) extended_resource_counter: HashMap<ExtendedExecutionResourceType, u32>,
     pub segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,
@@ -132,6 +153,7 @@ impl VirtualMachine {
             run_context,
             builtin_runners: Vec::new(),
             simulated_builtin_runners: Vec::new(),
+            extended_resource_counter: HashMap::new(),
             trace,
             current_step: 0,
             skip_instruction_execution: false,
@@ -460,6 +482,16 @@ impl VirtualMachine {
                 &operands_addresses,
                 instruction.opcode_extension == OpcodeExtension::BlakeFinalize,
             )?;
+
+            let resource_type = <ExtendedExecutionResourceType as TryFrom<_>>::try_from(
+                instruction.opcode_extension,
+            )
+            .expect("OpcodeExtension Blake and BlakeFinalize should always map to ExtendedExecutionResourceType");
+
+            *self
+                .extended_resource_counter
+                .entry(resource_type)
+                .or_insert(0) += 1;
         }
 
         self.update_registers(instruction, operands)?;
@@ -1426,6 +1458,7 @@ impl VirtualMachineBuilder {
             run_context: self.run_context,
             builtin_runners: self.builtin_runners,
             simulated_builtin_runners: Vec::new(),
+            extended_resource_counter: HashMap::new(),
             trace: self.trace,
             current_step: self.current_step,
             skip_instruction_execution: self.skip_instruction_execution,
@@ -5564,6 +5597,17 @@ mod tests {
                 .memory
                 .get_amount_of_accessed_addresses_for_segment(1),
             Some(6)
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_extended_execution_resources() {
+        let result = ExtendedExecutionResourceType::try_from(OpcodeExtension::Stone);
+
+        assert_eq!(
+            result,
+            Err("Unsupported OpcodeExtension for ExtendedExecutionResourceType")
         );
     }
 }
