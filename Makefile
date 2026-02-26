@@ -23,7 +23,7 @@ UNAME := $(shell uname)
 	hyper-threading-benchmarks \
 	cairo_bench_programs cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts \
 	cairo_trace cairo-vm_trace cairo_proof_trace cairo-vm_proof_trace python-deps python-deps-macos \
-	fuzzer-deps fuzzer-run-cairo-compiled fuzzer-run-hint-diff build-cairo-lang hint-accountant \ create-proof-programs-symlinks \
+	build-cairo-lang hint-accountant \ create-proof-programs-symlinks \
 	$(RELBIN) $(DBGBIN)
 
 # Proof mode consumes too much memory with cairo-lang to execute
@@ -396,21 +396,6 @@ clean:
 	rm -rf cairo-lang
 	cd cairo1-run; make clean
 
-fuzzer-deps: build
-	cargo +nightly install cargo-fuzz
-	. cairo-vm-env/bin/activate; \
-		pip install atheris==2.2.2 maturin==1.2.3; \
-		cd fuzzer/; \
-		maturin develop
-
-fuzzer-run-cairo-compiled:
-	cd fuzzer
-	cargo +nightly fuzz run --fuzz-dir . cairo_compiled_programs_fuzzer
-
-fuzzer-run-hint-diff:
-	. cairo-vm-env/bin/activate ; \
-	cd fuzzer/diff_fuzzer/; \
-	../../cairo-vm-env/bin/python random_hint_fuzzer.py -len_control=0
 
 CAIRO_LANG_REPO_DIR=cairo-lang
 
