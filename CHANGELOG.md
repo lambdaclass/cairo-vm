@@ -86,6 +86,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 * fix: correct duplicate tuple index in InvalidTrackingGroup error message [#2276](https://github.com/lambdaclass/cairo-vm/pull/2276)
 
+* fix: preserve verified offset flags in `HashBuiltinRunner::extend_additional_data` [#2269](https://github.com/lambdaclass/cairo-vm/pull/2269)
+
 #### [3.0.1] - 2025-12-22
 
 *Patch release with bug fixes backported to 3.0.x. See [3.1.0] for the consolidated changes.*
