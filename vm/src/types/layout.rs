@@ -168,18 +168,18 @@ impl CairoLayout {
         }
     }
 
-    pub(crate) fn dynamic_instance(params: CairoLayoutParams) -> CairoLayout {
-        CairoLayout {
+    pub(crate) fn dynamic_instance(params: CairoLayoutParams) -> Result<CairoLayout, RunnerError> {
+        let diluted_pool =
+            DilutedPoolInstanceDef::from_log_units_per_step(params.log_diluted_units_per_step)?;
+        Ok(CairoLayout {
             name: LayoutName::dynamic,
             rc_units: params.rc_units,
             cpu_component_step: params.cpu_component_step,
             memory_units_per_step: params.memory_units_per_step,
             public_memory_fraction: 8,
-            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::from_log_units_per_step(
-                params.log_diluted_units_per_step,
-            )),
+            diluted_pool_instance_def: Some(diluted_pool),
             builtins: BuiltinsInstanceDef::dynamic(params),
-        }
+        })
     }
 
     pub(crate) fn perpetual_instance() -> CairoLayout {
@@ -594,7 +594,7 @@ mod tests {
             mul_mod_ratio_den: 16,
         };
 
-        let layout = CairoLayout::dynamic_instance(params);
+        let layout = CairoLayout::dynamic_instance(params).unwrap();
 
         assert_eq!(layout.name, LayoutName::dynamic);
         assert_eq!(layout.rc_units, 32);

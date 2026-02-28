@@ -215,7 +215,7 @@ impl CairoRunner {
                 let params =
                     dynamic_layout_params.ok_or(RunnerError::MissingDynamicLayoutParams)?;
 
-                CairoLayout::dynamic_instance(params)
+                CairoLayout::dynamic_instance(params)?
             }
         };
         Ok(CairoRunner {
