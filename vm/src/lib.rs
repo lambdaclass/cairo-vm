@@ -13,6 +13,7 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(warnings)]
+#![allow(mismatched_lifetime_syntaxes)]
 #![forbid(unsafe_code)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
