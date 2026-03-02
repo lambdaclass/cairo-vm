@@ -1,6 +1,5 @@
 use cairo_lang_sierra::{ids::ConcreteTypeId, program_registry::ProgramRegistryError};
 use cairo_lang_sierra_to_casm::{compiler::CompilationError, metadata::MetadataError};
-#[cfg(feature = "std")]
 use cairo_vm::cairo_run::EncodeTraceError;
 use cairo_vm::{
     air_public_input::PublicInputError,
@@ -19,7 +18,6 @@ pub enum Error {
     Cli(#[from] clap::Error),
     #[error("Failed to interact with the file system")]
     IO(#[from] std::io::Error),
-    #[cfg(feature = "std")]
     #[error(transparent)]
     EncodeTrace(#[from] EncodeTraceError),
     #[error(transparent)]

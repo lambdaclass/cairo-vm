@@ -1,10 +1,6 @@
-use crate::{
-    stdlib::{
-        collections::{BTreeMap, HashMap},
-        prelude::*,
-    },
-    types::builtin_name::BuiltinName,
-};
+use std::collections::{BTreeMap, HashMap};
+
+use crate::types::builtin_name::BuiltinName;
 
 use serde::{Deserialize, Serialize};
 

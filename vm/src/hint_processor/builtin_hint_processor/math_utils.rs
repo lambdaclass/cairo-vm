@@ -1,11 +1,10 @@
 use crate::{
     hint_processor::builtin_hint_processor::hint_utils::get_constant_from_var_name,
-    math_utils::signed_felt,
-    stdlib::{boxed::Box, collections::HashMap, prelude::*},
-    types::errors::math_errors::MathError,
+    math_utils::signed_felt, types::errors::math_errors::MathError,
 };
 use lazy_static::lazy_static;
 use num_traits::{Signed, Zero};
+use std::collections::HashMap;
 
 use crate::utils::CAIRO_PRIME;
 

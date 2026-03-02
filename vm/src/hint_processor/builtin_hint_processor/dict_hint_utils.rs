@@ -1,6 +1,4 @@
-use crate::stdlib::{
-    any::Any, boxed::Box, cell::RefCell, collections::HashMap, prelude::*, rc::Rc,
-};
+use std::{any::Any, cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     types::{exec_scope::ExecutionScopes, relocatable::MaybeRelocatable},
@@ -260,8 +258,8 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::dict_manager::Dictionary;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
-    use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
+    use std::collections::HashMap;
 
     use crate::{
         hint_processor::builtin_hint_processor::dict_manager::{DictManager, DictTracker},

@@ -6,10 +6,11 @@ use crate::{
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen_test::*;
 
+use std::collections::BTreeMap;
+
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    stdlib::collections::BTreeMap,
     types::relocatable::Relocatable,
     vm::runners::{
         cairo_pie::{
