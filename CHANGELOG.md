@@ -12,7 +12,11 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+<<<<<<< remove/diff-fuzzer
 * chore: Remove `diff_fuzzer` and `py_export` [#2340](https://github.com/lambdaclass/cairo-vm/pull/2340)
+=======
+* docs: Add onboarding doc for new developers [#2325](https://github.com/lambdaclass/cairo-vm/pull/2325)
+>>>>>>> main
 
 * chore: Remove `cairo_compiled_programs_fuzzer` [#2339](https://github.com/lambdaclass/cairo-vm/pull/2339)
 
