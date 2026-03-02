@@ -1,7 +1,6 @@
 // The `(*.0).0` syntax of thiserror falsely triggers this clippy warning
 #![allow(clippy::explicit_auto_deref)]
 
-use crate::stdlib::boxed::Box;
 use crate::Felt252;
 use num_bigint::{BigInt, BigUint};
 use thiserror::Error;
@@ -76,7 +75,7 @@ mod tests {
     #[test]
     // Test to catch possible enum size regressions
     fn test_math_error_size() {
-        let size = crate::stdlib::mem::size_of::<MathError>();
+        let size = std::mem::size_of::<MathError>();
         assert!(size <= 16, "{size}")
     }
 }

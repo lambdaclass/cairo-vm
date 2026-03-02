@@ -1,4 +1,3 @@
-use crate::stdlib::prelude::*;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::{errors::math_errors::MathError, relocatable::Relocatable};
 use crate::vm::errors::{hint_errors::HintError, vm_errors::VirtualMachineError};
@@ -66,7 +65,6 @@ pub(crate) fn get_ptr(
     Ok((vm.get_relocatable(cell_ref_to_relocatable(cell, vm)?)? + offset)?)
 }
 
-#[cfg(feature = "std")]
 pub(crate) fn as_relocatable(
     vm: &mut VirtualMachine,
     value: &ResOperand,
@@ -108,7 +106,6 @@ pub(crate) fn res_operand_get_val(
     }
 }
 
-#[cfg(feature = "std")]
 pub(crate) fn as_cairo_short_string(value: &Felt252) -> Option<String> {
     let mut as_string = String::default();
     let mut is_end = false;

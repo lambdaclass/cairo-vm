@@ -1,5 +1,4 @@
 use crate::air_private_input::{PrivateInput, PrivateInputPoseidonState};
-use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::poseidon_instance_def::{
     CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
@@ -12,6 +11,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::Felt252;
 use num_integer::div_ceil;
 use starknet_types_core::hash::Poseidon;
+use std::{cell::RefCell, collections::HashMap};
 
 #[derive(Debug, Clone)]
 pub struct PoseidonBuiltinRunner {

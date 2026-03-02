@@ -1,5 +1,4 @@
 use crate::hint_processor::hint_processor_definition::HintReference;
-use crate::stdlib::collections::HashMap;
 use crate::types::relocatable::Relocatable;
 use crate::Felt252;
 use crate::{
@@ -8,6 +7,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_traits::ToPrimitive;
+use std::collections::HashMap;
 
 use super::hint_utils::{get_integer_from_var_name, insert_value_from_var_name};
 
