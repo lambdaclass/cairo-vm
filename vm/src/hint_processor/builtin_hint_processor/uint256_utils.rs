@@ -8,13 +8,13 @@ use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::{isqrt, pow2_const, pow2_const_nz},
     serde::deserialize_program::ApTracking,
-    stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*},
     types::{errors::math_errors::MathError, relocatable::Relocatable},
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::BigUint;
 use num_integer::{div_rem, Integer};
 use num_traits::{One, Zero};
+use std::{borrow::Cow, collections::HashMap};
 
 // TODO: use this type in all uint256 functions
 pub(crate) struct Uint256<'a> {

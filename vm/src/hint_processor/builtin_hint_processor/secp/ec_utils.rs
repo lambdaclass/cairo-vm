@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -15,7 +17,6 @@ use crate::{
     },
     math_utils::{ec_double_slope, line_slope},
     serde::deserialize_program::ApTracking,
-    stdlib::{collections::HashMap, prelude::*},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -557,7 +558,6 @@ mod tests {
     use super::*;
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::builtin_hint_processor::secp::secp_utils::SECP_P_V2;
-    use crate::stdlib::string::ToString;
 
     use crate::{
         any_box,

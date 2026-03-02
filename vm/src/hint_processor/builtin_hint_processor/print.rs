@@ -8,7 +8,7 @@ use crate::hint_processor::builtin_hint_processor::hint_utils::{
     get_integer_from_var_name, get_ptr_from_var_name,
 };
 use crate::serde::deserialize_program::ApTracking;
-use crate::stdlib::collections::HashMap;
+use std::collections::HashMap;
 
 use crate::types::exec_scope::ExecutionScopes;
 use crate::types::relocatable::MaybeRelocatable;

@@ -1,6 +1,5 @@
 use crate::air_private_input::{PrivateInput, PrivateInputKeccakState};
 use crate::math_utils::safe_div_usize;
-use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::keccak_instance_def::{
     CELLS_PER_KECCAK, INPUT_CELLS_PER_KECCAK,
@@ -14,6 +13,7 @@ use crate::Felt252;
 use lazy_static::lazy_static;
 use num_bigint::BigUint;
 use num_integer::div_ceil;
+use std::{cell::RefCell, collections::HashMap};
 
 const KECCAK_FELT_BYTE_SIZE: usize = 25; // 200 / 8
 const BITS: u32 = 200;

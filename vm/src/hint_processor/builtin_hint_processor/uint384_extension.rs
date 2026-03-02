@@ -1,5 +1,4 @@
 use super::secp::bigint_utils::{Uint384, Uint768};
-use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
@@ -8,6 +7,7 @@ use crate::{
 };
 use num_integer::Integer;
 use num_traits::Zero;
+use std::collections::HashMap;
 
 /* Implements Hint:
        %{

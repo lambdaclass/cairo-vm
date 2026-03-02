@@ -234,7 +234,6 @@ pub struct CairoLayoutParams {
 }
 
 impl CairoLayoutParams {
-    #[cfg(feature = "std")]
     pub fn from_file(params_path: &std::path::Path) -> std::io::Result<Self> {
         let params_file = std::fs::File::open(params_path)?;
         let params = serde_json::from_reader(params_file)?;
