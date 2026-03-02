@@ -29,7 +29,7 @@ const HEX_SYMBOLS: [&str; 16] = [
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f",
 ];
 
-const HINTS_CODE: [&str; 186] = [
+const HINTS_CODE: [&str; 199] = [
     ADD_SEGMENT,
     VM_ENTER_SCOPE,
     VM_EXIT_SCOPE,
@@ -216,6 +216,19 @@ const HINTS_CODE: [&str; 186] = [
     EC_RECOVER_PRODUCT_DIV_M,
     SQUARE_SLOPE_X_MOD_P,
     SPLIT_XX,
+    BLAKE2S_UNPACK_FELTS,
+    EC_DOUBLE_SLOPE_V5,
+    EXCESS_BALANCE,
+    IS_LESS_THAN_63_BITS_AND_NOT_END,
+    NONDET_ELEMENTS_OVER_TEN,
+    NONDET_ELEMENTS_OVER_TWO,
+    PRINT_ARR,
+    PRINT_DICT,
+    PRINT_FELT,
+    REDUCE_V2,
+    RUN_P_CIRCUIT,
+    RUN_P_CIRCUIT_WITH_LARGE_BATCH_SIZE,
+    SKIP_NEXT_INSTRUCTION,
 ];
 
 #[derive(Arbitrary, Serialize, Deserialize)]
