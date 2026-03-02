@@ -2,7 +2,6 @@ use core::ops::Shl;
 
 use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
 use crate::math_utils::signed_felt;
-use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -21,6 +20,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::{BigInt, BigUint};
+use std::{borrow::Cow, collections::HashMap};
 
 pub(crate) type BigInt3<'a> = BigIntN<'a, 3>;
 pub(crate) type Uint384<'a> = BigIntN<'a, 3>;
@@ -198,7 +198,6 @@ mod tests {
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
-    use crate::stdlib::string::ToString;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::{any_box, felt_str};
 

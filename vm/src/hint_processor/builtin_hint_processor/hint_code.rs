@@ -1,7 +1,7 @@
 use indoc::indoc;
 
 use crate::define_hint_string_map;
-use crate::stdlib::collections::HashMap;
+use std::collections::HashMap;
 
 define_hint_string_map! {
     HINT_CODES,

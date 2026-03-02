@@ -1,9 +1,3 @@
-use crate::stdlib::{
-    borrow::{Cow, ToOwned},
-    boxed::Box,
-    collections::HashMap,
-    prelude::*,
-};
 use crate::{
     hint_processor::{
         builtin_hint_processor::hint_utils::{
@@ -22,6 +16,7 @@ use crate::{
     Felt252,
 };
 use num_traits::ToPrimitive;
+use std::{borrow::Cow, collections::HashMap};
 
 // Constants in package "starkware.cairo.common.cairo_keccak.keccak".
 const BYTES_IN_WORD: &str = "starkware.cairo.common.cairo_keccak.keccak.BYTES_IN_WORD";
@@ -365,7 +360,6 @@ pub fn u64_array_to_mayberelocatable_vec(array: &[u64]) -> Vec<MaybeRelocatable>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::string::ToString;
 
     use crate::{
         any_box,

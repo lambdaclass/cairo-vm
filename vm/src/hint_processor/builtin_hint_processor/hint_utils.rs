@@ -1,4 +1,4 @@
-use crate::stdlib::{any::Any, boxed::Box, collections::HashMap, prelude::*};
+use std::{any::Any, collections::HashMap};
 
 use crate::Felt252;
 
@@ -24,7 +24,7 @@ use crate::vm::vm_core::VirtualMachine;
 ///
 /// ```
 /// # #[macro_use] extern crate cairo_vm;
-/// # use cairo_vm::stdlib::collections::HashMap;
+/// # use std::collections::HashMap;
 /// cairo_vm::define_hint_string_map!(
 ///     FOO_HINTS,
 ///     (FOO_HINT_ADD_X_Y, "x + y"),
@@ -35,7 +35,7 @@ use crate::vm::vm_core::VirtualMachine;
 /// This will generate the following code:
 ///
 /// ```
-/// # use cairo_vm::stdlib::collections::HashMap;
+/// # use std::collections::HashMap;
 /// pub const FOO_HINT_ADD_X_Y: &str = "x + y";
 /// #[cfg(feature = "test_utils")]
 /// pub const FOO_HINT_PRINT_X: &str = "print(x)";

@@ -105,7 +105,6 @@ impl RunContext {
 mod tests {
     use super::*;
     use crate::relocatable;
-    use crate::stdlib::string::ToString;
     use crate::types::instruction::{ApUpdate, FpUpdate, Opcode, OpcodeExtension, PcUpdate, Res};
     use crate::utils::test_utils::mayberelocatable;
     use crate::vm::errors::memory_errors::MemoryError;

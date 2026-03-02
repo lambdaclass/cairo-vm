@@ -1,4 +1,3 @@
-use crate::stdlib::prelude::*;
 use serde::Serialize;
 
 pub(crate) const INPUT_CELLS_PER_KECCAK: u32 = 8;

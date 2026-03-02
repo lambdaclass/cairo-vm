@@ -10,7 +10,6 @@ use num_traits::Signed;
 use starknet_types_core::felt::Felt;
 
 use crate::{
-    stdlib::boxed::Box,
     types::relocatable::{MaybeRelocatable, Relocatable},
     vm::{
         errors::{hint_errors::HintError, memory_errors::MemoryError},
