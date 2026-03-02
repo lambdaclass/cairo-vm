@@ -1,14 +1,13 @@
 use crate::hint_processor::builtin_hint_processor::secp::bigint_utils::Uint512;
 use crate::hint_processor::builtin_hint_processor::uint256_utils::Uint256;
-use crate::stdlib::prelude::String;
 use crate::Felt252;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, math_utils::div_mod,
-    serde::deserialize_program::ApTracking, stdlib::collections::HashMap,
-    vm::errors::hint_errors::HintError,
+    serde::deserialize_program::ApTracking, vm::errors::hint_errors::HintError,
 };
 use num_bigint::BigInt;
 use num_traits::One;
+use std::collections::HashMap;
 
 use crate::vm::vm_core::VirtualMachine;
 
@@ -75,8 +74,6 @@ mod tests {
     use assert_matches::assert_matches;
     use num_bigint::BigUint;
     use num_traits::Num;
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[test]
     fn test_pack_512() {
@@ -118,7 +115,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_inv_mod_p_uint512_ok() {
         let mut vm = vm_with_range_check!();
         add_segments!(vm, 3);
@@ -167,7 +163,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_inv_mod_p_uint512_igcdex_not_1() {
         let mut vm = vm_with_range_check!();
         add_segments!(vm, 3);

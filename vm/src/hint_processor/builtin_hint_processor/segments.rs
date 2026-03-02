@@ -1,4 +1,4 @@
-use crate::stdlib::{collections::HashMap, prelude::*};
+use std::collections::HashMap;
 
 use crate::hint_processor::builtin_hint_processor::hint_utils::get_ptr_from_var_name;
 use crate::hint_processor::{
@@ -88,11 +88,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_relocate_segment() {
         let hint_code = hint_code::RELOCATE_SEGMENT;
         //Initialize vm
@@ -115,7 +111,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_temporary_array() {
         let hint_code = hint_code::TEMPORARY_ARRAY;
         //Initialize vm

@@ -1,7 +1,6 @@
 // The `(*.0).0` syntax of thiserror falsely triggers this clippy warning
 #![allow(clippy::explicit_auto_deref)]
 
-use crate::stdlib::prelude::*;
 use crate::types::builtin_name::BuiltinName;
 
 use thiserror::Error;
@@ -126,14 +125,14 @@ mod tests {
     #[test]
     // Test to catch possible enum size regressions
     fn test_memory_error_size() {
-        let size = crate::stdlib::mem::size_of::<MemoryError>();
+        let size = std::mem::size_of::<MemoryError>();
         assert!(size <= 24, "{size}")
     }
 
     #[test]
     // Test to catch possible enum size regressions
     fn test_insufficient_allocated_cells_error_size() {
-        let size = crate::stdlib::mem::size_of::<InsufficientAllocatedCellsError>();
+        let size = std::mem::size_of::<InsufficientAllocatedCellsError>();
         assert!(size <= 16, "{size}")
     }
 }

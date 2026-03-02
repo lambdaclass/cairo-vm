@@ -5,11 +5,11 @@
 //!
 //! See [the docs](/docs/references_parsing/README.md) for context and grammar explanation.
 
-use crate::stdlib::{prelude::*, str::FromStr};
 use crate::{
     serde::deserialize_program::{OffsetValue, ValueAddress},
     types::instruction::Register,
 };
+use std::str::FromStr;
 
 use crate::Felt252;
 
@@ -298,13 +298,8 @@ fn take_until_unbalanced(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::string::ToString;
-
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn outer_brackets_test() {
         let deref_value = "[cast([fp])]";
         let parsed_deref = outer_brackets(deref_value);
@@ -316,7 +311,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn take_cast_test() {
         let value = "cast([fp + (-1)], felt*)";
         let parsed = take_cast(value);
@@ -324,7 +318,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn take_cast_first_arg_test() {
         let value = "cast([fp + (-1)] + (-1), felt*)";
         let parsed = take_cast_first_arg(value);
@@ -333,7 +326,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_register_test() {
         let value = "fp + (-1)";
         let parsed = register(value);
@@ -342,7 +334,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_offset_test() {
         let value_1 = " + (-1)";
         let parsed_1 = offset(value_1);
@@ -358,7 +349,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_register_and_offset_test() {
         let value_1 = "fp + 1";
         let parsed_1 = register_and_offset(value_1);
@@ -372,7 +362,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_inner_dereference_test() {
         let value = "[fp + (-1)] + 2";
         let parsed = inner_dereference(value);
@@ -387,7 +376,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_no_inner_dereference_test() {
         let value = "ap + 3";
         let parsed = no_inner_dereference(value);
@@ -399,7 +387,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_inner_dereference_test() {
         let value = "[cast([fp + (-1)] + 2, felt*)]";
         let parsed = parse_value(value);
@@ -420,7 +407,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_neg_inner_dereference_test() {
         let value = "cast(17 - [fp], felt)";
         let parsed = parse_value(value).unwrap();
@@ -441,7 +427,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_no_inner_dereference_test() {
         let value = "cast(ap + 2, felt*)";
         let parsed = parse_value(value);
@@ -462,7 +447,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_no_register_test() {
         let value = "cast(825323, felt*)";
         let parsed = parse_value(value);
@@ -482,7 +466,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_no_inner_deref_and_two_offsets() {
         let value = "[cast(ap - 0 + (-1), felt*)]";
         let parsed = parse_value(value);
@@ -503,7 +486,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_inner_deref_and_offset2() {
         let value = "[cast([ap] + 1, __main__.felt*)]";
         let parsed = parse_value(value);
@@ -524,7 +506,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_inner_deref_and_immediate() {
         let value = "[cast([ap] + 1, felt)]";
         let parsed = parse_value(value);
@@ -545,7 +526,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_inner_deref_to_pointer() {
         let value = "[cast([ap + 1] + 1, felt*)]";
         let parsed = parse_value(value);
@@ -566,7 +546,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_2_inner_deref() {
         let value = "[cast([ap] + [fp + 1], __main__.felt*)]";
         let parsed = parse_value(value);
@@ -587,7 +566,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_2_inner_dereferences() {
         let value = "[cast([ap + 1] + [fp + 1], __main__.felt*)]";
         let parsed = parse_value(value);
@@ -608,7 +586,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_no_reference() {
         let value = "cast(825323, felt)";
         let parsed = parse_value(value);
@@ -629,7 +606,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_one_reference() {
         let value = "[cast([ap] + 1, starkware.cairo.common.cairo_secp.ec.EcPoint*)]";
         let parsed = parse_value(value);
@@ -650,7 +626,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_with_doble_reference() {
         let value = "[cast([ap] + 1, starkware.cairo.common.cairo_secp.ec.EcPoint**)]";
         let parsed = parse_value(value);
@@ -671,7 +646,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_to_felt_with_doble_reference() {
         let value = "[cast([ap] + [ap], felt)]";
         let parsed = parse_value(value);
@@ -692,7 +666,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_to_felt_with_triple_dereference() {
         let value = "[cast([[fp + (-3)] + 5], felt*)]";
         let parsed = parse_value(value);
@@ -713,7 +686,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn parse_value_to_felt_with_doble_reference_and_offsets() {
         let value = "[cast([ap + 1] + [ap + 2], felt)]";
         let parsed = parse_value(value);
@@ -734,7 +706,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_take_until_unmatched() {
         assert_eq!(take_until_unbalanced('(', ')')("abc"), Ok(("", "abc")));
         assert_eq!(

@@ -1,9 +1,7 @@
+use std::cmp::{max, min};
+
 use crate::{
     air_private_input::{PrivateInput, PrivateInputValue},
-    stdlib::{
-        cmp::{max, min},
-        prelude::*,
-    },
     types::{builtin_name::BuiltinName, instance_definitions::LowRatio},
 };
 
@@ -188,11 +186,7 @@ mod tests {
         types::program::Program, utils::test_utils::*, vm::runners::builtin_runner::BuiltinRunner,
     };
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true);
 
@@ -203,7 +197,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin: BuiltinRunner =
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true).into();
@@ -228,7 +221,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin: BuiltinRunner =
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true).into();
@@ -257,7 +249,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
         let mut builtin: BuiltinRunner =
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), false).into();
@@ -282,7 +273,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin: BuiltinRunner =
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true).into();
@@ -309,7 +299,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner =
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true).into();
@@ -357,7 +346,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner =
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true).into();
@@ -400,7 +388,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_for_range_check() {
         let mut builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         let mut segments = MemorySegmentManager::new();
@@ -409,7 +396,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_initial_stack_for_range_check_with_base() {
         let mut builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         builtin.base = 1;
@@ -422,21 +408,18 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_base() {
         let builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         assert_eq!(builtin.base(), 0);
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_ratio() {
         let builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         assert_eq!(builtin.ratio(), Some(8));
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_missing_segment_used_sizes() {
         let builtin = BuiltinRunner::RangeCheck(
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(256), true),
@@ -450,7 +433,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_empty() {
         let builtin = BuiltinRunner::RangeCheck(
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(256), true),
@@ -462,7 +444,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells() {
         let builtin = BuiltinRunner::RangeCheck(
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(256), true),
@@ -474,7 +455,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_usage_succesful_a() {
         let builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         let memory = memory![((0, 0), 1), ((0, 1), 2), ((0, 2), 3), ((0, 3), 4)];
@@ -482,7 +462,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_usage_succesful_b() {
         let builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         let memory = memory![
@@ -495,7 +474,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_usage_succesful_c() {
         let builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         let memory = memory![
@@ -510,7 +488,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_range_check_empty_memory() {
         let builtin = RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true);
         let memory = Memory::new();
@@ -519,7 +496,6 @@ mod tests {
 
     /// Test that the method get_used_perm_range_check_units works as intended.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_perm_range_check_units() {
         let builtin_runner: BuiltinRunner =
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(8), true).into();
@@ -531,7 +507,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_air_private_input() {
         let builtin: BuiltinRunner =
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(None, true).into();

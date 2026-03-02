@@ -1,7 +1,6 @@
 use num_integer::Integer;
 
 use super::secp::bigint_utils::BigInt3;
-use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
     math_utils::div_mod,
@@ -11,6 +10,7 @@ use crate::{
 };
 use num_bigint::BigInt;
 use num_traits::Zero;
+use std::collections::HashMap;
 
 /* Implements Hint:
 %{
@@ -143,11 +143,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_divmod_n_packed_ok() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
@@ -185,7 +181,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_divmod_n_is_zero() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
@@ -220,7 +215,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_sub_a_b_ok() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
@@ -254,7 +248,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_product_mod_ok() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
@@ -297,7 +290,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_product_mod_m_zero() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
@@ -332,7 +324,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_product_div_m_ok() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();
@@ -356,7 +347,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_recover_product_div_m_zero() {
         let mut vm = vm!();
         let mut exec_scopes = ExecutionScopes::new();

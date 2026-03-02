@@ -4,7 +4,6 @@ use num_integer::Integer;
 use num_traits::Zero;
 
 use crate::math_utils::isqrt;
-use crate::stdlib::{boxed::Box, collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
@@ -12,6 +11,7 @@ use crate::{
     serde::deserialize_program::ApTracking,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
+use std::collections::HashMap;
 
 use super::hint_utils::{
     get_constant_from_var_name, get_integer_from_var_name, get_relocatable_from_var_name,
@@ -212,7 +212,6 @@ pub fn uint384_signed_nn(
 
     res = (a - b) % p
 
-
     res_split = split(res, num_bits_shift=128, length=3)
 
     ids.res.d0 = res_split[0]
@@ -258,11 +257,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -317,7 +312,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_divide_by_zero() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -344,7 +338,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_invalid_memory_insert() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -377,7 +370,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_128_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -402,7 +394,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_128_ok_big_number() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -443,7 +434,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_128_invalid_memory_insert() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -464,7 +454,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_add_no_check_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -515,7 +504,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_add_no_check_missing_constant() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -547,7 +535,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_sqrt_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -574,7 +561,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_sqrt_assertion_fail() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -597,7 +583,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_ok_positive() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -620,7 +605,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_missing_identifier() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -641,7 +625,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_ok_negative() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -664,7 +647,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint384_sub_a_b_ok_a_max() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -699,7 +681,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint384_sub_a_b_ok_b_max() {
         let mut vm = vm_with_range_check!();
         //Initialize fp

@@ -1,4 +1,4 @@
-use crate::stdlib::{ops::Shl, prelude::*};
+use std::ops::Shl;
 
 pub const IV: [u32; 8] = [
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
@@ -131,11 +131,7 @@ pub fn blake2s_compress(
 mod tests {
     use super::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_compress_test_a() {
         let h: [u32; 8] = [
             1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
@@ -155,7 +151,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_compress_test_b() {
         let h: [u32; 8] = [
             1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
@@ -175,7 +170,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_compress_test_c() {
         //Hashing "Hello World"
         let h: [u32; 8] = [
@@ -198,7 +192,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_compress_test_d() {
         let h: [u32; 8] = [
             1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
@@ -221,7 +214,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_compress_test_e() {
         let h: [u32; 8] = [
             1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
@@ -244,7 +236,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_compress_test_f() {
         let h: [u32; 8] = [
             1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,
@@ -267,7 +258,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn blake2s_compress_test_g() {
         let h: [u32; 8] = [
             1795745351, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635,

@@ -2,7 +2,6 @@ use core::ops::Shl;
 
 use crate::hint_processor::builtin_hint_processor::uint_utils::{pack, split};
 use crate::math_utils::signed_felt;
-use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 use crate::Felt252;
 use crate::{
     hint_processor::{
@@ -21,6 +20,7 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 use num_bigint::{BigInt, BigUint};
+use std::{borrow::Cow, collections::HashMap};
 
 pub(crate) type BigInt3<'a> = BigIntN<'a, 3>;
 pub(crate) type Uint384<'a> = BigIntN<'a, 3>;
@@ -198,7 +198,6 @@ mod tests {
         BuiltinHintProcessor, HintProcessorData,
     };
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
-    use crate::stdlib::string::ToString;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::{any_box, felt_str};
 
@@ -209,11 +208,7 @@ mod tests {
 
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_nondet_bigint3_ok() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = vm_with_range_check!();
@@ -250,7 +245,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_nondet_bigint3_value_not_in_scope() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = vm_with_range_check!();
@@ -266,7 +260,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_nondet_bigint3_split_error() {
         let hint_code = "from starkware.cairo.common.cairo_secp.secp_utils import split\n\nsegments.write_arg(ids.res.address_, split(value))";
         let mut vm = vm_with_range_check!();
@@ -447,7 +440,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn u384_pack86() {
         let pack_1 = Uint384 {
             limbs: [

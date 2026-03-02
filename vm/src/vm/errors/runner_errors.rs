@@ -1,9 +1,9 @@
 // The `(*.0).0` syntax of thiserror falsely triggers this clippy warning
 #![allow(clippy::explicit_auto_deref)]
 
-use crate::stdlib::{collections::HashSet, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 use crate::types::layout_name::LayoutName;
+use std::collections::HashSet;
 use thiserror::Error;
 
 use super::{memory_errors::MemoryError, trace_errors::TraceError};
@@ -120,6 +120,8 @@ pub enum RunnerError {
     MissingDynamicLayoutParams,
     #[error("dynamic layout {0} ratio should be 0 when disabled")]
     BadDynamicLayoutBuiltinRatio(BuiltinName),
+    #[error("dynamic layout log_diluted_units_per_step {0} is out of range, absolute value must be < 32")]
+    DynamicLayoutLogDilutedUnitsPerStepOverflow(i32),
     #[error("Initialization failure: Cannot run with trace padding disabled without proof mode")]
     DisableTracePaddingWithoutProofMode,
 }
@@ -131,7 +133,7 @@ mod tests {
     #[test]
     // Test to catch possible enum size regressions
     fn test_runner_error_size() {
-        let size = crate::stdlib::mem::size_of::<RunnerError>();
+        let size = std::mem::size_of::<RunnerError>();
         assert!(size <= 32, "{size}")
     }
 }

@@ -1,8 +1,6 @@
-use crate::stdlib::{
+use std::{
     collections::HashMap,
-    ops::Deref,
-    ops::{Add, Mul, Rem},
-    prelude::*,
+    ops::{Add, Deref, Mul, Rem},
 };
 
 use crate::define_hint_string_map;
@@ -397,11 +395,7 @@ mod tests {
 
     use super::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_is_on_curve_2() {
         let mut vm = VirtualMachine::new(false, false);
         vm.set_fp(1);
@@ -433,7 +427,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_compute_q_mod_prime() {
         let mut vm = VirtualMachine::new(false, false);
 
@@ -460,7 +453,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_compute_ids_high_low() {
         let mut vm = VirtualMachine::new(false, false);
 
@@ -530,7 +522,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_r1_get_point_from_x() {
         let mut vm = VirtualMachine::new(false, false);
         vm.set_fp(10);
@@ -590,7 +581,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_reduce_value() {
         let mut vm = VirtualMachine::new(false, false);
 
@@ -646,7 +636,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_reduce_x() {
         let mut vm = VirtualMachine::new(false, false);
 

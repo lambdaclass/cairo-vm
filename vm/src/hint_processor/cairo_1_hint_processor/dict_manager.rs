@@ -3,8 +3,7 @@
 
 use num_traits::One;
 
-use crate::stdlib::collections::HashMap;
-use crate::stdlib::prelude::*;
+use std::collections::HashMap;
 
 use crate::types::relocatable::MaybeRelocatable;
 use crate::vm::errors::hint_errors::HintError;
@@ -243,9 +242,9 @@ impl DictSquashExecScope {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::collections::HashMap;
     use crate::types::relocatable::Relocatable;
     use crate::vm::vm_core::VirtualMachine;
+    use std::collections::HashMap;
 
     /// Test for relocate_all_dictionaries error cases
     #[test]

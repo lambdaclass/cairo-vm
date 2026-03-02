@@ -25,18 +25,13 @@ impl BitwiseInstanceDef {
 mod tests {
     use super::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_new() {
         let builtin_instance = BitwiseInstanceDef { ratio: Some(8) };
         assert_eq!(BitwiseInstanceDef::new(Some(8)), builtin_instance);
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_default() {
         let builtin_instance = BitwiseInstanceDef { ratio: Some(256) };
         assert_eq!(BitwiseInstanceDef::default(), builtin_instance);

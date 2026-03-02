@@ -1,15 +1,15 @@
 use crate::vm::trace::trace_entry::TraceEntry;
 
+use std::{
+    any::Any,
+    collections::{BTreeMap, HashMap, HashSet},
+    ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
+};
+
 use crate::{
     air_private_input::AirPrivateInput,
     air_public_input::{PublicInput, PublicInputError},
     math_utils::safe_div_usize,
-    stdlib::{
-        any::Any,
-        collections::{BTreeMap, HashMap, HashSet},
-        ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign},
-        prelude::*,
-    },
     types::{builtin_name::BuiltinName, layout::CairoLayoutParams, layout_name::LayoutName},
     vm::{
         runners::builtin_runner::SegmentArenaBuiltinRunner,
@@ -215,7 +215,7 @@ impl CairoRunner {
                 let params =
                     dynamic_layout_params.ok_or(RunnerError::MissingDynamicLayoutParams)?;
 
-                CairoLayout::dynamic_instance(params)
+                CairoLayout::dynamic_instance(params)?
             }
         };
         Ok(CairoRunner {
@@ -1655,10 +1655,10 @@ mod tests {
     use super::*;
     use crate::air_private_input::{PrivateInput, PrivateInputSignature, SignatureInput};
     use crate::cairo_run::{cairo_run, CairoRunConfig};
-    use crate::stdlib::collections::{HashMap, HashSet};
     use crate::types::instance_definitions::bitwise_instance_def::CELLS_PER_BITWISE;
     use crate::types::instance_definitions::keccak_instance_def::CELLS_PER_KECCAK;
     use crate::vm::vm_memory::memory::MemoryCell;
+    use std::collections::{HashMap, HashSet};
 
     use crate::felt_hex;
     use crate::{
@@ -1670,11 +1670,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_memory_usage_ok_case() {
         let program = program![BuiltinName::range_check, BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -1684,7 +1680,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_memory_usage_err_case() {
         let program = program!();
 
@@ -1711,7 +1706,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_builtins_with_disordered_builtins() {
         let program = program![BuiltinName::range_check, BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program, LayoutName::plain);
@@ -1719,7 +1713,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_builtins_missing_builtins_no_allow_missing() {
         let program = program![BuiltinName::output, BuiltinName::ecdsa];
         let mut cairo_runner = cairo_runner!(program, LayoutName::plain);
@@ -1730,7 +1723,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_builtins_missing_builtins_allow_missing() {
         let program = program![BuiltinName::output, BuiltinName::ecdsa];
         let mut cairo_runner = cairo_runner!(program);
@@ -1738,7 +1730,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_with_base() {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -1773,7 +1764,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_no_base() {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -1803,7 +1793,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_state_empty_data_and_stack() {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -1822,7 +1811,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_state_some_data_empty_stack() {
         let program = program!(
             builtins = vec![BuiltinName::output],
@@ -1843,7 +1831,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_state_empty_data_some_stack() {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -1858,7 +1845,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_state_no_program_base() {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -1893,7 +1879,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_function_entrypoint_empty_stack() {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -1917,7 +1902,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_function_entrypoint_some_stack() {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -1962,7 +1946,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_main_entrypoint() {
         let program = program!(main = Some(1),);
         let mut cairo_runner = cairo_runner!(program);
@@ -1973,7 +1956,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_state_program_segment_accessed_addrs() {
         // This test checks that all addresses from the program segment are marked as accessed at VM state initialization.
         // The fibonacci program has 24 instructions, so there should be 24 accessed addresses,
@@ -1998,7 +1980,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_vm_no_builtins() {
         let program = program!(main = Some(1),);
         let mut cairo_runner = cairo_runner!(program);
@@ -2013,7 +1994,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_vm_with_range_check_valid() {
         let program = program!(builtins = vec![BuiltinName::range_check], main = Some(1),);
         let mut cairo_runner = cairo_runner!(program);
@@ -2045,7 +2025,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_vm_with_range_check_invalid() {
         let program = program!(builtins = vec![BuiltinName::range_check], main = Some(1),);
         let mut cairo_runner = cairo_runner!(program);
@@ -2067,7 +2046,6 @@ mod tests {
     //Integration tests for initialization phase
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     func myfunc(a: felt) -> (r: felt):
         let b = a * 2
@@ -2137,7 +2115,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins output
 
@@ -2214,7 +2191,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins range_check
 
@@ -2308,7 +2284,6 @@ mod tests {
     //Integration tests for initialization + execution phase
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     func myfunc(a: felt) -> (r: felt):
         let b = a * 2
@@ -2374,7 +2349,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins range_check
 
@@ -2475,7 +2449,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins output
 
@@ -2588,7 +2561,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins output range_check
 
@@ -2752,7 +2724,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Memory from this test is taken from a cairo program execution
     Program used:
         func main():
@@ -2858,7 +2829,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins output
 
@@ -3014,7 +2984,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /* Program used:
     %builtins output
 
@@ -3179,7 +3148,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn write_output_from_preset_memory() {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -3200,7 +3168,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins output
 
@@ -3254,7 +3221,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins output
 
@@ -3291,7 +3257,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn write_output_from_preset_memory_neg_output() {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -3318,7 +3283,6 @@ mod tests {
 
     /// Test that `get_output()` works when the `output` builtin is not the first one.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_output_unordered_builtins() {
         //Initialization Phase
         let program = program!(
@@ -3376,7 +3340,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn insert_all_builtins_in_order() {
         let program = program![
             BuiltinName::output,
@@ -3410,7 +3373,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins range_check
 
@@ -3472,7 +3434,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_empty_all_cairo() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(&program, LayoutName::all_cairo, false, true);
@@ -3483,7 +3444,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_empty_recursive_with_poseidon() {
         let program = program!();
         let mut cairo_runner =
@@ -3495,7 +3455,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_empty_all_cairo_stwo() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(&program, LayoutName::all_cairo_stwo, false, true);
@@ -3506,7 +3465,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins range_check
 
@@ -3572,7 +3530,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     /*Program used:
     %builtins range_check
 
@@ -3665,7 +3622,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_constants() {
         let program_constants = HashMap::from([
             ("MAX".to_string(), Felt252::from(300)),
@@ -3677,7 +3633,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_holes_missing_segment_used_sizes() {
         let program = program!();
 
@@ -3698,7 +3653,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_holes_empty() {
         let program = program!();
 
@@ -3710,7 +3664,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_holes_empty_builtins() {
         let program = program!();
 
@@ -3732,7 +3685,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_holes_empty_accesses() {
         let program = program!();
 
@@ -3749,7 +3701,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_memory_holes() {
         let program = program!();
 
@@ -3778,7 +3729,6 @@ mod tests {
     /// Test that check_diluted_check_usage() works without a diluted pool
     /// instance.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_diluted_check_usage_without_pool_instance() {
         let program = program!();
 
@@ -3790,7 +3740,6 @@ mod tests {
 
     /// Test that check_diluted_check_usage() works without builtin runners.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_diluted_check_usage_without_builtin_runners() {
         let program = program!();
 
@@ -3804,7 +3753,6 @@ mod tests {
     /// Test that check_diluted_check_usage() fails when there aren't enough
     /// allocated units.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_diluted_check_usage_insufficient_allocated_cells() {
         let program = program!();
 
@@ -3823,7 +3771,6 @@ mod tests {
     /// Test that check_diluted_check_usage() succeeds when all the conditions
     /// are met.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_diluted_check_usage() {
         let program = program!();
 
@@ -3835,7 +3782,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn end_run_run_already_finished() {
         let program = program!();
 
@@ -3852,7 +3798,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn end_run() {
         let program = program!();
 
@@ -3874,7 +3819,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn end_run_proof_mode_insufficient_allocated_cells() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json"),
@@ -3896,7 +3840,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtin_segments_info_empty() {
         let program = program!();
 
@@ -3906,7 +3849,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtin_segments_info_base_not_finished() {
         let program = program!();
 
@@ -3921,7 +3863,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtin_segments_info_non_proof_mode() {
         let program_data =
             include_bytes!("../../../../cairo_programs/proof_programs/assert_nn.json");
@@ -3943,7 +3884,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtin_segments_info_proof_mode() {
         let program_data =
             include_bytes!("../../../../cairo_programs/proof_programs/assert_nn.json");
@@ -3966,7 +3906,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_execution_resources_trace_not_enabled() {
         let program = program!();
 
@@ -3985,7 +3924,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_execution_resources_run_program() {
         let program_data = include_bytes!("../../../../cairo_programs/fibonacci.json");
         let cairo_run_config = CairoRunConfig {
@@ -4004,7 +3942,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_execution_resources_run_program_no_trace() {
         let program_data = include_bytes!("../../../../cairo_programs/fibonacci.json");
         let cairo_run_config = CairoRunConfig {
@@ -4023,7 +3960,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_execution_resources_empty_builtins() {
         let program = program!();
 
@@ -4042,7 +3978,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_execution_resources() {
         let program = program!();
 
@@ -4067,7 +4002,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_blake_extended_execution_resources() {
         let program_data = include_bytes!(
             "../../../../cairo_programs/stwo_exclusive_programs/blake2s_opcode_test.json"
@@ -4096,7 +4030,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_segments_run_not_ended() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program);
@@ -4107,7 +4040,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_segments_run_ended_empty_no_prog_base() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program);
@@ -4120,7 +4052,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_segments_run_ended_empty_no_exec_base() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program);
@@ -4134,7 +4065,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_segments_run_ended_empty_noproof_mode() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program);
@@ -4148,7 +4078,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_segments_run_ended_emptyproof_mode() {
         let program = program!();
         let mut cairo_runner = cairo_runner!(program, LayoutName::plain, true);
@@ -4161,7 +4090,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_segments_run_ended_not_emptyproof_mode_empty_execution_public_memory() {
         let mut program = program!();
         Arc::get_mut(&mut program.shared_program_data).unwrap().data =
@@ -4200,7 +4128,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn finalize_segments_run_ended_not_emptyproof_mode_with_execution_public_memory() {
         let mut program = program!();
         Arc::get_mut(&mut program.shared_program_data).unwrap().data =
@@ -4243,7 +4170,6 @@ mod tests {
     /// Test that get_perm_range_check_limits() works correctly when there are
     /// no builtins.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_perm_range_check_limits_no_builtins() {
         let program = program!();
         let mut hint_processor = BuiltinHintProcessor::new(HashMap::new(), RunResources::default());
@@ -4270,7 +4196,6 @@ mod tests {
     /// Test that get_perm_range_check_limits() works correctly when there are
     /// builtins.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_perm_range_check_limits() {
         let program = program!();
 
@@ -4288,7 +4213,6 @@ mod tests {
     /// Test that check_range_check_usage() returns successfully when trace is
     /// not enabled.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_range_check_usage_perm_range_limits_none() {
         let program = program!();
 
@@ -4301,7 +4225,6 @@ mod tests {
     /// Test that check_range_check_usage() returns successfully when all the
     /// conditions are met.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_range_check_usage_without_builtins() {
         let program = program!();
 
@@ -4323,7 +4246,6 @@ mod tests {
     /// Test that check_range_check_usage() returns an error if there are
     /// insufficient allocated cells.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_range_check_usage_insufficient_allocated_cells() {
         let program = program!();
 
@@ -4349,7 +4271,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_initial_fp_is_none_without_initialization() {
         let program = program!();
 
@@ -4359,7 +4280,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_initial_fp_can_be_obtained() {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -4376,7 +4296,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_used_cells_valid_case() {
         let program = program![BuiltinName::range_check, BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -4388,7 +4307,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_used_cells_get_used_cells_and_allocated_size_error() {
         let program = program!();
 
@@ -4413,7 +4331,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_used_cells_check_memory_usage_error() {
         let program = program!();
 
@@ -4446,7 +4363,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn check_used_cells_check_diluted_check_usage_error() {
         let program = program![BuiltinName::range_check, BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program);
@@ -4462,7 +4378,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_all_program_builtins() {
         let mut program = program!();
 
@@ -4497,7 +4412,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_function_runner_without_builtins() {
         let program = program!();
 
@@ -4525,7 +4439,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_function_runner_with_segment_arena_builtin() {
         let program = program!();
 
@@ -4558,7 +4471,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_incorrect_layout_plain_one_builtin() {
         let program = program![BuiltinName::output];
         let mut cairo_runner = cairo_runner!(program, LayoutName::plain);
@@ -4572,7 +4484,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_incorrect_layout_plain_two_builtins() {
         let program = program![BuiltinName::output, BuiltinName::pedersen];
         let mut cairo_runner = cairo_runner!(program, LayoutName::plain);
@@ -4586,7 +4497,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_segments_incorrect_layout_small_two_builtins() {
         let program = program![BuiltinName::output, BuiltinName::bitwise];
         let mut cairo_runner = cairo_runner!(program, LayoutName::small);
@@ -4599,7 +4509,6 @@ mod tests {
         );
     }
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_main_entrypoint_proof_mode_empty_program() {
         let program = program!(start = Some(0), end = Some(0), main = Some(8),);
         let mut runner = cairo_runner!(program);
@@ -4617,7 +4526,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn initialize_main_entrypoint_proof_mode_empty_program_two_builtins() {
         let program = program!(
             start = Some(0),
@@ -4641,7 +4549,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn can_get_the_runner_program_builtins() {
         let program = program!(
             start = Some(0),
@@ -4655,7 +4562,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main_default() {
         let program = program!(
             identifiers = [(
@@ -4684,7 +4590,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main() {
         let program = program!(
             identifiers = [
@@ -4729,7 +4634,6 @@ mod tests {
 
     /// Test that set_entrypoint() fails when the entrypoint doesn't exist.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn set_entrypoint_main_non_existent() {
         let program = program!(
             identifiers = [(
@@ -4758,7 +4662,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_test() {
         let mut program = program!();
         Arc::get_mut(&mut program.shared_program_data).unwrap().data =
@@ -4781,7 +4684,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_test_with_run_not_ended() {
         let mut program = program!();
         Arc::get_mut(&mut program.shared_program_data).unwrap().data =
@@ -4798,7 +4700,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_test_with_segments_finalized() {
         let mut program = program!();
         Arc::get_mut(&mut program.shared_program_data).unwrap().data =
@@ -4816,7 +4717,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_updates_builtin_stop_ptr_one_builtin_empty() {
         let mut program = program![BuiltinName::output];
         Arc::get_mut(&mut program.shared_program_data).unwrap().data =
@@ -4846,7 +4746,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_updates_builtin_stop_ptr_one_builtin_one_element() {
         let mut program = program![BuiltinName::output];
         Arc::get_mut(&mut program.shared_program_data).unwrap().data =
@@ -4876,7 +4775,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn read_return_values_updates_builtin_stop_ptr_two_builtins() {
         let mut program = program![BuiltinName::output, BuiltinName::bitwise];
         Arc::get_mut(&mut program.shared_program_data).unwrap().data =
@@ -4919,7 +4817,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_from_entrypoint_custom_program_test() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/example_program.json"),
@@ -4984,7 +4881,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_from_entrypoint_bitwise_test_check_memory_holes() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/bitwise_builtin_test.json"),
@@ -5022,7 +4918,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn cairo_arg_from_single() {
         let expected = CairoArg::Single(MaybeRelocatable::from((0, 0)));
         let value = MaybeRelocatable::from((0, 0));
@@ -5030,7 +4925,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn cairo_arg_from_array() {
         let expected = CairoArg::Array(vec![MaybeRelocatable::from((0, 0))]);
         let value = vec![MaybeRelocatable::from((0, 0))];
@@ -5060,7 +4954,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn execution_resources_add() {
         let (execution_resources_1, execution_resources_2) = setup_execution_resources();
         let combined_resources = &execution_resources_1 + &execution_resources_2;
@@ -5080,7 +4973,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn execution_resources_sub() {
         let (execution_resources_1, execution_resources_2) = setup_execution_resources();
 
@@ -5101,7 +4993,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_from_entrypoint_substitute_error_message_test() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/bad_programs/error_msg_function.json"),
@@ -5138,7 +5029,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_final_stack_range_check_builtin() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/assert_le_felt_hint.json"),
@@ -5160,7 +5050,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_final_stack_4_builtins() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/integration.json"),
@@ -5182,7 +5071,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_builtins_final_stack_no_builtins() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/fibonacci.json"),
@@ -5204,7 +5092,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn filter_unused_builtins_test() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/integration.json"),
@@ -5290,7 +5177,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_run_resources_none() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/fibonacci.json"),
@@ -5308,7 +5194,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_run_resources_ok() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/fibonacci.json"),
@@ -5325,7 +5210,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_run_resources_ok_2() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/fibonacci.json"),
@@ -5342,7 +5226,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_run_resources_error() {
         let program = Program::from_bytes(
             include_bytes!("../../../../cairo_programs/fibonacci.json"),

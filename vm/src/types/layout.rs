@@ -168,18 +168,18 @@ impl CairoLayout {
         }
     }
 
-    pub(crate) fn dynamic_instance(params: CairoLayoutParams) -> CairoLayout {
-        CairoLayout {
+    pub(crate) fn dynamic_instance(params: CairoLayoutParams) -> Result<CairoLayout, RunnerError> {
+        let diluted_pool =
+            DilutedPoolInstanceDef::from_log_units_per_step(params.log_diluted_units_per_step)?;
+        Ok(CairoLayout {
             name: LayoutName::dynamic,
             rc_units: params.rc_units,
             cpu_component_step: params.cpu_component_step,
             memory_units_per_step: params.memory_units_per_step,
             public_memory_fraction: 8,
-            diluted_pool_instance_def: Some(DilutedPoolInstanceDef::from_log_units_per_step(
-                params.log_diluted_units_per_step,
-            )),
+            diluted_pool_instance_def: Some(diluted_pool),
             builtins: BuiltinsInstanceDef::dynamic(params),
-        }
+        })
     }
 
     pub(crate) fn perpetual_instance() -> CairoLayout {
@@ -234,7 +234,6 @@ pub struct CairoLayoutParams {
 }
 
 impl CairoLayoutParams {
-    #[cfg(feature = "std")]
     pub fn from_file(params_path: &std::path::Path) -> std::io::Result<Self> {
         let params_file = std::fs::File::open(params_path)?;
         let params = serde_json::from_reader(params_file)?;
@@ -395,11 +394,7 @@ mod tests {
         range_check_instance_def::RangeCheckInstanceDef, LowRatio,
     };
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_plain_instance() {
         let layout = CairoLayout::plain_instance();
         let builtins = BuiltinsInstanceDef::plain();
@@ -411,7 +406,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_small_instance() {
         let layout = CairoLayout::small_instance();
         let builtins = BuiltinsInstanceDef::small();
@@ -423,7 +417,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_dex_instance() {
         let layout = CairoLayout::dex_instance();
         let builtins = BuiltinsInstanceDef::dex();
@@ -594,7 +587,7 @@ mod tests {
             mul_mod_ratio_den: 16,
         };
 
-        let layout = CairoLayout::dynamic_instance(params);
+        let layout = CairoLayout::dynamic_instance(params).unwrap();
 
         assert_eq!(layout.name, LayoutName::dynamic);
         assert_eq!(layout.rc_units, 32);

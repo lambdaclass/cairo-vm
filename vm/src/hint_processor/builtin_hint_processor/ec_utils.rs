@@ -1,4 +1,3 @@
-use crate::stdlib::{borrow::Cow, boxed::Box, collections::HashMap, prelude::*};
 use crate::utils::CAIRO_PRIME;
 use crate::Felt252;
 use crate::{
@@ -16,6 +15,7 @@ use num_bigint::BigUint;
 use num_bigint::ToBigInt;
 use num_traits::{Num, One, Pow, ToPrimitive, Zero};
 use sha2::{Digest, Sha256};
+use std::{borrow::Cow, collections::HashMap};
 
 use super::hint_utils::get_ptr_from_var_name;
 
@@ -229,9 +229,6 @@ mod tests {
 
     use super::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
     fn test_is_quad_residue_less_than_2() {
         assert!(is_quad_residue(&BigUint::one()));
@@ -307,7 +304,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_ec_op_random_ec_point_hint() {
         let hint_code = hint_code::RANDOM_EC_POINT;
         let mut vm = vm!();
@@ -371,7 +367,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_chained_ec_op_random_ec_point_hint() {
         let hint_code = hint_code::CHAINED_EC_OP_RANDOM_EC_POINT;
         let mut vm = vm!();
@@ -477,7 +472,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_recover_y_hint() {
         let hint_code = hint_code::RECOVER_Y;
         let mut vm = vm!();

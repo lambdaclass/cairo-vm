@@ -1,12 +1,12 @@
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::Arc,
+};
+
 use crate::{
     serde::{
         deserialize_program::{parse_program_json, ProgramJson},
         serialize_program::ProgramSerializer,
-    },
-    stdlib::{
-        collections::{BTreeMap, HashMap},
-        prelude::*,
-        sync::Arc,
     },
     vm::runners::cairo_pie::StrippedProgram,
 };
@@ -29,7 +29,6 @@ use crate::{
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use core::num::NonZeroUsize;
 
-#[cfg(feature = "std")]
 use std::path::Path;
 
 use super::builtin_name::BuiltinName;
@@ -274,7 +273,6 @@ impl Program {
         })
     }
 
-    #[cfg(feature = "std")]
     pub fn from_file(path: &Path, entrypoint: Option<&str>) -> Result<Program, ProgramError> {
         let file_content = std::fs::read(path)?;
         deserialize_and_parse_program(&file_content, entrypoint)
@@ -510,11 +508,7 @@ mod tests {
 
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -558,7 +552,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new_for_proof() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -605,7 +598,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new_program_with_hints() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -688,7 +680,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new_program_with_identifiers() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -803,14 +794,12 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_prime() {
         let program = Program::default();
         assert_eq!(PRIME_STR, program.prime());
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn iter_builtins() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -847,7 +836,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn iter_data() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -879,7 +867,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn data_len() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -911,7 +898,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_identifier() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -985,7 +971,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_relocated_instruction_locations() {
         fn build_instruction_location_for_test(start_line: u32) -> InstructionLocation {
             InstructionLocation {
@@ -1040,7 +1025,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn iter_identifiers() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -1108,7 +1092,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn new_program_with_invalid_identifiers() {
         let reference_manager = ReferenceManager {
             references: Vec::new(),
@@ -1170,7 +1153,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_test() {
         let program = Program::from_bytes(
             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json"),
@@ -1264,7 +1246,6 @@ mod tests {
 
     /// Deserialize a program without an entrypoint.
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_without_entrypoint_test() {
         let program = Program::from_bytes(
             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json"),
@@ -1376,7 +1357,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_program_constants_test() {
         let program = Program::from_bytes(
             include_bytes!(
@@ -1414,7 +1394,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn default_program() {
         let hints_collection = HintsCollection {
             hints: Vec::new(),

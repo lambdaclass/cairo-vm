@@ -1,5 +1,4 @@
 use super::secp::bigint_utils::{Uint384, Uint768};
-use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference,
@@ -8,6 +7,7 @@ use crate::{
 };
 use num_integer::Integer;
 use num_traits::Zero;
+use std::collections::HashMap;
 
 /* Implements Hint:
        %{
@@ -80,8 +80,6 @@ mod tests {
     use crate::felt_str;
     use crate::Felt252;
     use rstest::rstest;
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[test]
     fn get_uint768_from_base_addr_ok() {
@@ -212,7 +210,6 @@ mod tests {
     #[rstest]
     #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384)]
     #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED)]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_ok(#[case] hint_code: &str) {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -284,7 +281,6 @@ mod tests {
     #[rstest]
     #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384)]
     #[case(hint_code::UNSIGNED_DIV_REM_UINT768_BY_UINT384_STRIPPED)]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_divide_by_zero(#[case] hint_code: &str) {
         let mut vm = vm_with_range_check!();
         //Initialize fp

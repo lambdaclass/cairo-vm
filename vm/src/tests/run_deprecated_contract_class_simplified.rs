@@ -14,12 +14,10 @@
    The purpose of this test is to check the functionality of the HintProcessor::execute_hint_extensive functionality
    And to show a very simplified example on how it can be used to achieve the `vm_load_data` functionality used by starknet os programs
 */
-use crate::stdlib::{collections::HashMap, prelude::*};
+use std::collections::HashMap;
 
 use crate::Felt252;
 use num_traits::Zero;
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
 
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
@@ -315,13 +313,11 @@ pub fn vm_load_program(
 
 const HELLO_WORLD: &str = "print(\"hello world\")";
 pub fn hello_world() -> Result<HintExtension, HintError> {
-    #[cfg(feature = "std")]
     println!("hello world");
     Ok(HintExtension::default())
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn run_deprecated_cc() {
     let mut hint_processor = SimplifiedOsHintProcessor::default();
     let program_content =

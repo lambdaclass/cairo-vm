@@ -8,12 +8,12 @@ use super::secp::bigint_utils::Uint384;
 use super::uint256_utils::Uint256;
 use crate::math_utils::{is_quad_residue, mul_inv, sqrt_prime_power};
 use crate::serde::deserialize_program::ApTracking;
-use crate::stdlib::{collections::HashMap, prelude::*};
 use crate::types::errors::math_errors::MathError;
 use crate::vm::errors::hint_errors::HintError;
 use crate::{
     hint_processor::hint_processor_definition::HintReference, vm::vm_core::VirtualMachine,
 };
+use std::collections::HashMap;
 
 /* Implements Hint:
 %{
@@ -29,7 +29,6 @@ use crate::{
     def pack(z, num_bits_shift: int = 128) -> int:
         limbs = (z.d0, z.d1, z.d2)
         return sum(limb << (num_bits_shift * i) for i, limb in enumerate(limbs))
-
 
     generator = pack(ids.generator)
     x = pack(ids.x)
@@ -228,7 +227,6 @@ pub fn u256_get_square_root(
     # Instead we use the python3.7-friendly function div_mod from starkware.python.math_utils
     b_inverse_mod_p = div_mod(1, b, p)
 
-
     b_inverse_mod_p_split = split(b_inverse_mod_p, num_bits_shift=128, length=3)
 
     ids.b_inverse_mod_p.d0 = b_inverse_mod_p_split[0]
@@ -279,11 +277,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u384_get_square_ok_goldilocks_prime() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -337,7 +331,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u384_get_square_no_successes() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -374,7 +367,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u384_get_square_ok_success_gx() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -428,7 +420,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u256_get_square_ok_goldilocks_prime() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -474,7 +465,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u256_get_square_no_successes() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -508,7 +498,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_u256_get_square_ok_success_gx() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -554,7 +543,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint384_div_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -590,7 +578,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint384_div_b_is_zero() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -621,7 +608,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint384_div_inconsistent_memory() {
         let mut vm = vm_with_range_check!();
         //Initialize fp

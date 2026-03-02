@@ -1,5 +1,4 @@
 use crate::air_private_input::{PrivateInput, PrivateInputPoseidonState};
-use crate::stdlib::{cell::RefCell, collections::HashMap, prelude::*};
 use crate::types::builtin_name::BuiltinName;
 use crate::types::instance_definitions::poseidon_instance_def::{
     CELLS_PER_POSEIDON, INPUT_CELLS_PER_POSEIDON,
@@ -12,6 +11,7 @@ use crate::vm::vm_memory::memory_segments::MemorySegmentManager;
 use crate::Felt252;
 use num_integer::div_ceil;
 use starknet_types_core::hash::Poseidon;
+use std::{cell::RefCell, collections::HashMap};
 
 #[derive(Debug, Clone)]
 pub struct PoseidonBuiltinRunner {
@@ -148,11 +148,8 @@ mod tests {
     use crate::utils::test_utils::*;
 
     use crate::vm::runners::builtin_runner::BuiltinRunner;
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin = PoseidonBuiltinRunner::new(Some(10), true);
 
@@ -163,7 +160,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances_enum() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
@@ -174,7 +170,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
@@ -198,7 +193,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
@@ -226,7 +220,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_not_included() {
         let mut builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), false).into();
 
@@ -250,7 +243,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
@@ -274,7 +266,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
@@ -320,7 +311,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
@@ -362,7 +352,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deduce_memory_cell_missing_input_cells_ok() {
         let builtin = PoseidonBuiltinRunner::new(Some(10), false);
 
@@ -382,7 +371,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_air_private_input() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(None, true).into();
 

@@ -1,3 +1,4 @@
+use crate::vm::errors::runner_errors::RunnerError;
 use serde::Serialize;
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -27,24 +28,24 @@ impl DilutedPoolInstanceDef {
         }
     }
 
-    pub(crate) fn from_log_units_per_step(log_units_per_step: i32) -> Self {
-        DilutedPoolInstanceDef {
-            units_per_step: 2_u32.pow(log_units_per_step.unsigned_abs()),
+    pub(crate) fn from_log_units_per_step(log_units_per_step: i32) -> Result<Self, RunnerError> {
+        let units_per_step = 2_u32.checked_pow(log_units_per_step.unsigned_abs()).ok_or(
+            RunnerError::DynamicLayoutLogDilutedUnitsPerStepOverflow(log_units_per_step),
+        )?;
+        Ok(DilutedPoolInstanceDef {
+            units_per_step,
             fractional_units_per_step: log_units_per_step.is_negative(),
             ..DilutedPoolInstanceDef::default()
-        }
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::DilutedPoolInstanceDef;
-
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
+    use crate::vm::errors::runner_errors::RunnerError;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_default() {
         let diluted_pool = DilutedPoolInstanceDef::default();
         assert_eq!(diluted_pool.units_per_step, 16);
@@ -53,11 +54,35 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_new() {
         let diluted_pool = DilutedPoolInstanceDef::new(1, 1, 1);
         assert_eq!(diluted_pool.units_per_step, 1);
         assert_eq!(diluted_pool.spacing, 1);
         assert_eq!(diluted_pool.n_bits, 1);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_from_log_units_per_step() {
+        let diluted_pool = DilutedPoolInstanceDef::from_log_units_per_step(4).unwrap();
+        assert_eq!(diluted_pool.units_per_step, 16);
+        assert!(!diluted_pool.fractional_units_per_step);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_from_log_units_per_step_negative() {
+        let diluted_pool = DilutedPoolInstanceDef::from_log_units_per_step(-3).unwrap();
+        assert_eq!(diluted_pool.units_per_step, 8);
+        assert!(diluted_pool.fractional_units_per_step);
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn test_from_log_units_per_step_overflow() {
+        assert_eq!(
+            DilutedPoolInstanceDef::from_log_units_per_step(32),
+            Err(RunnerError::DynamicLayoutLogDilutedUnitsPerStepOverflow(32))
+        );
     }
 }
