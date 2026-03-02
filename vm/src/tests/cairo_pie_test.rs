@@ -5,8 +5,6 @@ use crate::{
 
 use std::collections::BTreeMap;
 
-use std::collections::BTreeMap;
-
 use crate::{
     cairo_run::{cairo_run, CairoRunConfig},
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
