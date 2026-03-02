@@ -120,6 +120,8 @@ pub enum RunnerError {
     MissingDynamicLayoutParams,
     #[error("dynamic layout {0} ratio should be 0 when disabled")]
     BadDynamicLayoutBuiltinRatio(BuiltinName),
+    #[error("dynamic layout log_diluted_units_per_step {0} is out of range, absolute value must be < 32")]
+    DynamicLayoutLogDilutedUnitsPerStepOverflow(i32),
     #[error("Initialization failure: Cannot run with trace padding disabled without proof mode")]
     DisableTracePaddingWithoutProofMode,
 }
