@@ -12,6 +12,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* docs: Add onboarding doc for new developers [#2325](https://github.com/lambdaclass/cairo-vm/pull/2325)
+
 * chore: Remove `cairo_compiled_programs_fuzzer` [#2339](https://github.com/lambdaclass/cairo-vm/pull/2339)
 
 * refactor: deduplicate memory segment selection in Memory helpers [#2331](https://github.com/lambdaclass/cairo-vm/pull/2331)
