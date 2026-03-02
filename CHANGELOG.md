@@ -12,6 +12,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* fix: Validate `log_diluted_units_per_step` in dynamic layout params [#2342](https://github.com/lambdaclass/cairo-vm/pull/2342)
+
 * Remove no_std support [#2326](https://github.com/lambdaclass/cairo-vm/pull/2326)
 
 * docs: Add onboarding doc for new developers [#2325](https://github.com/lambdaclass/cairo-vm/pull/2325)
