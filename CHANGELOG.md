@@ -14,6 +14,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 * chore: Update fuzz_json with missing hint constants and improve fuzzer docs [#2341](https://github.com/lambdaclass/cairo-vm/pull/2341)
 
+* Remove no_std support [#2326](https://github.com/lambdaclass/cairo-vm/pull/2326)
+
 * docs: Add onboarding doc for new developers [#2325](https://github.com/lambdaclass/cairo-vm/pull/2325)
 
 * chore: Remove `cairo_compiled_programs_fuzzer` [#2339](https://github.com/lambdaclass/cairo-vm/pull/2339)

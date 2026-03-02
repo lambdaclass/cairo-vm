@@ -14,7 +14,7 @@
    The purpose of this test is to check the functionality of the HintProcessor::execute_hint_extensive functionality
    And to show a very simplified example on how it can be used to achieve the `vm_load_data` functionality used by starknet os programs
 */
-use crate::stdlib::{collections::HashMap, prelude::*};
+use std::collections::HashMap;
 
 use crate::Felt252;
 use num_traits::Zero;
@@ -315,7 +315,6 @@ pub fn vm_load_program(
 
 const HELLO_WORLD: &str = "print(\"hello world\")";
 pub fn hello_world() -> Result<HintExtension, HintError> {
-    #[cfg(feature = "std")]
     println!("hello world");
     Ok(HintExtension::default())
 }

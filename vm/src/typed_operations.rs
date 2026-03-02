@@ -1,7 +1,6 @@
 use starknet_types_core::qm31::QM31;
 
 use crate::math_utils::qm31_pack_reduced;
-use crate::stdlib::prelude::*;
 use crate::types::relocatable::MaybeRelocatable;
 use crate::types::{errors::math_errors::MathError, instruction::OpcodeExtension};
 use crate::vm::errors::vm_errors::VirtualMachineError;

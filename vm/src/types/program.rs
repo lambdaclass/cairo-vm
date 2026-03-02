@@ -1,12 +1,12 @@
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::Arc,
+};
+
 use crate::{
     serde::{
         deserialize_program::{parse_program_json, ProgramJson},
         serialize_program::ProgramSerializer,
-    },
-    stdlib::{
-        collections::{BTreeMap, HashMap},
-        prelude::*,
-        sync::Arc,
     },
     vm::runners::cairo_pie::StrippedProgram,
 };
@@ -29,7 +29,6 @@ use crate::{
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use core::num::NonZeroUsize;
 
-#[cfg(feature = "std")]
 use std::path::Path;
 
 use super::builtin_name::BuiltinName;
@@ -274,7 +273,6 @@ impl Program {
         })
     }
 
-    #[cfg(feature = "std")]
     pub fn from_file(path: &Path, entrypoint: Option<&str>) -> Result<Program, ProgramError> {
         let file_content = std::fs::read(path)?;
         deserialize_and_parse_program(&file_content, entrypoint)

@@ -1,3 +1,5 @@
+use std::{collections::HashMap, ops::Shr};
+
 use crate::Felt252;
 use crate::{
     any_box,
@@ -7,7 +9,6 @@ use crate::{
     },
     math_utils::{div_mod, safe_div_bigint},
     serde::deserialize_program::ApTracking,
-    stdlib::{collections::HashMap, ops::Shr, prelude::*},
     types::exec_scope::ExecutionScopes,
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
@@ -164,7 +165,6 @@ pub fn pack_modn_div_modn(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::string::ToString;
     use crate::types::errors::math_errors::MathError;
 
     use crate::{
