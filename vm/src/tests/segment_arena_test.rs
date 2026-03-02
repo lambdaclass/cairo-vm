@@ -3,9 +3,6 @@
 use crate::types::layout_name::LayoutName;
 use std::{borrow::Cow, collections::HashMap, rc::Rc};
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
-
 use crate::any_box;
 use crate::cairo_run::{cairo_run, CairoRunConfig};
 use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor;
@@ -125,7 +122,6 @@ fn set_segment_to_arena_index(
 }
 
 #[test]
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
 fn test_segment_arena() {
     let program_data =
         include_bytes!("../../../cairo_programs/segment_arena/test_segment_arena.json");

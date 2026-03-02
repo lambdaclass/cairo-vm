@@ -134,11 +134,7 @@ mod decoder_test {
     use super::*;
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn typed_add_blake() {
         let a = &MaybeRelocatable::from(5);
         let b = &MaybeRelocatable::from(6);
@@ -150,7 +146,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn typed_sub_blake() {
         let a = &MaybeRelocatable::from(7);
         let b = &MaybeRelocatable::from(3);
@@ -162,7 +157,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn relocatable_typed_sub_q31_operation() {
         let a = &MaybeRelocatable::from((6, 8));
         let b = &MaybeRelocatable::from(2);
@@ -175,7 +169,6 @@ mod decoder_test {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn typed_mul_blake_finalize() {
         let a = &MaybeRelocatable::from(4);
         let b = &MaybeRelocatable::from(9);

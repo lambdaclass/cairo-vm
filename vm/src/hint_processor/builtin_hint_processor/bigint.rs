@@ -107,16 +107,12 @@ mod test {
     use assert_matches::assert_matches;
     use num_bigint::BigInt;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     /// Input:
     /// x = UnreducedBigInt5(0x38a23ca66202c8c2a72277, 0x6730e765376ff17ea8385, 0xca1ad489ab60ea581e6c1, 0, 0);
     /// y = UnreducedBigInt3(0x20a4b46d3c5e24cda81f22, 0x967bf895824330d4273d0, 0x541e10c21560da25ada4c);
     /// p = BigInt3(0x8a03bbfd25e8cd0364141, 0x3ffffffffffaeabb739abd, 0xfffffffffffffffffffff);
     /// expected: value = res = 109567829260688255124154626727441144629993228404337546799996747905569082729709 (py int)
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_bigint_pack_div_mod_hint() {
         // Prepare the VM context:
         let ids_data = non_continuous_ids_data![
@@ -173,7 +169,6 @@ mod test {
     /// value = 36002209591245282109880156842267569109802494162594623391338581162816748840003
     /// ids.flag = 1
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_bigint_safe_div_hint() {
         let mut exec_scopes = ExecutionScopes::new();
         exec_scopes.insert_value(

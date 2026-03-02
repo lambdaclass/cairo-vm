@@ -74,8 +74,6 @@ mod tests {
     use assert_matches::assert_matches;
     use num_bigint::BigUint;
     use num_traits::Num;
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     #[test]
     fn test_pack_512() {
@@ -117,7 +115,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_inv_mod_p_uint512_ok() {
         let mut vm = vm_with_range_check!();
         add_segments!(vm, 3);
@@ -166,7 +163,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_inv_mod_p_uint512_igcdex_not_1() {
         let mut vm = vm_with_range_check!();
         add_segments!(vm, 3);

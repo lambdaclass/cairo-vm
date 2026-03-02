@@ -25,11 +25,7 @@ pub enum ProgramError {
 mod tests {
     use super::*;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn format_entrypoint_not_found_error() {
         let error = ProgramError::EntrypointNotFound(String::from("my_function"));
         let formatted_error = format!("{error}");

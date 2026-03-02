@@ -257,11 +257,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -316,7 +312,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_divide_by_zero() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -343,7 +338,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_unsigned_div_rem_invalid_memory_insert() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -376,7 +370,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_128_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -401,7 +394,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_128_ok_big_number() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -442,7 +434,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_split_128_invalid_memory_insert() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -463,7 +454,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_add_no_check_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -514,7 +504,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_add_no_check_missing_constant() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -546,7 +535,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_sqrt_ok() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -573,7 +561,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_sqrt_assertion_fail() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -596,7 +583,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_ok_positive() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -619,7 +605,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_missing_identifier() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -640,7 +625,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_signed_nn_ok_negative() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -663,7 +647,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint384_sub_a_b_ok_a_max() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
@@ -698,7 +681,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_uint384_sub_a_b_ok_b_max() {
         let mut vm = vm_with_range_check!();
         //Initialize fp
