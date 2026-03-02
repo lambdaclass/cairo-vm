@@ -14,6 +14,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 * fix: Validate `log_diluted_units_per_step` in dynamic layout params [#2342](https://github.com/lambdaclass/cairo-vm/pull/2342)
 
+* docs: Add onboarding doc for new developers [#2325](https://github.com/lambdaclass/cairo-vm/pull/2325)
+
 * chore: Remove `cairo_compiled_programs_fuzzer` [#2339](https://github.com/lambdaclass/cairo-vm/pull/2339)
 
 * refactor: deduplicate memory segment selection in Memory helpers [#2331](https://github.com/lambdaclass/cairo-vm/pull/2331)
@@ -38,7 +40,9 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 * fix: Allow WASM32 compilation with std feature enabled [#2315](https://github.com/lambdaclass/cairo-vm/pull/2315)
 
-* chore(vm): unify Uint256 usage across u256 hints and split quotient via Uint512 [#2237](https://github.com/lambdaclass/cairo-vm/pull/2237) 
+* chore(vm): unify Uint256 usage across u256 hints and split quotient via Uint512 [#2237](https://github.com/lambdaclass/cairo-vm/pull/2237)
+
+* feat: Add Blake counter in vm [#2322](https://github.com/lambdaclass/cairo-vm/pull/2322)
 
 * fix: assign validation rules in place to preserve segment-index alignment [#2268](https://github.com/lambdaclass/cairo-vm/pull/2268)
 
