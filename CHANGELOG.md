@@ -14,6 +14,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 * Add union merge strategy for CHANGELOG.md [#2345](https://github.com/lambdaclass/cairo-vm/pull/2345)
 
+* chore: Remove `diff_fuzzer` and `py_export` [#2340](https://github.com/lambdaclass/cairo-vm/pull/2340)
+
 * fix: Validate `log_diluted_units_per_step` in dynamic layout params [#2342](https://github.com/lambdaclass/cairo-vm/pull/2342)
 
 * Remove no_std support [#2326](https://github.com/lambdaclass/cairo-vm/pull/2326)
