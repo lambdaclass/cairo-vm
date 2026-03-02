@@ -43,6 +43,7 @@ use crate::{
                 BitwiseBuiltinRunner, BuiltinRunner, EcOpBuiltinRunner, HashBuiltinRunner,
                 OutputBuiltinRunner, RangeCheckBuiltinRunner, SignatureBuiltinRunner,
             },
+            vm_core::ExtendedExecutionResourceType,
             vm_core::VirtualMachine,
         },
     },
@@ -1101,6 +1102,10 @@ impl CairoRunner {
             n_memory_holes,
             builtin_instance_counter,
         })
+    }
+
+    pub fn get_extended_execution_resources(&self) -> &HashMap<ExtendedExecutionResourceType, u32> {
+        &self.vm.extended_resource_counter
     }
 
     // Finalizes the segments.
@@ -4058,6 +4063,35 @@ mod tests {
                 n_memory_holes: 0,
                 builtin_instance_counter: BTreeMap::from([(BuiltinName::output, 4)]),
             }),
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn get_blake_extended_execution_resources() {
+        let program_data = include_bytes!(
+            "../../../../cairo_programs/stwo_exclusive_programs/blake2s_opcode_test.json"
+        );
+        let cairo_run_config = CairoRunConfig {
+            entrypoint: "main",
+            trace_enabled: false,
+            relocate_mem: false,
+            layout: LayoutName::all_cairo,
+            proof_mode: false,
+            fill_holes: false,
+            secure_run: Some(false),
+            ..Default::default()
+        };
+        let mut hint_executor = BuiltinHintProcessor::new_empty();
+        let runner = cairo_run(program_data, &cairo_run_config, &mut hint_executor).unwrap();
+        let extended_resource_counter = runner.get_extended_execution_resources();
+        assert_eq!(
+            extended_resource_counter[&ExtendedExecutionResourceType::Blake],
+            1
+        );
+        assert_eq!(
+            extended_resource_counter[&ExtendedExecutionResourceType::BlakeFinalize],
+            1
         );
     }
 
