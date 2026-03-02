@@ -52,11 +52,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn verify_ecdsa_signature_valid() {
         let mut vm = vm!();
         vm.builtin_runners = vec![SignatureBuiltinRunner::new(Some(512), true).into()];

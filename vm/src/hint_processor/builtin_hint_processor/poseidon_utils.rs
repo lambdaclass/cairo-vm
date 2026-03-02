@@ -61,11 +61,7 @@ mod tests {
     use crate::{hint_processor::builtin_hint_processor::hint_code, utils::test_utils::*};
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_n_greater_than_10_true() {
         let hint_code = hint_code::NONDET_N_GREATER_THAN_10;
         let mut vm = vm!();
@@ -79,7 +75,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_n_greater_than_10_false() {
         let hint_code = hint_code::NONDET_N_GREATER_THAN_10;
         let mut vm = vm!();
@@ -93,7 +88,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_n_greater_than_2_true() {
         let hint_code = hint_code::NONDET_N_GREATER_THAN_2;
         let mut vm = vm!();
@@ -107,7 +101,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_n_greater_than_2_false() {
         let hint_code = hint_code::NONDET_N_GREATER_THAN_2;
         let mut vm = vm!();
@@ -121,7 +114,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_elements_over_ten_true() {
         let hint_code = hint_code::NONDET_ELEMENTS_OVER_TEN;
         let mut vm = vm!();
@@ -136,7 +128,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_elements_over_ten_false() {
         let hint_code = hint_code::NONDET_ELEMENTS_OVER_TEN;
         let mut vm = vm!();
@@ -151,7 +142,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_elements_over_two_true() {
         let hint_code = hint_code::NONDET_ELEMENTS_OVER_TWO;
         let mut vm = vm!();
@@ -166,7 +156,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn run_elements_over_two_false() {
         let hint_code = hint_code::NONDET_ELEMENTS_OVER_TWO;
         let mut vm = vm!();

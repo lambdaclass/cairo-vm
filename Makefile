@@ -161,7 +161,6 @@ $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.cairo
 $(CAIRO_1_CONTRACTS_TEST_DIR)/%.casm: $(CAIRO_1_CONTRACTS_TEST_DIR)/%.sierra
 	$(STARKNET_SIERRA_COMPILE_CAIRO_1) --allowed-libfuncs-list-name experimental_v0.1.0 $< $@
 
-# This is needed so that wasm with cairo 1 doen't complain.
 $(CAIRO_1_PROGRAMS_TEST_DIR)/bitwise.sierra: $(CAIRO_1_PROGRAMS_TEST_DIR)/bitwise.cairo
 	$(CAIRO_1_COMPILE) -r $< $@
 
@@ -230,7 +229,6 @@ cargo-deps:
 	cargo install --version 1.19.0 hyperfine
 	cargo install --version 0.9.49 cargo-nextest --locked
 	cargo install --version 0.5.9 cargo-llvm-cov
-	cargo install --version 0.12.1 wasm-pack --locked
 
 cairo1-run-deps:
 	cd cairo1-run; make deps
@@ -290,9 +288,6 @@ endif
 
 test: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_2_test_contracts cairo_1_program
 	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints"
-test-wasm: cairo_proof_programs cairo_test_programs cairo_1_program
-	# NOTE: release mode is needed to avoid "too many locals" error
-	wasm-pack test --release --node vm --no-default-features
 test-extensive_hints: cairo_proof_programs cairo_test_programs cairo_1_test_contracts cairo_1_program cairo_2_test_contracts 
 	$(TEST_COMMAND) --workspace --features "test_utils, cairo-1-hints, cairo-0-secp-hints, cairo-0-data-availability-hints, extensive_hints"
 

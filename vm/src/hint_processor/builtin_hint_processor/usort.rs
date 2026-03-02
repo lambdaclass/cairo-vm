@@ -152,18 +152,13 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn usort_with_max_size() {
         let mut exec_scopes = scope![("usort_max_size", 1_u64)];
         assert_matches!(usort_enter_scope(&mut exec_scopes), Ok(()));
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn usort_out_of_range() {
         let mut vm = vm_with_range_check!();
         vm.run_context.fp = 2;

@@ -45,11 +45,7 @@ mod tests {
     use super::DilutedPoolInstanceDef;
     use crate::vm::errors::runner_errors::RunnerError;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_default() {
         let diluted_pool = DilutedPoolInstanceDef::default();
         assert_eq!(diluted_pool.units_per_step, 16);
@@ -58,7 +54,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_new() {
         let diluted_pool = DilutedPoolInstanceDef::new(1, 1, 1);
         assert_eq!(diluted_pool.units_per_step, 1);

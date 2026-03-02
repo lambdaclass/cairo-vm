@@ -17,7 +17,6 @@ env:
     cairo_programs/**/*.casm
     cairo_programs/**/*.json
     !cairo_programs/manually_compiled/*
-    examples/wasm-demo/src/array_sum.json
     cairo_programs/cairo-1-programs/bitwise.sierra
   TEST_COLLECT_COVERAGE: 1
   PROPTEST_CASES: 100
@@ -49,7 +48,6 @@ jobs:
         - cairo_test_programs
         - cairo_1_test_contracts
         - cairo_2_test_contracts
-        - wasm_cairo_1_example
     name: Build Cairo programs
     runs-on: ubuntu-24.04
     steps:
@@ -68,7 +66,7 @@ jobs:
       id: cache-programs
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
 
     # This is not pretty, but we need `make` to see the compiled programs are
     # actually newer than the sources, otherwise it will try to rebuild them
@@ -92,19 +90,15 @@ jobs:
           echo PATH=$PATH >> $GITHUB_ENV
 
     - name: Install cairo 1 compiler
-      if: steps.cache-programs.outputs.cache-hit != 'true' && (matrix.program-target == 'cairo_1_test_contracts' || matrix.program-target == 'wasm_cairo_1_example')
+      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_1_test_contracts'
       run: make build-cairo-1-compiler
 
     - name: Install cairo 2 compiler
       if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'cairo_2_test_contracts'
       run: make build-cairo-2-compiler
 
-    - name: Build Cairo 1 WASM example
-      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target == 'wasm_cairo_1_example'
-      run: ./cairo1/bin/cairo-compile -r cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
-
     - name: Build programs
-      if: steps.cache-programs.outputs.cache-hit != 'true' && matrix.program-target != 'wasm_cairo_1_example'
+      if: steps.cache-programs.outputs.cache-hit != 'true'
       run: make -j ${{ matrix.program-target }}
 
   # NOTE: used to reduce the amount of cache steps we need in later jobs
@@ -126,44 +120,37 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_test_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: cairo_test_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
     - name: Fetch proof programs
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
     - name: Fetch bench programs
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_bench_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: cairo_bench_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
     - name: Fetch test contracts (Cairo 1)
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_1_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: cairo_1_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
     - name: Fetch test contracts (Cairo 2)
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_2_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: cairo_2_test_contracts-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
-    - name: Fetch WASM Cairo 1 Example
-      uses: actions/cache/restore@v3
-      with:
-        path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: wasm_cairo_1_example-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
-        fail-on-cache-miss: true
-
     - name: Merge caches
       uses: actions/cache/save@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
 
   lint:
     needs: merge-caches
@@ -192,7 +179,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Run clippy
@@ -219,8 +206,6 @@ jobs:
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.89.0
-      with:
-        targets: wasm32-unknown-unknown
 
     - name: Checkout
       uses: actions/checkout@v4
@@ -244,7 +229,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     # NOTE: we do this separately because --workspace operates in weird ways
@@ -265,8 +250,6 @@ jobs:
     steps:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@1.89.0
-      with:
-        targets: wasm32-unknown-unknown
 
     - name: Checkout
       uses: actions/checkout@v4
@@ -291,35 +274,12 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Check all features (workspace)
       run: |
         cargo all-features check --n-chunks 6 --chunk ${{ matrix.chunk }} --workspace --all-targets
-
-  smoke-wasm-std:
-    name: Make sure WASM32 with std works
-    runs-on: ubuntu-24.04
-    steps:
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.89.0
-      with:
-        targets: wasm32-unknown-unknown
-
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Set up cargo cache
-      uses: Swatinem/rust-cache@v2
-      with:
-        cache-on-failure: true
-
-    - name: Check WASM32 with std
-      run: |
-        cd vm
-        cargo build --target wasm32-unknown-unknown
-        cargo build --target wasm32-unknown-unknown --no-default-features
 
   tests:
     needs: merge-caches
@@ -327,7 +287,7 @@ jobs:
       fail-fast: false
       matrix:
         special_features: ["", "extensive_hints", "mod_builtin", "cairo-0-secp-hints", "cairo-0-data-availability-hints"]
-        target: [ test#1, test#2, test#3, test#4, test-wasm ]
+        target: [ test#1, test#2, test#3, test#4 ]
     name: Run tests
     runs-on: ubuntu-24.04
     steps:
@@ -349,13 +309,13 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: all-programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Install testing tools
       uses: taiki-e/install-action@v2
       with:
-        tool: cargo-nextest@0.9.49,cargo-llvm-cov,wasm-pack
+        tool: cargo-nextest@0.9.49,cargo-llvm-cov
 
     - name: Install cairo 1 dependencies for running programs
       run: |
@@ -366,23 +326,12 @@ jobs:
       run: |
         # this splits the `test#1` into `test` and `1`
         export MATRIX_TARGET=${{ matrix.target }}
-        export NAME=${MATRIX_TARGET%#*}
         export PARTITION=${MATRIX_TARGET#*#}
-        # FIXME: we need to update the Makefile to do this correctly
-        case ${NAME} in
-        'test')
-          cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
-              --partition count:${PARTITION}/4 \
-              --workspace --features "cairo-1-hints, test_utils, ${{ matrix.special_features }}"
-          ;;
-        'test-wasm')
-          # NOTE: release mode is needed to avoid "too many locals" error
-          wasm-pack test --release --node vm --no-default-features --features "${{ matrix.special_features }}"
-          ;;
-        esac
+        cargo llvm-cov nextest --lcov --output-path lcov-${{ matrix.target }}-${{ matrix.special_features }}.info \
+            --partition count:${PARTITION}/4 \
+            --workspace --features "cairo-1-hints, test_utils, ${{ matrix.special_features }}"
 
     - name: Save coverage
-      if: matrix.target != 'test-wasm'
       uses: actions/cache/save@v3
       with:
         path: lcov-${{ matrix.target }}-${{ matrix.special_features }}.info
@@ -441,7 +390,7 @@ jobs:
           cairo_programs/**/*.air_public_input
           cairo_programs/**/*.air_private_input
           cairo_programs/**/*.pie.zip
-        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
 
     - name: Install uv
       if: steps.trace-cache.outputs.cache-hit != 'true'
@@ -460,7 +409,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     # This is not pretty, but we need `make` to see the compiled programs are
@@ -507,7 +456,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: ${{ matrix.program-target }}-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Generate traces
@@ -666,7 +615,7 @@ jobs:
           cairo_programs/**/*.air_public_input
           cairo_programs/**/*.air_private_input
           cairo_programs/**/*.pie.zip
-        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: ${{ matrix.program-target }}-reference-trace-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Fetch traces for cairo-vm
@@ -691,56 +640,6 @@ jobs:
           PIE=pie
         fi
         ./vm/src/tests/compare_vm_state.sh trace memory $PROOF $AIR_PUBLIC_INPUT $AIR_PRIVATE_INPUT $PIE
-
-  wasm-demo:
-    name: Build the wasm demo
-    runs-on: ubuntu-24.04
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        enable-cache: true
-    - name: Install python deps
-      run: |
-          make python-deps
-          . cairo-vm-env/bin/activate
-          echo PATH=$PATH >> $GITHUB_ENV
-
-    - name: Install wasm-pack dep
-      run: |
-        npm install -g wasm-pack
-
-    - name: Build wasm-demo
-      run: |
-        cairo-compile cairo_programs/array_sum.cairo --no_debug_info --output cairo_programs/array_sum.json
-        cd examples/wasm-demo
-        wasm-pack build --target=web
-
-  wasm-demo-cairo1: 
-    name: Build the wasm demo cairo1
-    runs-on: ubuntu-22.04
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
-      
-    - name: Install wasm-pack dep
-      run: npm install -g wasm-pack 
-    
-    - name: Make deps
-      run: make deps
-
-    - name: Build wasm-demo-cairo1
-      run: |
-        ./cairo1/bin/cairo-compile -r cairo_programs/cairo-1-programs/bitwise.cairo cairo_programs/cairo-1-programs/bitwise.sierra
-        cd examples/wasm-demo-cairo1
-        wasm-pack build --target=web
 
   compare-factorial-outputs-all-layouts:
     name: Compare factorial outputs for all layouts
@@ -776,7 +675,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Run script
@@ -816,7 +715,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: ${{ env.CAIRO_PROGRAMS_PATH }}
-        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'examples/wasm-demo/src/array_sum.cairo', 'Makefile', 'requirements.txt') }}
+        key: cairo_proof_programs-cache-${{ hashFiles('cairo_programs/**/*.cairo', 'Makefile', 'requirements.txt') }}
         fail-on-cache-miss: true
 
     - name: Fetch pie
