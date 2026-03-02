@@ -215,11 +215,7 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_var_name_immediate_value() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];
@@ -234,7 +230,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_relocatable_from_var_name_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];
@@ -248,7 +243,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_maybe_relocatable_from_var_name_invalid() {
         let mut vm = vm!();
         vm.segments.memory = Memory::new();
@@ -262,7 +256,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_var_name_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];
@@ -276,7 +269,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_ptr_from_var_name_invalid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 0)];
@@ -290,7 +282,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_relocatable_from_var_name_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];
@@ -304,7 +295,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_relocatable_from_var_name_invalid() {
         let mut vm = vm!();
         vm.segments.memory = Memory::new();
@@ -318,7 +308,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_var_name_valid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), 1)];
@@ -332,7 +321,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_integer_from_var_name_invalid() {
         let mut vm = vm!();
         vm.segments = segments![((1, 0), (0, 0))];

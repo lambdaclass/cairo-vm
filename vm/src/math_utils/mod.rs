@@ -420,21 +420,14 @@ mod tests {
 
     use num_traits::Num;
 
-    #[cfg(not(target_arch = "wasm32"))]
     use num_prime::RandPrime;
 
-    #[cfg(not(target_arch = "wasm32"))]
     use proptest::prelude::*;
 
     // Only used in proptest for now
-    #[cfg(not(target_arch = "wasm32"))]
     use num_bigint::Sign;
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_divmod_a() {
         let a = bigint_str!(
             "11260647941622813594563746375280766662237311019551239924981511729608487775604310196863705127454617186486639011517352066501847110680463498585797912894788"
@@ -457,7 +450,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_divmod_b() {
         let a = bigint_str!(
             "29642372811668969595956851264770043260610851505766181624574941701711520154703788233010819515917136995474951116158286220089597404329949295479559895970988"
@@ -480,7 +472,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_divmod_c() {
         let a = bigint_str!(
             "1208267356464811040667664150251401430616174694388968865551115897173431833224432165394286799069453655049199580362994484548890574931604445970825506916876"
@@ -503,7 +494,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div() {
         let x = Felt252::from(26);
         let y = Felt252::from(13);
@@ -511,7 +501,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_non_divisor() {
         let x = Felt252::from(25);
         let y = Felt252::from(4);
@@ -522,7 +511,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_by_zero() {
         let x = Felt252::from(25);
         let y = Felt252::ZERO;
@@ -531,13 +519,11 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_usize() {
         assert_matches!(safe_div_usize(26, 13), Ok(2));
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_usize_non_divisor() {
         assert_matches!(
             safe_div_usize(25, 4),
@@ -546,13 +532,11 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_safe_div_usize_by_zero() {
         assert_matches!(safe_div_usize(25, 0), Err(MathError::DividedByZero));
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_line_slope_for_valid_points() {
         let point_a = (
             bigint_str!(
@@ -580,7 +564,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_double_slope_for_valid_point_a() {
         let point = (
             bigint_str!(
@@ -601,7 +584,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn compute_double_slope_for_valid_point_b() {
         let point = (
             bigint_str!(
@@ -622,7 +604,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_double_for_valid_point_a() {
         let point = (
             bigint_str!(
@@ -648,7 +629,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_double_for_valid_point_b() {
         let point = (
             bigint_str!(
@@ -674,7 +654,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_double_for_valid_point_c() {
         let point = (
             bigint_str!(
@@ -700,7 +679,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_add_for_valid_points_a() {
         let point_a = (
             bigint_str!(
@@ -733,7 +711,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_add_for_valid_points_b() {
         let point_a = (
             bigint_str!(
@@ -766,7 +743,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_ec_add_for_valid_points_c() {
         let point_a = (
             bigint_str!(
@@ -799,21 +775,18 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_isqrt_a() {
         let n = biguint!(81);
         assert_matches!(isqrt(&n), Ok(x) if x == biguint!(9));
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_isqrt_b() {
         let n = biguint_str!("4573659632505831259480");
         assert_matches!(isqrt(&BigUint::pow(&n, 2_u32)), Ok(num) if num == n);
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_isqrt_c() {
         let n = biguint_str!(
             "3618502788666131213697322783095070105623107215331596699973092056135872020481"
@@ -822,14 +795,12 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn calculate_isqrt_zero() {
         let n = BigUint::zero();
         assert_matches!(isqrt(&n), Ok(inner) if inner.is_zero());
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn safe_div_bigint_by_zero() {
         let x = BigInt::one();
         let y = BigInt::zero();
@@ -837,7 +808,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_sqrt_prime_power() {
         let n: BigUint = 25_u32.into();
         let p: BigUint = 18446744069414584321_u128.into();
@@ -845,7 +815,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_sqrt_prime_power_p_is_zero() {
         let n = BigUint::one();
         let p: BigUint = BigUint::zero();
@@ -853,7 +822,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_sqrt_prime_power_non_prime() {
         let p: BigUint = BigUint::from_bytes_be(&[
             69, 15, 232, 82, 215, 167, 38, 143, 173, 94, 133, 111, 1, 2, 182, 229, 110, 113, 76, 0,
@@ -868,7 +836,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_sqrt_prime_power_none() {
         let n: BigUint = 10_u32.into();
         let p: BigUint = 602_u32.into();
@@ -876,7 +843,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_sqrt_prime_power_prime_two() {
         let n: BigUint = 25_u32.into();
         let p: BigUint = 2_u32.into();
@@ -884,7 +850,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_sqrt_prime_power_prime_mod_8_is_5_sign_not_one() {
         let n: BigUint = 676_u32.into();
         let p: BigUint = 9956234341095173_u64.into();
@@ -895,7 +860,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_sqrt_prime_power_prime_mod_8_is_5_sign_is_one() {
         let n: BigUint = 130283432663_u64.into();
         let p: BigUint = 743900351477_u64.into();
@@ -906,13 +870,11 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_legendre_symbol_zero() {
         assert!(legendre_symbol(&BigUint::zero(), &BigUint::one()).is_zero())
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_is_quad_residue_prime_zero() {
         assert_eq!(
             is_quad_residue(&BigUint::one(), &BigUint::zero()),
@@ -921,13 +883,11 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn test_is_quad_residue_prime_a_one_true() {
         assert_eq!(is_quad_residue(&BigUint::one(), &BigUint::one()), Ok(true))
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn mul_inv_0_is_0() {
         let p = &(*CAIRO_PRIME).clone().into();
         let x = &BigInt::zero();
@@ -937,7 +897,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn igcdex_1_1() {
         assert_eq!(
             igcdex(&BigInt::one(), &BigInt::one()),
@@ -946,7 +905,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn igcdex_0_0() {
         assert_eq!(
             igcdex(&BigInt::zero(), &BigInt::zero()),
@@ -955,7 +913,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn igcdex_1_0() {
         assert_eq!(
             igcdex(&BigInt::one(), &BigInt::zero()),
@@ -964,7 +921,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn igcdex_4_6() {
         assert_eq!(
             igcdex(&BigInt::from(4), &BigInt::from(6)),
@@ -972,7 +928,6 @@ mod tests {
         )
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     proptest! {
 
         #[test]

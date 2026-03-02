@@ -229,13 +229,10 @@ mod tests {
     use assert_matches::assert_matches;
 
     use rstest::rstest;
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
 
     const SHA256_INPUT_CHUNK_SIZE_FELTS: usize = 16;
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_input_one() {
         let mut vm = vm_with_range_check!();
         vm.segments = segments![((1, 1), 7)];
@@ -247,7 +244,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_input_zero() {
         let mut vm = vm_with_range_check!();
         vm.segments = segments![((1, 1), 3)];
@@ -259,7 +255,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_constant_input_length_ok() {
         let hint_code = hint_code::SHA256_MAIN_CONSTANT_INPUT_LENGTH;
         let mut vm = vm_with_range_check!();
@@ -310,7 +305,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_arbitrary_input_length_ok() {
         let hint_code = hint_code::SHA256_MAIN_ARBITRARY_INPUT_LENGTH;
         let mut vm = vm_with_range_check!();
@@ -375,7 +369,6 @@ mod tests {
     }
 
     #[rstest]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     #[case(hint_code::SHA256_MAIN_CONSTANT_INPUT_LENGTH)]
     #[case(hint_code::SHA256_MAIN_ARBITRARY_INPUT_LENGTH)]
     fn sha256_invalid_chunk_size(#[case] hint_code: &str) {
@@ -413,7 +406,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_invalid_state_size() {
         let hint_code = hint_code::SHA256_MAIN_ARBITRARY_INPUT_LENGTH;
         let mut vm = vm_with_range_check!();
@@ -447,7 +439,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn sha256_unexpected_state_size() {
         let hint_code = hint_code::SHA256_MAIN_ARBITRARY_INPUT_LENGTH;
         let state_size = Felt252::from(9);

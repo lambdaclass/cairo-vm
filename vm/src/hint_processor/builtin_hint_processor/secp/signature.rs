@@ -182,11 +182,7 @@ mod tests {
     use assert_matches::assert_matches;
     use num_traits::{One, Zero};
 
-    #[cfg(target_arch = "wasm32")]
-    use wasm_bindgen_test::*;
-
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn safe_div_ok() {
         // "import N"
         let mut exec_scopes = ExecutionScopes::new();
@@ -218,7 +214,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn safe_div_fail() {
         let mut exec_scopes = scope![
             ("a", BigInt::zero()),
@@ -240,7 +235,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_point_from_x_ok() {
         let hint_code = hint_code::GET_POINT_FROM_X;
         let mut vm = vm!();
@@ -268,7 +262,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_point_from_x_negative_y() {
         let hint_code = hint_code::GET_POINT_FROM_X;
         let mut vm = vm!();
@@ -308,7 +301,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn pack_modn_div_modn_ok() {
         let hint_code = hint_code::PACK_MODN_DIV_MODN;
         let mut exec_scopes = scope![("N", N.clone())];

@@ -20,9 +20,6 @@ use crate::{
     hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
 };
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
-
 mod bitwise_test;
 #[cfg(test)]
 mod run_deprecated_contract_class_simplified;
