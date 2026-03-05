@@ -341,7 +341,7 @@ pub fn split_int(
     let output = get_ptr_from_var_name("output", vm, ids_data, ap_tracking)?;
     //Main Logic
     let res = value.mod_floor(base);
-    if &res > bound {
+    if &res >= bound {
         return Err(HintError::SplitIntLimbOutOfRange(Box::new(res)));
     }
     vm.insert_value(output, res).map_err(HintError::Memory)
@@ -422,8 +422,8 @@ pub fn sqrt(
     ap_tracking: &ApTracking,
 ) -> Result<(), HintError> {
     let mod_value = get_integer_from_var_name("value", vm, ids_data, ap_tracking)?;
-    //This is equal to mod_value > Felt252::from(2).pow(250)
-    if mod_value > pow2_const(250) {
+    //This is equal to mod_value >= Felt252::from(2).pow(250)
+    if mod_value >= pow2_const(250) {
         return Err(HintError::ValueOutside250BitRange(Box::new(mod_value)));
         //This is equal to mod_value > bigint!(2).pow(250)
     }
@@ -538,7 +538,7 @@ pub fn assert_250_bit(
         ap_tracking,
     )?));
     //Main logic
-    if &value > upper_bound {
+    if &value >= upper_bound {
         return Err(HintError::ValueOutside250BitRange(Box::new(value)));
     }
     let (high, low) = value.div_rem(&shift.try_into().map_err(|_| MathError::DividedByZero)?);
@@ -1442,6 +1442,23 @@ mod tests {
     }
 
     #[test]
+    fn run_split_int_equal_to_bound() {
+        let hint_code = "memory[ids.output] = res = (int(ids.value) % PRIME) % ids.base\nassert res < ids.bound, f'split_int(): Limb {res} is out of range.'";
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 4;
+        //Insert ids into memory: value=7, base=10, bound=7 => res = 7 % 10 = 7, 7 == bound should fail
+        vm.segments = segments![((1, 0), (2, 0)), ((1, 1), 7), ((1, 2), 10), ((1, 3), 7)];
+        add_segments!(vm, 2);
+        let ids_data = ids_data!["output", "value", "base", "bound"];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::SplitIntLimbOutOfRange(bx)) if *bx == Felt252::from(7)
+        );
+    }
+
+    #[test]
     fn run_is_positive_hint_true() {
         let hint_code =
         "from starkware.cairo.common.math_utils import is_positive\nids.is_positive = 1 if is_positive(\n    value=ids.value, prime=PRIME, rc_bound=range_check_builtin.bound) else 0";
@@ -1537,6 +1554,29 @@ mod tests {
         assert_matches!(run_hint!(vm, ids_data, hint_code), Ok(()));
         //Check that root (0,1) has the square root of 81
         check_memory![vm.segments.memory, ((1, 1), 9)];
+    }
+
+    #[test]
+    fn run_sqrt_invalid_equal_to_2_pow_250() {
+        let hint_code = "from starkware.python.math_utils import isqrt\nvalue = ids.value % PRIME\nassert value < 2 ** 250, f\"value={value} is outside of the range [0, 2**250).\"\nassert 2 ** 250 < PRIME\nids.root = isqrt(value)";
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 2;
+        //Insert ids.value = 2^250 into memory (exactly at the bound, should fail)
+        vm.segments = segments![(
+            (1, 0),
+            (
+                "1809251394333065553493296640760748560207343510400633813116524750123642650624",
+                10
+            )
+        )];
+        //Create ids
+        let ids_data = ids_data!["value", "root"];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code),
+            Err(HintError::ValueOutside250BitRange(bx)) if *bx == pow2_const(250)
+        );
     }
 
     #[test]
@@ -1842,6 +1882,27 @@ mod tests {
         assert_matches!(
             run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
             Err(HintError::ValueOutside250BitRange(bx)) if *bx == pow2_const(251)
+        );
+    }
+
+    #[test]
+    fn run_assert_250_bit_equal_to_upper_bound() {
+        let hint_code = hint_code::ASSERT_250_BITS;
+        let constants = HashMap::from([
+            ("UPPER_BOUND".to_string(), Felt252::from(15)),
+            ("SHIFT".to_string(), Felt252::from(5)),
+        ]);
+        let mut vm = vm!();
+        //Initialize fp
+        vm.run_context.fp = 3;
+        //Insert ids into memory: value == UPPER_BOUND (15), should fail
+        vm.segments = segments![((1, 0), 15)];
+        //Create ids
+        let ids_data = ids_data!["value", "high", "low"];
+        //Execute the hint
+        assert_matches!(
+            run_hint!(vm, ids_data, hint_code, &mut exec_scopes_ref!(), &constants),
+            Err(HintError::ValueOutside250BitRange(bx)) if *bx == Felt252::from(15)
         );
     }
 
