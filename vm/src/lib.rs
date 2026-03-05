@@ -12,6 +12,7 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(warnings)]
+#![allow(mismatched_lifetime_syntaxes)]
 #![forbid(unsafe_code)]
 
 pub mod air_private_input;
