@@ -12,8 +12,6 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
-#### [3.2.0] - 2026-3-3
-
 * chore: Update fuzz_json with missing hint constants and improve fuzzer docs [#2341](https://github.com/lambdaclass/cairo-vm/pull/2341)
 
 * chore: Remove `diff_fuzzer` and `py_export` [#2340](https://github.com/lambdaclass/cairo-vm/pull/2340)
@@ -29,10 +27,6 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 * chore: Remove `cairo_compiled_programs_fuzzer` [#2339](https://github.com/lambdaclass/cairo-vm/pull/2339)
 
 * refactor: deduplicate memory segment selection in Memory helpers [#2331](https://github.com/lambdaclass/cairo-vm/pull/2331)
-
-* feat: `Add_ecop_to_all_cairo_stwo_and_add_stwo_no_ecop_layout` [#2333](https://github.com/lambdaclass/cairo-vm/pull/2333)
-  * `all_cairo_stwo` now includes `ec_op`.
-  * Added new `stwo_no_ecop` layout preserving the previous `all_cairo_stwo` behavior.
 
 * fix: replace `streaming::tag` with `complete::tag` in deserialize_utils [#2332](https://github.com/lambdaclass/cairo-vm/pull/2332)
 
