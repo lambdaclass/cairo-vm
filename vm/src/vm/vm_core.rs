@@ -120,7 +120,7 @@ pub struct VirtualMachine {
     /// implementation of this mechanism in `simulated_builtins.cairo`, or
     /// cairo-lang's `simple_bootloader.cairo`.
     pub simulated_builtin_runners: Vec<BuiltinRunner>,
-    pub(crate) extended_resource_counter: HashMap<ExtendedExecutionResourceType, u32>,
+    pub(crate) extended_resource_counter: HashMap<ExtendedExecutionResourceType, usize>,
     pub segments: MemorySegmentManager,
     pub(crate) trace: Option<Vec<TraceEntry>>,
     pub(crate) current_step: usize,

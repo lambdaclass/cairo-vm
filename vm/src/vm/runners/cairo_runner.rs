@@ -1104,7 +1104,9 @@ impl CairoRunner {
         })
     }
 
-    pub fn get_extended_execution_resources(&self) -> &HashMap<ExtendedExecutionResourceType, u32> {
+    pub fn get_extended_execution_resources(
+        &self,
+    ) -> &HashMap<ExtendedExecutionResourceType, usize> {
         &self.vm.extended_resource_counter
     }
 
