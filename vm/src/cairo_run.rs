@@ -8,7 +8,10 @@ use crate::{
         errors::{
             cairo_run_errors::CairoRunError, runner_errors::RunnerError, vm_exception::VmException,
         },
-        runners::{cairo_pie::CairoPie, cairo_runner::CairoRunner},
+        runners::{
+            cairo_pie::CairoPie,
+            cairo_runner::{CairoRunner, RunnerMode},
+        },
         security::verify_secure_runner,
         trace::trace_entry::RelocatedTraceEntry,
     },
@@ -65,6 +68,63 @@ impl Default for CairoRunConfig<'_> {
             dynamic_layout_params: None,
         }
     }
+}
+
+pub struct StwoCairoRunConfig {
+    pub relocate_mem: bool,
+    pub relocate_trace: bool,
+    pub fill_holes: bool,
+    pub secure_run: bool,
+}
+
+impl Default for StwoCairoRunConfig {
+    fn default() -> Self {
+        StwoCairoRunConfig {
+            relocate_mem: false,
+            relocate_trace: true,
+            fill_holes: false,
+            secure_run: false,
+        }
+    }
+}
+
+#[allow(clippy::result_large_err)]
+pub fn cairo_run_stwo(
+    program: &Program,
+    cairo_run_config: &StwoCairoRunConfig,
+    hint_processor: &mut dyn HintProcessor,
+    exec_scopes: ExecutionScopes,
+    allowed_builtins: &[BuiltinName],
+    runner_mode: RunnerMode,
+) -> Result<CairoRunner, CairoRunError> {
+    let _span = span!(Level::INFO, "cairo run stwo").entered();
+
+    let mut cairo_runner = CairoRunner::new_stwo(program, runner_mode)?;
+    cairo_runner.exec_scopes = exec_scopes;
+
+    let end = cairo_runner.initialize_stwo(allowed_builtins)?;
+
+    cairo_runner
+        .run_until_pc(end, hint_processor)
+        .map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
+
+    cairo_runner.run_for_steps(1, hint_processor)?;
+
+    cairo_runner.end_run(true, false, hint_processor, cairo_run_config.fill_holes)?;
+
+    cairo_runner.read_return_values(false)?;
+    cairo_runner.finalize_segments()?;
+
+    if cairo_run_config.secure_run {
+        verify_secure_runner(&cairo_runner, true, None)?;
+    }
+
+    cairo_runner.relocate(
+        cairo_run_config.relocate_mem,
+        cairo_run_config.relocate_trace,
+    )?;
+
+    Ok(cairo_runner)
 }
 
 #[allow(clippy::result_large_err)]

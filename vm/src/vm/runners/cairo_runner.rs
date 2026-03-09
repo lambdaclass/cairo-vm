@@ -243,6 +243,48 @@ impl CairoRunner {
         })
     }
 
+    /// Creates a `CairoRunner` for Stwo proving.
+    /// No layout is used. Builtins are created from `allowed_builtins` with no ratios.
+    /// Always runs in proof mode with trace enabled and trace padding disabled.
+    pub fn new_stwo(program: &Program, mode: RunnerMode) -> Result<CairoRunner, RunnerError> {
+        Ok(CairoRunner {
+            program: program.clone(),
+            vm: VirtualMachine::new(true, true),
+            layout: CairoLayout::all_cairo_stwo_instance(),
+            final_pc: None,
+            program_base: None,
+            execution_base: None,
+            entrypoint: program.shared_program_data.main,
+            initial_ap: None,
+            initial_fp: None,
+            initial_pc: None,
+            run_ended: false,
+            segments_finalized: false,
+            runner_mode: mode,
+            relocated_memory: Vec::new(),
+            exec_scopes: ExecutionScopes::new(),
+            execution_public_memory: Some(Vec::new()),
+            relocated_trace: None,
+        })
+    }
+
+    /// Initializes the runner in Stwo mode: creates builtins, segments, entrypoint, and VM.
+    pub fn initialize_stwo(
+        &mut self,
+        allowed_builtins: &[BuiltinName],
+    ) -> Result<Relocatable, RunnerError> {
+        self.initialize_builtins_stwo(allowed_builtins)?;
+        self.initialize_segments(None);
+        let end = self.initialize_main_entrypoint()?;
+        for builtin_runner in self.vm.builtin_runners.iter_mut() {
+            if let BuiltinRunner::Mod(runner) = builtin_runner {
+                runner.initialize_zero_segment(&mut self.vm.segments);
+            }
+        }
+        self.initialize_vm()?;
+        Ok(end)
+    }
+
     pub fn new(
         program: &Program,
         layout: LayoutName,
@@ -416,6 +458,82 @@ impl CairoRunner {
                 program_builtins.iter().map(|n| **n).collect(),
                 self.layout.name,
             ))));
+        }
+
+        Ok(())
+    }
+
+    /// Creates builtin runners for Stwo mode.
+    /// All `allowed_builtins` are created unconditionally with no ratios (dynamic allocation).
+    /// Program builtins must be a subset of `allowed_builtins`.
+    /// ECDSA and Keccak are not supported.
+    fn initialize_builtins_stwo(
+        &mut self,
+        allowed_builtins: &[BuiltinName],
+    ) -> Result<(), RunnerError> {
+        let allowed: HashSet<BuiltinName> = allowed_builtins.iter().copied().collect();
+
+        // Reject unsupported builtins
+        for name in &[BuiltinName::ecdsa, BuiltinName::keccak] {
+            if allowed.contains(name) {
+                return Err(RunnerError::UnsupportedStwoBuiltin(*name));
+            }
+        }
+
+        // Verify program builtins are a subset of allowed builtins
+        for builtin_name in &self.program.builtins {
+            if *builtin_name == BuiltinName::segment_arena {
+                continue;
+            }
+            if !allowed.contains(builtin_name) {
+                return Err(RunnerError::UnsupportedStwoBuiltin(*builtin_name));
+            }
+        }
+
+        // Create builtins in canonical order, all with None ratio
+        for name in ORDERED_BUILTIN_LIST {
+            if !allowed.contains(name) {
+                continue;
+            }
+            let included = self.program.builtins.contains(name);
+            match name {
+                BuiltinName::output => self
+                    .vm
+                    .builtin_runners
+                    .push(OutputBuiltinRunner::new(included).into()),
+                BuiltinName::pedersen => self
+                    .vm
+                    .builtin_runners
+                    .push(HashBuiltinRunner::new(None, included).into()),
+                BuiltinName::range_check => self.vm.builtin_runners.push(
+                    RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(None, included).into(),
+                ),
+                BuiltinName::bitwise => self
+                    .vm
+                    .builtin_runners
+                    .push(BitwiseBuiltinRunner::new(None, included).into()),
+                BuiltinName::ec_op => self
+                    .vm
+                    .builtin_runners
+                    .push(EcOpBuiltinRunner::new(None, included).into()),
+                BuiltinName::poseidon => self
+                    .vm
+                    .builtin_runners
+                    .push(PoseidonBuiltinRunner::new(None, included).into()),
+                BuiltinName::range_check96 => self
+                    .vm
+                    .builtin_runners
+                    .push(RangeCheckBuiltinRunner::<RC_N_PARTS_96>::new(None, included).into()),
+                BuiltinName::add_mod => self.vm.builtin_runners.push(
+                    ModBuiltinRunner::new_add_mod(&ModInstanceDef::new(None, 1, 96), included)
+                        .into(),
+                ),
+                BuiltinName::mul_mod => self.vm.builtin_runners.push(
+                    ModBuiltinRunner::new_mul_mod(&ModInstanceDef::new(None, 1, 96), included)
+                        .into(),
+                ),
+                _ => return Err(RunnerError::UnsupportedStwoBuiltin(*name)),
+            }
         }
 
         Ok(())
