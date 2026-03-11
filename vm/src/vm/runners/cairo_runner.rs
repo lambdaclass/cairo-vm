@@ -243,13 +243,17 @@ impl CairoRunner {
         })
     }
 
-    /// Creates a `CairoRunner` for Stwo proving.
+    /// Creates a `CairoRunner` for Stwo.
     /// No layout is used. Builtins are created from `allowed_builtins` with no ratios.
-    /// Always runs in proof mode with trace enabled and trace padding disabled.
-    pub fn new_stwo(program: &Program, mode: RunnerMode) -> Result<CairoRunner, RunnerError> {
+    /// Trace is always enabled.
+    pub fn new_stwo(
+        program: &Program,
+        mode: RunnerMode,
+        disable_trace_padding: bool,
+    ) -> Result<CairoRunner, RunnerError> {
         Ok(CairoRunner {
             program: program.clone(),
-            vm: VirtualMachine::new(true, true),
+            vm: VirtualMachine::new(true, disable_trace_padding),
             layout: CairoLayout::all_cairo_stwo_instance(),
             final_pc: None,
             program_base: None,
@@ -260,10 +264,14 @@ impl CairoRunner {
             initial_pc: None,
             run_ended: false,
             segments_finalized: false,
-            runner_mode: mode,
+            runner_mode: mode.clone(),
             relocated_memory: Vec::new(),
             exec_scopes: ExecutionScopes::new(),
-            execution_public_memory: Some(Vec::new()),
+            execution_public_memory: if mode != RunnerMode::ExecutionMode {
+                Some(Vec::new())
+            } else {
+                None
+            },
             relocated_trace: None,
         })
     }

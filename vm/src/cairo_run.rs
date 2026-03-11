@@ -75,6 +75,8 @@ pub struct StwoCairoRunConfig {
     pub relocate_trace: bool,
     pub fill_holes: bool,
     pub secure_run: bool,
+    pub proof_mode: bool,
+    pub disable_trace_padding: bool,
 }
 
 impl Default for StwoCairoRunConfig {
@@ -83,7 +85,9 @@ impl Default for StwoCairoRunConfig {
             relocate_mem: false,
             relocate_trace: true,
             fill_holes: false,
-            secure_run: false,
+            secure_run: true,
+            proof_mode: true,
+            disable_trace_padding: true,
         }
     }
 }
@@ -99,7 +103,9 @@ pub fn cairo_run_stwo(
 ) -> Result<CairoRunner, CairoRunError> {
     let _span = span!(Level::INFO, "cairo run stwo").entered();
 
-    let mut cairo_runner = CairoRunner::new_stwo(program, runner_mode)?;
+    let proof_mode = runner_mode != RunnerMode::ExecutionMode;
+    let mut cairo_runner =
+        CairoRunner::new_stwo(program, runner_mode, cairo_run_config.disable_trace_padding)?;
     cairo_runner.exec_scopes = exec_scopes;
 
     let end = cairo_runner.initialize_stwo(allowed_builtins)?;
@@ -110,10 +116,17 @@ pub fn cairo_run_stwo(
 
     cairo_runner.run_for_steps(1, hint_processor)?;
 
-    cairo_runner.end_run(true, false, hint_processor, cairo_run_config.fill_holes)?;
+    cairo_runner.end_run(
+        cairo_run_config.disable_trace_padding,
+        false,
+        hint_processor,
+        cairo_run_config.fill_holes,
+    )?;
 
-    cairo_runner.read_return_values(false)?;
-    cairo_runner.finalize_segments()?;
+    if proof_mode {
+        cairo_runner.read_return_values(false)?;
+        cairo_runner.finalize_segments()?;
+    }
 
     if cairo_run_config.secure_run {
         verify_secure_runner(&cairo_runner, true, None)?;
