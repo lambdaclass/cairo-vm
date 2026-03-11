@@ -114,7 +114,9 @@ pub fn cairo_run_stwo(
         .run_until_pc(end, hint_processor)
         .map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
 
-    cairo_runner.run_for_steps(1, hint_processor)?;
+    if proof_mode {
+        cairo_runner.run_for_steps(1, hint_processor)?;
+    }
 
     cairo_runner.end_run(
         cairo_run_config.disable_trace_padding,
