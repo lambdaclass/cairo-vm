@@ -14,7 +14,11 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 * Add union merge strategy for CHANGELOG.md [#2345](https://github.com/lambdaclass/cairo-vm/pull/2345)
 
+* fix: Fix off-by-one comparisons in `split_int`, `assert_250_bit`, and `sqrt` hints [#2348](https://github.com/lambdaclass/cairo-vm/pull/2348)
+
 #### [3.2.0] - 2026-3-3
+
+* fix: Change extended_resource_counter entry from u32 to usize [#2349](https://github.com/lambdaclass/cairo-vm/pull/2349)
 
 * chore: Update fuzz_json with missing hint constants and improve fuzzer docs [#2341](https://github.com/lambdaclass/cairo-vm/pull/2341)
 
