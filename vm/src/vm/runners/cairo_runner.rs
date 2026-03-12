@@ -5977,4 +5977,67 @@ mod tests {
         .unwrap();
         assert!(runner.relocated_trace.is_some());
     }
+
+    #[test]
+    fn cairo_run_stwo_matches_legacy_all_cairo_stwo() {
+        let programs: &[&[u8]] = &[
+            include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json"),
+            include_bytes!("../../../../cairo_programs/proof_programs/bitwise_builtin_test.json"),
+        ];
+        // Match the all_cairo_stwo layout builtins (mod builtins excluded
+        // unless the mod_builtin feature is enabled).
+        let mut allowed = vec![
+            BuiltinName::output,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op,
+            BuiltinName::poseidon,
+            BuiltinName::range_check96,
+        ];
+        if cfg!(feature = "mod_builtin") {
+            allowed.push(BuiltinName::add_mod);
+            allowed.push(BuiltinName::mul_mod);
+        }
+        for program_bytes in programs {
+            let program = Program::from_bytes(program_bytes, Some("main")).unwrap();
+
+            // Legacy run with all_cairo_stwo layout
+            let legacy_runner = crate::cairo_run::cairo_run(
+                program_bytes,
+                &CairoRunConfig {
+                    trace_enabled: true,
+                    relocate_mem: true,
+                    relocate_trace: true,
+                    layout: LayoutName::all_cairo_stwo,
+                    proof_mode: true,
+                    disable_trace_padding: true,
+                    ..Default::default()
+                },
+                &mut BuiltinHintProcessor::new_empty(),
+            )
+            .unwrap();
+
+            // Stwo run
+            let stwo_runner = crate::cairo_run::cairo_run_stwo(
+                &program,
+                RunnerMode::ProofModeCanonical,
+                &allowed,
+                &mut BuiltinHintProcessor::new_empty(),
+                ExecutionScopes::new(),
+                &crate::cairo_run::StwoCairoRunConfig {
+                    trace_enabled: true,
+                    relocate_mem: true,
+                    relocate_trace: true,
+                    fill_holes: false,
+                    secure_run: true,
+                    disable_trace_padding: true,
+                },
+            )
+            .unwrap();
+
+            assert_eq!(legacy_runner.relocated_memory, stwo_runner.relocated_memory);
+            assert_eq!(legacy_runner.relocated_trace, stwo_runner.relocated_trace);
+        }
+    }
 }
