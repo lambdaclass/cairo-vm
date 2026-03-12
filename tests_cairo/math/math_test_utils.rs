@@ -17,3 +17,11 @@ pub fn is_quad_residue_mod_prime(a: &BigUint) -> i64 {
         Err(_) => -1,
     }
 }
+/// Computes `(b - a) mod CAIRO_PRIME`.
+pub fn sub_mod_prime(a: &BigUint, b: &BigUint) -> BigUint {
+    if b >= a {
+        (b - a) % &*CAIRO_PRIME
+    } else {
+        (&*CAIRO_PRIME + b - a) % &*CAIRO_PRIME
+    }
+}
