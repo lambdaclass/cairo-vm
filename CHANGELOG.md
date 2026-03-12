@@ -12,6 +12,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 #### Upcoming Changes
 
+* Add union merge strategy for CHANGELOG.md [#2345](https://github.com/lambdaclass/cairo-vm/pull/2345)
+
 * fix: Fix off-by-one comparisons in `split_int`, `assert_250_bit`, and `sqrt` hints [#2348](https://github.com/lambdaclass/cairo-vm/pull/2348)
 
 #### [3.2.0] - 2026-3-3
