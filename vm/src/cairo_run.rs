@@ -330,6 +330,86 @@ pub fn cairo_run_pie(
     Ok(cairo_runner)
 }
 
+/// Runs a Cairo PIE using the Stwo runtime API.
+/// Same as `cairo_run_pie` but uses `new_stwo` + `initialize_stwo` instead of layouts.
+/// Note: Cairo PIEs cannot be run in proof mode.
+/// WARNING: As the RunResources are part of the HintProcessor trait, the caller should make sure that
+/// the number of steps in the `RunResources` matches that of the `ExecutionResources` in the `CairoPie`.
+/// An error will be returned if this doesn't hold.
+#[allow(clippy::result_large_err)]
+pub fn cairo_run_pie_stwo(
+    pie: &CairoPie,
+    allowed_builtins: &[BuiltinName],
+    hint_processor: &mut dyn HintProcessor,
+    cairo_run_config: &StwoCairoRunConfig,
+) -> Result<CairoRunner, CairoRunError> {
+    if hint_processor
+        .get_n_steps()
+        .is_none_or(|steps| steps != pie.execution_resources.n_steps)
+    {
+        return Err(RunnerError::PieNStepsVsRunResourcesNStepsMismatch.into());
+    }
+    pie.run_validity_checks()?;
+
+    let program = Program::from_stripped_program(&pie.metadata.program);
+    let mut cairo_runner = CairoRunner::new_stwo(
+        &program,
+        RunnerMode::ExecutionMode,
+        cairo_run_config.trace_enabled,
+        cairo_run_config.disable_trace_padding,
+    )?;
+
+    let end = cairo_runner.initialize_stwo(allowed_builtins)?;
+    cairo_runner.vm.finalize_segments_by_cairo_pie(pie);
+    // Load builtin additional data
+    for (name, data) in pie.additional_data.0.iter() {
+        // Data is not trusted in secure_run, therefore we skip extending the hash builtin's data
+        if matches!(name, BuiltinName::pedersen) && cairo_run_config.secure_run {
+            continue;
+        }
+        if let Some(builtin) = cairo_runner
+            .vm
+            .builtin_runners
+            .iter_mut()
+            .find(|b| b.name() == *name)
+        {
+            builtin.extend_additional_data(data)?;
+        }
+    }
+    // Load previous execution memory
+    let has_zero_segment = cairo_runner.vm.segments.has_zero_segment() as usize;
+    let n_extra_segments = pie.metadata.extra_segments.len() - has_zero_segment;
+    cairo_runner
+        .vm
+        .segments
+        .load_pie_memory(&pie.memory, n_extra_segments)?;
+
+    cairo_runner
+        .run_until_pc(end, hint_processor)
+        .map_err(|err| VmException::from_vm_error(&cairo_runner, err))?;
+
+    cairo_runner.end_run(
+        cairo_run_config.disable_trace_padding,
+        false,
+        hint_processor,
+        cairo_run_config.fill_holes,
+    )?;
+
+    cairo_runner.read_return_values(false)?;
+
+    if cairo_run_config.secure_run {
+        verify_secure_runner(&cairo_runner, true, None)?;
+        // Check that the Cairo PIE produced by this run is compatible with the Cairo PIE received
+        cairo_runner.get_cairo_pie()?.check_pie_compatibility(pie)?;
+    }
+    cairo_runner.relocate(
+        cairo_run_config.relocate_mem,
+        cairo_run_config.relocate_trace,
+    )?;
+
+    Ok(cairo_runner)
+}
+
 #[cfg(feature = "test_utils")]
 #[allow(clippy::result_large_err)]
 pub fn cairo_run_fuzzed_program(
