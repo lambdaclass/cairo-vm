@@ -71,22 +71,22 @@ impl Default for CairoRunConfig<'_> {
 }
 
 pub struct StwoCairoRunConfig {
+    pub trace_enabled: bool,
     pub relocate_mem: bool,
     pub relocate_trace: bool,
     pub fill_holes: bool,
     pub secure_run: bool,
-    pub proof_mode: bool,
     pub disable_trace_padding: bool,
 }
 
 impl Default for StwoCairoRunConfig {
     fn default() -> Self {
         StwoCairoRunConfig {
+            trace_enabled: true,
             relocate_mem: false,
             relocate_trace: true,
             fill_holes: false,
             secure_run: true,
-            proof_mode: true,
             disable_trace_padding: true,
         }
     }
@@ -95,17 +95,21 @@ impl Default for StwoCairoRunConfig {
 #[allow(clippy::result_large_err)]
 pub fn cairo_run_stwo(
     program: &Program,
-    cairo_run_config: &StwoCairoRunConfig,
+    runner_mode: RunnerMode,
+    allowed_builtins: &[BuiltinName],
     hint_processor: &mut dyn HintProcessor,
     exec_scopes: ExecutionScopes,
-    allowed_builtins: &[BuiltinName],
-    runner_mode: RunnerMode,
+    cairo_run_config: &StwoCairoRunConfig,
 ) -> Result<CairoRunner, CairoRunError> {
     let _span = span!(Level::INFO, "cairo run stwo").entered();
 
     let proof_mode = runner_mode != RunnerMode::ExecutionMode;
-    let mut cairo_runner =
-        CairoRunner::new_stwo(program, runner_mode, cairo_run_config.disable_trace_padding)?;
+    let mut cairo_runner = CairoRunner::new_stwo(
+        program,
+        runner_mode,
+        cairo_run_config.trace_enabled,
+        cairo_run_config.disable_trace_padding,
+    )?;
     cairo_runner.exec_scopes = exec_scopes;
 
     let end = cairo_runner.initialize_stwo(allowed_builtins)?;

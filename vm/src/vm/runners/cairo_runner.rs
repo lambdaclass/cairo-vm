@@ -244,16 +244,20 @@ impl CairoRunner {
     }
 
     /// Creates a `CairoRunner` for Stwo.
-    /// No layout is used. Builtins are created from `allowed_builtins` with no ratios.
-    /// Trace is always enabled.
+    /// Same as `new` but without layout parameters. Builtins are created from
+    /// an explicit list via `initialize_stwo` instead of being derived from a layout.
     pub fn new_stwo(
         program: &Program,
         mode: RunnerMode,
+        trace_enabled: bool,
         disable_trace_padding: bool,
     ) -> Result<CairoRunner, RunnerError> {
+        if disable_trace_padding && mode == RunnerMode::ExecutionMode {
+            return Err(RunnerError::DisableTracePaddingWithoutProofMode);
+        }
         Ok(CairoRunner {
             program: program.clone(),
-            vm: VirtualMachine::new(true, disable_trace_padding),
+            vm: VirtualMachine::new(trace_enabled, disable_trace_padding),
             layout: CairoLayout::all_cairo_stwo_instance(),
             final_pc: None,
             program_base: None,
