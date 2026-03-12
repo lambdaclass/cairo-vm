@@ -18,6 +18,8 @@ Both branches support Stwo prover opcodes (Blake2s, QM31) since v2.0.0.
 
 * test: Add `tests_cairo` utilities and a math Cairo test suite, including `assert_mr_eq!` and structured error helpers [#2353](https://github.com/lambdaclass/cairo-vm/pull/2353)
 
+* chore: Add `math_cmp_test` for Cairo file `math_cmp` and add `sub_mod_prime` function to `math_test_utils` [#2355](https://github.com/lambdaclass/cairo-vm/pull/2355)
+
 #### [3.2.0] - 2026-3-3
 
 * fix: Change extended_resource_counter entry from u32 to usize [#2349](https://github.com/lambdaclass/cairo-vm/pull/2349)
