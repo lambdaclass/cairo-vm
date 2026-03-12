@@ -5820,4 +5820,161 @@ mod tests {
             .run_until_pc(end, hint_processor)
             .expect("failed to run program");
     }
+
+    #[test]
+    fn new_stwo_proof_mode() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let runner =
+            CairoRunner::new_stwo(&program, RunnerMode::ProofModeCanonical, true, true).unwrap();
+        assert_eq!(runner.runner_mode, RunnerMode::ProofModeCanonical);
+        assert!(runner.execution_public_memory.is_some());
+    }
+
+    #[test]
+    fn new_stwo_execution_mode() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let runner =
+            CairoRunner::new_stwo(&program, RunnerMode::ExecutionMode, true, false).unwrap();
+        assert_eq!(runner.runner_mode, RunnerMode::ExecutionMode);
+        assert!(runner.execution_public_memory.is_none());
+    }
+
+    #[test]
+    fn new_stwo_disable_trace_padding_without_proof_mode() {
+        let program = Program::default();
+        match CairoRunner::new_stwo(&program, RunnerMode::ExecutionMode, true, true) {
+            Err(RunnerError::DisableTracePaddingWithoutProofMode) => {}
+            _ => panic!("Expected DisableTracePaddingWithoutProofMode error"),
+        }
+    }
+
+    #[test]
+    fn initialize_builtins_stwo_creates_all_allowed() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner =
+            CairoRunner::new_stwo(&program, RunnerMode::ProofModeCanonical, true, true).unwrap();
+        let allowed = vec![
+            BuiltinName::output,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::bitwise,
+        ];
+        runner.initialize_builtins_stwo(&allowed).unwrap();
+        let names: Vec<BuiltinName> = runner.vm.builtin_runners.iter().map(|b| b.name()).collect();
+        assert_eq!(
+            names,
+            vec![
+                BuiltinName::output,
+                BuiltinName::pedersen,
+                BuiltinName::range_check,
+                BuiltinName::bitwise
+            ]
+        );
+    }
+
+    #[test]
+    fn initialize_builtins_stwo_rejects_ecdsa() {
+        let program = Program::default();
+        let mut runner =
+            CairoRunner::new_stwo(&program, RunnerMode::ProofModeCanonical, true, true).unwrap();
+        match runner.initialize_builtins_stwo(&[BuiltinName::ecdsa]) {
+            Err(RunnerError::UnsupportedStwoBuiltin(BuiltinName::ecdsa)) => {}
+            _ => panic!("Expected UnsupportedStwoBuiltin(ecdsa) error"),
+        }
+    }
+
+    #[test]
+    fn initialize_builtins_stwo_rejects_keccak() {
+        let program = Program::default();
+        let mut runner =
+            CairoRunner::new_stwo(&program, RunnerMode::ProofModeCanonical, true, true).unwrap();
+        match runner.initialize_builtins_stwo(&[BuiltinName::keccak]) {
+            Err(RunnerError::UnsupportedStwoBuiltin(BuiltinName::keccak)) => {}
+            _ => panic!("Expected UnsupportedStwoBuiltin(keccak) error"),
+        }
+    }
+
+    #[test]
+    fn initialize_builtins_stwo_rejects_program_builtin_not_in_allowed() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/proof_programs/bitwise_builtin_test.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut runner =
+            CairoRunner::new_stwo(&program, RunnerMode::ProofModeCanonical, true, true).unwrap();
+        // bitwise_builtin_test requires bitwise, but we only allow output
+        match runner.initialize_builtins_stwo(&[BuiltinName::output]) {
+            Err(RunnerError::UnsupportedStwoBuiltin(BuiltinName::bitwise)) => {}
+            _ => panic!("Expected UnsupportedStwoBuiltin(bitwise) error"),
+        }
+    }
+
+    #[test]
+    fn cairo_run_stwo_fibonacci() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/proof_programs/fibonacci.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let allowed = vec![
+            BuiltinName::output,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op,
+            BuiltinName::poseidon,
+        ];
+        let runner = crate::cairo_run::cairo_run_stwo(
+            &program,
+            RunnerMode::ProofModeCanonical,
+            &allowed,
+            &mut hint_processor,
+            ExecutionScopes::new(),
+            &crate::cairo_run::StwoCairoRunConfig::default(),
+        )
+        .unwrap();
+        assert!(runner.relocated_trace.is_some());
+    }
+
+    #[test]
+    fn cairo_run_stwo_with_builtins() {
+        let program = Program::from_bytes(
+            include_bytes!("../../../../cairo_programs/proof_programs/bitwise_builtin_test.json"),
+            Some("main"),
+        )
+        .unwrap();
+        let mut hint_processor = BuiltinHintProcessor::new_empty();
+        let allowed = vec![
+            BuiltinName::output,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op,
+            BuiltinName::poseidon,
+        ];
+        let runner = crate::cairo_run::cairo_run_stwo(
+            &program,
+            RunnerMode::ProofModeCanonical,
+            &allowed,
+            &mut hint_processor,
+            ExecutionScopes::new(),
+            &crate::cairo_run::StwoCairoRunConfig::default(),
+        )
+        .unwrap();
+        assert!(runner.relocated_trace.is_some());
+    }
 }
