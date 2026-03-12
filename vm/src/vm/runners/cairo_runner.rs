@@ -246,6 +246,7 @@ impl CairoRunner {
     /// Creates a `CairoRunner` for Stwo.
     /// Same as `new` but without layout parameters. Builtins are created from
     /// an explicit list via `initialize_stwo` instead of being derived from a layout.
+    /// Must be paired with `initialize_stwo`. Do not use with `initialize`.
     pub fn new_stwo(
         program: &Program,
         mode: RunnerMode,
@@ -281,6 +282,7 @@ impl CairoRunner {
     }
 
     /// Initializes the runner in Stwo mode: creates builtins, segments, entrypoint, and VM.
+    /// Must be used with runners created via `new_stwo`. Do not use with `new`.
     pub fn initialize_stwo(
         &mut self,
         allowed_builtins: &[BuiltinName],
