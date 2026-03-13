@@ -129,8 +129,8 @@ pub fn cairo_run_stwo(
         cairo_run_config.fill_holes,
     )?;
 
+    cairo_runner.read_return_values(false)?;
     if proof_mode {
-        cairo_runner.read_return_values(false)?;
         cairo_runner.finalize_segments()?;
     }
 
@@ -725,6 +725,40 @@ mod tests {
         runner.get_cairo_pie().unwrap()
     }
 
+    fn stwo_allowed_builtins() -> Vec<BuiltinName> {
+        let mut allowed = vec![
+            BuiltinName::output,
+            BuiltinName::pedersen,
+            BuiltinName::range_check,
+            BuiltinName::bitwise,
+            BuiltinName::ec_op,
+            BuiltinName::poseidon,
+            BuiltinName::range_check96,
+        ];
+        if cfg!(feature = "mod_builtin") {
+            allowed.push(BuiltinName::add_mod);
+            allowed.push(BuiltinName::mul_mod);
+        }
+        allowed
+    }
+
+    fn make_cairo_pie_stwo(program_content: &[u8]) -> CairoPie {
+        let program = Program::from_bytes(program_content, Some("main")).unwrap();
+        let runner = cairo_run_stwo(
+            &program,
+            RunnerMode::ExecutionMode,
+            &stwo_allowed_builtins(),
+            &mut BuiltinHintProcessor::new_empty(),
+            ExecutionScopes::new(),
+            &StwoCairoRunConfig {
+                disable_trace_padding: false,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        runner.get_cairo_pie().unwrap()
+    }
+
     fn stwo_pie_config() -> StwoCairoRunConfig {
         StwoCairoRunConfig {
             disable_trace_padding: false,
@@ -739,7 +773,7 @@ mod tests {
     #[case(include_bytes!("../../cairo_programs/ec_op.json"))]
     #[case(include_bytes!("../../cairo_programs/bitwise_output.json"))]
     fn get_and_run_cairo_pie_stwo(#[case] program_content: &[u8]) {
-        let cairo_pie = make_cairo_pie(program_content);
+        let cairo_pie = make_cairo_pie_stwo(program_content);
         let allowed: Vec<BuiltinName> = cairo_pie
             .metadata
             .builtin_segments

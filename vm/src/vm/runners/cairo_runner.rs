@@ -504,12 +504,18 @@ impl CairoRunner {
             }
         }
 
-        // Create builtins in canonical order, all with None ratio
+        // Create builtins in canonical order, all with None ratio.
+        // In ExecutionMode, only create runners for program builtins (matching
+        // legacy behavior) so that segment indices are compatible with CairoPie.
+        let proof_mode = self.is_proof_mode();
         for name in ORDERED_BUILTIN_LIST {
             if !allowed.contains(name) {
                 continue;
             }
             let included = self.program.builtins.contains(name);
+            if !proof_mode && !included {
+                continue;
+            }
             match name {
                 BuiltinName::output => self
                     .vm
