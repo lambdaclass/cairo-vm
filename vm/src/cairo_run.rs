@@ -712,6 +712,150 @@ mod tests {
         )));
     }
 
+    fn make_cairo_pie(program_content: &[u8]) -> CairoPie {
+        let runner = cairo_run(
+            program_content,
+            &CairoRunConfig {
+                layout: LayoutName::all_cairo_stwo,
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new_empty(),
+        )
+        .unwrap();
+        runner.get_cairo_pie().unwrap()
+    }
+
+    fn stwo_pie_config() -> StwoCairoRunConfig {
+        StwoCairoRunConfig {
+            disable_trace_padding: false,
+            ..Default::default()
+        }
+    }
+
+    #[rstest]
+    #[case(include_bytes!("../../cairo_programs/fibonacci.json"))]
+    #[case(include_bytes!("../../cairo_programs/integration.json"))]
+    #[case(include_bytes!("../../cairo_programs/relocate_segments.json"))]
+    #[case(include_bytes!("../../cairo_programs/ec_op.json"))]
+    #[case(include_bytes!("../../cairo_programs/bitwise_output.json"))]
+    fn get_and_run_cairo_pie_stwo(#[case] program_content: &[u8]) {
+        let cairo_pie = make_cairo_pie(program_content);
+        let allowed: Vec<BuiltinName> = cairo_pie
+            .metadata
+            .builtin_segments
+            .keys()
+            .copied()
+            .collect();
+        let mut hint_processor = BuiltinHintProcessor::new(
+            Default::default(),
+            RunResources::new(cairo_pie.execution_resources.n_steps),
+        );
+        let config = stwo_pie_config();
+        let runner =
+            cairo_run_pie_stwo(&cairo_pie, &allowed, &mut hint_processor, &config).unwrap();
+        assert!(runner.relocated_trace.is_some());
+    }
+
+    #[rstest]
+    #[case(include_bytes!("../../cairo_programs/fibonacci.json"))]
+    #[case(include_bytes!("../../cairo_programs/bitwise_output.json"))]
+    fn cairo_run_pie_stwo_matches_legacy(#[case] program_content: &[u8]) {
+        let cairo_pie = make_cairo_pie(program_content);
+        let allowed: Vec<BuiltinName> = cairo_pie
+            .metadata
+            .builtin_segments
+            .keys()
+            .copied()
+            .collect();
+        let legacy_runner = cairo_run_pie(
+            &cairo_pie,
+            &CairoRunConfig {
+                layout: LayoutName::all_cairo_stwo,
+                trace_enabled: true,
+                relocate_mem: true,
+                ..Default::default()
+            },
+            &mut BuiltinHintProcessor::new(
+                Default::default(),
+                RunResources::new(cairo_pie.execution_resources.n_steps),
+            ),
+        )
+        .unwrap();
+        let stwo_config = StwoCairoRunConfig {
+            relocate_mem: true,
+            ..stwo_pie_config()
+        };
+        let stwo_runner = cairo_run_pie_stwo(
+            &cairo_pie,
+            &allowed,
+            &mut BuiltinHintProcessor::new(
+                Default::default(),
+                RunResources::new(cairo_pie.execution_resources.n_steps),
+            ),
+            &stwo_config,
+        )
+        .unwrap();
+        assert_eq!(legacy_runner.relocated_memory, stwo_runner.relocated_memory);
+        assert_eq!(legacy_runner.relocated_trace, stwo_runner.relocated_trace);
+    }
+
+    #[test]
+    fn cairo_run_pie_stwo_n_steps_not_set() {
+        let cairo_pie = make_cairo_pie(include_bytes!("../../cairo_programs/fibonacci.json"));
+        let res = cairo_run_pie_stwo(
+            &cairo_pie,
+            &[],
+            &mut BuiltinHintProcessor::new_empty(),
+            &stwo_pie_config(),
+        );
+        assert!(res.is_err_and(|err| matches!(
+            err,
+            CairoRunError::Runner(RunnerError::PieNStepsVsRunResourcesNStepsMismatch)
+        )));
+    }
+
+    #[test]
+    fn cairo_run_pie_stwo_n_steps_mismatch() {
+        let cairo_pie = make_cairo_pie(include_bytes!("../../cairo_programs/fibonacci.json"));
+        let wrong_steps = cairo_pie.execution_resources.n_steps + 1;
+        let res = cairo_run_pie_stwo(
+            &cairo_pie,
+            &[],
+            &mut BuiltinHintProcessor::new(Default::default(), RunResources::new(wrong_steps)),
+            &stwo_pie_config(),
+        );
+        assert!(res.is_err_and(|err| matches!(
+            err,
+            CairoRunError::Runner(RunnerError::PieNStepsVsRunResourcesNStepsMismatch)
+        )));
+    }
+
+    #[test]
+    fn cairo_run_pie_stwo_without_secure_run() {
+        let cairo_pie = make_cairo_pie(include_bytes!("../../cairo_programs/fibonacci.json"));
+        let allowed: Vec<BuiltinName> = cairo_pie
+            .metadata
+            .builtin_segments
+            .keys()
+            .copied()
+            .collect();
+        let config = StwoCairoRunConfig {
+            secure_run: false,
+            ..stwo_pie_config()
+        };
+        let runner = cairo_run_pie_stwo(
+            &cairo_pie,
+            &allowed,
+            &mut BuiltinHintProcessor::new(
+                Default::default(),
+                RunResources::new(cairo_pie.execution_resources.n_steps),
+            ),
+            &config,
+        )
+        .unwrap();
+        assert!(runner.relocated_trace.is_some());
+    }
+
     /// A simple slice writer for testing BinaryWrite in no_std-like conditions.
     struct SliceWriter<'a> {
         buf: &'a mut [u8],
